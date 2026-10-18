@@ -4,11 +4,11 @@ The ChatGPT plugin connects to the independent Cloud Run/PostgreSQL service thro
 
 ## Build from the repository
 
-Follow the [install-plugin skill](../../skills/install-plugin/SKILL.md) from [INSTALL.md](../../INSTALL.md), obtain the deployment-specific MCP URL, Gate issuer and registered public OAuth client ID, and build the [configured package](mcp-installation.md#build-a-configured-package). Reuse supplied local configuration when applicable; request missing connection settings instead of inventing endpoints or registrations.
+Execute [INSTALL.md](../../INSTALL.md) for the complete ChatGPT installation procedure. Obtain the deployment-specific MCP URL, Gate issuer and registered public OAuth client ID and build the configured package as that procedure specifies. Reuse supplied local configuration when applicable; request missing connection settings instead of inventing endpoints or registrations.
 
-The repository supplies the server implementation, common UI and portable `plugin.json`/`mcp.json` templates. These shared inputs are not a completed deployment-specific installation. The skill receives the connection settings and constructs the configured package using the existing renderer and builder. It does not generate replacement business logic.
+The repository supplies the server implementation, common UI and portable `plugin.json`/`mcp.json` templates. These shared inputs are not a completed deployment-specific installation. The installation procedure receives the connection settings and constructs the configured package using the existing renderer and builder. It does not generate replacement business logic.
 
-`mcp.json` defines the local stdio launch command. The required Remote MCP URL is stored in the operator-rendered `config.json` alongside issuer and public client ID. Both pieces are needed: the generic launch definition is reusable across deployments, while the skill must include the actual connection settings when constructing the installation package. Preserve private OAuth state outside the installed package.
+`mcp.json` defines the local stdio launch command. The required Remote MCP URL is stored in the operator-rendered `config.json` alongside issuer and public client ID. Both pieces are needed: the generic launch definition is reusable across deployments, while the installer must include the actual connection settings when constructing the installation package. Preserve private OAuth state outside the installed package.
 
 ## Install in ChatGPT
 

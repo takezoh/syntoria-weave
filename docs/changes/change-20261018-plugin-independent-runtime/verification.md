@@ -37,4 +37,6 @@ The scope-evidence query reports only the pre-existing untracked `IMG_1875.PNG` 
 
 ## Installation documentation and skill correction
 
-The follow-up separates MCP client setup from ChatGPT installation, restores README's Work installation prompt and adds the installation workflow skill. Content/reference and skill-frontmatter validation cover these documentation-only changes; the earlier application-suite result is not a new ChatGPT installation claim. The documented renderer inputs, required config.json fields, strict connection-tool arguments and stdio launcher match code. Actual ChatGPT installation remains unexecuted.
+The follow-up separates MCP client setup from ChatGPT installation, restores README's Work installation prompt and keeps the installation executor procedure directly in INSTALL.md. Content/reference and update-skill frontmatter validation cover these documentation-only changes; the earlier application-suite result is not a new ChatGPT installation claim. The documented renderer inputs, required config.json fields, strict connection-tool arguments and stdio launcher match code. Actual ChatGPT installation remains unexecuted.
+
+The final correction was compared with historical README/INSTALL source at 5191cf0. INSTALL contains no recursive Ask prompt or install-plugin dependency. The package builder and built package include only the action-tools skill. The personal marketplace example is parsed as JSON; links and English content are checked. No actual personal marketplace or ChatGPT installation is modified by this source correction.

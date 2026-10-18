@@ -9,4 +9,4 @@ Follow the [plugin update workflow](../../docs/technical/plugin-workflow.md). Bu
 
 Preserve private OAuth state outside the install directory and preserve the authorized service/client configuration. Do not deploy backend infrastructure or reset business data as part of a plugin update. Missing write responses retain their exact original operation IDs and arguments.
 
-Verify discovery, authenticated reads and actual resource/UI behavior separately. A build does not prove installation or client cache refresh. For initial setup use [install-plugin](../install-plugin/SKILL.md) through [INSTALL.md](../../INSTALL.md).
+Verify discovery, authenticated reads and actual resource/UI behavior separately. A build does not prove installation or client cache refresh. For initial setup execute [INSTALL.md](../../INSTALL.md) directly.
