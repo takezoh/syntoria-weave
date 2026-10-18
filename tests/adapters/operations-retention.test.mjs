@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createD1ActionStore} from '../helpers/owner-composition.mjs';
-import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';
+import {createD1ActionStore} from '../helpers/user-composition.mjs';
+import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';
 import {memoryActionStore} from '../helpers/memory-action-store.mjs';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 
@@ -9,13 +9,13 @@ const now='2026-10-03T00:00:00.000Z';
 function setup(t,kind){
  const fixture=kind==='memory'?null:sqliteFixture();if(fixture)t.after(()=>fixture.sql.close());
  const store=fixture?createD1ActionStore(fixture.db):memoryActionStore();
- const call=(owner,name,args={})=>actionCall({store,clock:()=>now,newId:()=>crypto.randomUUID()},owner,name,args);
- const write=async(owner,kind,payload)=>call(owner,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(owner)).revision,kind,payload});
- const fill=async(owner,revision)=>{while((await store.readSnapshot(owner)).revision<revision)await write(owner,'project_get_or_create',{name:'Filler'});};
+ const call=(user,name,args={})=>actionCall({store,clock:()=>now,newId:()=>crypto.randomUUID()},user,name,args);
+ const write=async(user,kind,payload)=>call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(user)).revision,kind,payload});
+ const fill=async(user,revision)=>{while((await store.readSnapshot(user)).revision<revision)await write(user,'project_get_or_create',{name:'Filler'});};
  return {fixture,store,call,write,fill};
 }
 
-for(const kind of ['memory','SQLite D1'])test(kind+' retains exactly the latest 100 operations and isolates owners at the boundary',async t=>{
+for(const kind of ['memory','SQLite D1'])test(kind+' retains exactly the latest 100 operations and isolates users at the boundary',async t=>{
  const {fixture,store,call,write,fill}=setup(t,kind);
  const first={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'Original'}};
  const added=await call('A','apply_change',first),actionId=added.result.resolved.actions[0].id;
@@ -80,7 +80,7 @@ test('previously unlimited history is reduced on the next successful write witho
   const operationId=crypto.randomUUID();
   insert.run('A',operationId,'{}',JSON.stringify({operationId,revision,changedIds:[]}),delta,revision-1,revision,null,now);
  }
- const b=await write('B','add',{title:'Other owner'});
+ const b=await write('B','add',{title:'Other user'});
  assert.equal((await store.readSnapshot('A')).revision,140);
  const saved=await write('A','add',{title:'New action'});assert.equal(saved.revision,141);
  assert.equal((await store.readSnapshot('A')).actions[0].title,'New action');

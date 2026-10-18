@@ -1,21 +1,29 @@
-import type { ChangeWindow, OperationResult, OwnerCommitRequest, Receipt, Snapshot } from '../data/types';
+import type { ChangeWindow, OperationResult, UserCommitRequest, Receipt, Snapshot } from '../data/types';
 
-/** Successful writes retain only the latest operations per owner, including Undo. */
+/** Successful writes retain only the latest operations per user, including Undo. */
 export const OPERATION_HISTORY_LIMIT = 100;
 
-/** Owner-bound capability handed to the application. Identity is fixed by its trusted composition. */
-export interface OwnerActionStore {
-  /** Reads a consistent snapshot for the bound owner; unknown owners have revision zero. */
+/** Receipt and user state acquired together; snapshot decoding stays lazy for conflict precedence. */
+export type ReadOperationState = Readonly<{
+  receipt: Receipt | null;
+  snapshot: () => Snapshot;
+}>;
+
+/** User-bound capability handed to the application. Identity is fixed by its trusted composition. */
+export interface UserActionStore {
+  /** Reads a consistent snapshot for the bound user; unknown users have revision zero. */
   readSnapshot(): Promise<Snapshot>;
-  /** Reads the retained owner operation window, head and oldest revision atomically. */
+  /** Reads an operation receipt and captures the current user snapshot in one acquisition. */
+  readOperationState(operationId: string): Promise<ReadOperationState>;
+  /** Reads the retained user operation window, head and oldest revision atomically. */
   readChangeWindow(afterRevision: number, throughRevision: number | null): Promise<ChangeWindow>;
   readReceipt(operationId: string): Promise<Receipt | null>;
   hasUndo(undoOf: string): Promise<boolean>;
-  commit(command: OwnerCommitRequest): Promise<OperationResult>;
+  commit(command: UserCommitRequest): Promise<OperationResult>;
 }
 
-export type OwnerActionPorts = Readonly<{
-  store: OwnerActionStore;
+export type UserActionPorts = Readonly<{
+  store: UserActionStore;
   clock: () => string;
   newId: () => string;
   /** Domain-separated scope fingerprint from the currently verified identity. */

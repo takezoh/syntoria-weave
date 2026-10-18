@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 // The built UI resources live on the authenticated Remote MCP surface; supply the trusted
 // identity headers that the Sites proxy injects in production so the private route dispatches.
 const endpoint=new URL('/mcp',process.argv[2]||'http://127.0.0.1:8787');
-const identityHeaders={'oai-authenticated-user-id':'smoke-owner','oai-authenticated-user-email':'smoke@example.invalid'};
+const identityHeaders={'oai-authenticated-user-id':'smoke-user','oai-authenticated-user-email':'smoke@example.invalid'};
 const settle=async()=>{for(let i=0;i<80;i++)await Promise.resolve();};
 for(const uri of ['ui://action-tools/actions-v4.html','ui://action-tools/actions-verification-v4.html']){
  const response=await fetch(endpoint,{signal:AbortSignal.timeout(10000),method:'POST',headers:{'Content-Type':'application/json',...identityHeaders},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'resources/read',params:{uri}})});

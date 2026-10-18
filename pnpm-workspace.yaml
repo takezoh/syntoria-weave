@@ -4,6 +4,7 @@ minimumReleaseAgeIgnoreMissingTime: false
 trustLockfile: false
 strictDepBuilds: true
 allowBuilds:
+  '@embedded-postgres/linux-x64': true
   esbuild: true
   fsevents: true
   sharp: true

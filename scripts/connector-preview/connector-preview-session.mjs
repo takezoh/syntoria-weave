@@ -99,7 +99,7 @@ const binding = createPreviewBinding({
 });
 await mkdir(directory, { recursive: true, mode: 0o700 });
 try {
-  // One owner per project. A crashed session must be explicitly cleaned up;
+  // One user per project. A crashed session must be explicitly cleaned up;
   // never silently take over another agent's connector session.
   await writeFile(
     descriptor,

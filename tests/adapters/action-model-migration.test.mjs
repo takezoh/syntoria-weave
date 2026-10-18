@@ -2,19 +2,19 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
-import {createD1ActionStore} from '../helpers/owner-composition.mjs';
-import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';
+import {createD1ActionStore} from '../helpers/user-composition.mjs';
+import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';
 const now='2026-10-03T00:00:00.000Z';
-test('action migration resets both owners and removes the retired tables and history',async t=>{
+test('action migration resets both users and removes the retired tables and history',async t=>{
  const {sql,db}=sqliteFixture({beforeActionMigration:true});t.after(()=>sql.close());
- for(const owner of ['A','B']){
+ for(const user of ['A','B']){
   const action=crypto.randomUUID(),project=crypto.randomUUID(),tag=crypto.randomUUID();
-  sql.prepare('INSERT INTO tasks(owner,id,title,created_at,updated_at) VALUES(?,?,?,?,?)').run(owner,action,'test',now,now);
-  for(const [table,id] of [['projects',project],['tags',tag]])sql.prepare(`INSERT INTO ${table} VALUES(?,?,?,NULL,1,?,?)`).run(owner,id,'test',now,now);
-  sql.prepare('INSERT INTO task_tags VALUES(?,?,?,1)').run(owner,action,tag);
-  sql.prepare('INSERT INTO dependencies VALUES(?,?,?,1)').run(owner,action,action);
-  sql.prepare('INSERT INTO catalog_identity_ledger VALUES(?,?,?,1)').run(owner,'project',project);
-  sql.prepare('INSERT INTO operations VALUES(?,?,?,?,?,?,?,?,?)').run(owner,crypto.randomUUID(),'old','{}','{}',0,1,null,now);
+  sql.prepare('INSERT INTO tasks(owner,id,title,created_at,updated_at) VALUES(?,?,?,?,?)').run(user,action,'test',now,now);
+  for(const [table,id] of [['projects',project],['tags',tag]])sql.prepare(`INSERT INTO ${table} VALUES(?,?,?,NULL,1,?,?)`).run(user,id,'test',now,now);
+  sql.prepare('INSERT INTO task_tags VALUES(?,?,?,1)').run(user,action,tag);
+  sql.prepare('INSERT INTO dependencies VALUES(?,?,?,1)').run(user,action,action);
+  sql.prepare('INSERT INTO catalog_identity_ledger VALUES(?,?,?,1)').run(user,'project',project);
+  sql.prepare('INSERT INTO operations VALUES(?,?,?,?,?,?,?,?,?)').run(user,crypto.randomUUID(),'old','{}','{}',0,1,null,now);
  }
  sql.exec('BEGIN');sql.exec(readFileSync('drizzle/0009_action_model.sql','utf8'));sql.exec('COMMIT');
  for(const table of ['tasks','task_tags','dependencies'])assert.equal(sql.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table),undefined);
@@ -23,10 +23,10 @@ test('action migration resets both owners and removes the retired tables and his
  sql.exec(readFileSync('drizzle/0010_ambiguous_umar.sql','utf8'));sql.exec(readFileSync('drizzle/0011_catalog_descriptions.sql','utf8'));sql.exec(readFileSync('drizzle/0013_project_order.sql','utf8'));sql.exec(readFileSync('drizzle/0016_tag_order.sql','utf8'));
  const store=createD1ActionStore(db);assert.equal((await store.readSnapshot('A')).revision,0);assert.equal((await store.readSnapshot('B')).revision,0);
 });
-test('real adapter preserves order and boolean flag, replay, Undo and owner isolation',async t=>{
+test('real adapter preserves order and boolean flag, replay, Undo and user isolation',async t=>{
  const fixture=sqliteFixture();t.after(()=>fixture.sql.close());const store=createD1ActionStore(fixture.db);
- const call=(owner,name,args={})=>actionCall({store,clock:()=>now,newId:()=>crypto.randomUUID()},owner,name,args);
- const write=async(owner,kind,payload)=>call(owner,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(owner)).revision,kind,payload});
+ const call=(user,name,args={})=>actionCall({store,clock:()=>now,newId:()=>crypto.randomUUID()},user,name,args);
+ const write=async(user,kind,payload)=>call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(user)).revision,kind,payload});
  const first=await write('A','add',{title:'First',order:8,flagged:true}),id=first.result.resolved.actions[0].id;
  await write('A','add',{title:'Second',order:2});
  assert.deepEqual((await call('A','query_actions')).actions.map(t=>t.title),['Second','First']);

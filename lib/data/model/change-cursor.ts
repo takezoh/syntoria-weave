@@ -164,7 +164,7 @@ export function pageChangeWindow(window: ChangeWindow, cursor: ChangeCursor, sco
   const { head_revision: head, oldest_revision: oldest } = window;
   if (!nonnegativeInteger(head) || (oldest !== null && (!nonnegativeInteger(oldest) || oldest < 1)) || !validScope(scope)) return fail('invalid_state', 'Change history metadata is malformed.');
   if (cursor.scope !== scope || cursor.position > head || (cursor.through_revision !== null && cursor.through_revision > head)) {
-    return fail('invalid_cursor', 'This cursor is invalid for the current authenticated owner or revision. Fetch a current snapshot and cursor to resync.');
+    return fail('invalid_cursor', 'This cursor is invalid for the current authenticated user or revision. Fetch a current snapshot and cursor to resync.');
   }
   const lowerBound = oldest === null ? 0 : Math.max(0, oldest - 1);
   if (cursor.position < lowerBound) return expired();

@@ -2,7 +2,7 @@
 id: adr-20261001-sites-d1-work-mvp
 kind: adr
 title: Move the MVP to Sites and D1 based on Work evidence
-status: accepted
+status: superseded
 created: '2026-10-01'
 decision_makers:
 - unknown
@@ -13,8 +13,9 @@ relations:
 - {type: supersedes, target: adr-20261001-cloud-run-firestore}
 - {type: references, target: change-20261001-structured-todo-mvp}
 source_paths: []
-summary: Select the platform based on evidence of the Work UI, conversation and D1 round trip; state MVP gaps and two defects explicitly.
-updated: '2026-10-01'
+summary: Select the platform based on evidence of the Work UI, conversation and D1
+  round trip; state MVP gaps and two defects explicitly.
+updated: '2026-10-18'
 ---
 # Select Sites + D1 as the MVP platform
 

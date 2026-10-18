@@ -49,3 +49,11 @@ next-env.d.ts
 /work/
 
 *.tsbuildinfo
+# Infrastructure state and locally generated plans contain deployment-local material.
+/infra/.terraform/
+/infra/*.tfstate*
+/infra/*.tfplan
+/db/postgres/drafts/
+
+# Ephemeral CI identity files.
+gha-creds-*.json

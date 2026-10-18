@@ -1,2 +1,2 @@
-type Leaked = import('../../adapters/d1-action-store').OwnerActionStore;
+type Leaked = import('../../adapters/d1-action-store').UserActionStore;
 export type Result = Leaked;

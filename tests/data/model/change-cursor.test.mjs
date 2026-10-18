@@ -26,7 +26,7 @@ test('cursor encoding is canonical and decoding rejects padding, duplicate keys,
 });
 
 test('feed projection preserves persisted before/after records and omits derived and internal fields', () => {
-  const action = { id: uuid(1), title: 'Action', revision: 2, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: ' exact ', order: 0, flagged: true, created_at: now, updated_at: now, owner: 'secret', view: 'normal', tags: ['derived'] };
+  const action = { id: uuid(1), title: 'Action', revision: 2, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: ' exact ', order: 0, flagged: true, created_at: now, updated_at: now, user: 'secret', view: 'normal', tags: ['derived'] };
   const project = { id: uuid(2), name: 'Project', description: '', parent_id: null, order: 0, revision: 2, created_at: now, updated_at: now, path: 'derived' };
   const tag = { id: uuid(3), name: 'Tag', description: '', parent_id: null, order: 0, revision: 2, created_at: now, updated_at: now };
   const perspective = { id: uuid(4), name: 'View', description: '', filter: { statuses: ['active'], flagged: true }, definition_version: 1, revision: 2, created_at: now, updated_at: now };

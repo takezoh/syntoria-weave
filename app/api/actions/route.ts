@@ -1,4 +1,4 @@
-import { requireOwner, actionCall, ActionError } from "@/lib/server/actions";
+import { requireUser, actionCall, ActionError } from "@/lib/server/actions";
 import { readGuardedJson } from "@/lib/http/request-guard";
 import { z, ZodError } from "zod";
 export const dynamic="force-dynamic";
@@ -7,9 +7,9 @@ const headers={"Cache-Control":"private, no-store"};
 export async function POST(req:Request) {
   try {
     const raw=await readGuardedJson(req);
-    const owner=requireOwner(req.headers);
+    const user=requireUser(req.headers);
     const {name,arguments:args}=z.object({name:z.string(),arguments:z.unknown().optional()}).strict().parse(raw);
-    return Response.json(await actionCall(owner,name,args??{}),{headers});
+    return Response.json(await actionCall(user,name,args??{}),{headers});
   } catch(e) {
     const known=e instanceof ActionError;
     const status=known?e.status:e instanceof ZodError?400:503;

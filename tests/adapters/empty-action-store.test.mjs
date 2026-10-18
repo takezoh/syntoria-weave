@@ -1,15 +1,15 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createD1ActionStore} from '../helpers/owner-composition.mjs';
-import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';
+import {createD1ActionStore} from '../helpers/user-composition.mjs';
+import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';
 import {memoryActionStore} from '../helpers/memory-action-store.mjs';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 const now='2026-10-03T00:00:00.000Z';
-for(const kind of ['memory','SQLite D1'])test(kind+' contextual creation is atomic, replayable, owner-scoped and undoable',async t=>{
+for(const kind of ['memory','SQLite D1'])test(kind+' contextual creation is atomic, replayable, user-scoped and undoable',async t=>{
  const fixture=kind==='memory'?null:sqliteFixture();if(fixture)t.after(()=>fixture.sql.close());
  const store=fixture?createD1ActionStore(fixture.db):memoryActionStore();let generated=0;
- const call=(owner,name,args={})=>actionCall({store,clock:()=>now,newId:()=>{generated++;return crypto.randomUUID();}},owner,name,args);
- const write=async(owner,kind,payload)=>call(owner,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(owner)).revision,kind,payload});
+ const call=(user,name,args={})=>actionCall({store,clock:()=>now,newId:()=>{generated++;return crypto.randomUUID();}},user,name,args);
+ const write=async(user,kind,payload)=>call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(user)).revision,kind,payload});
  const project=(await write('A','project_get_or_create',{name:'Project'})).result.resolved.project.id;
  const tag=(await write('A','tag_get_or_create',{name:'Tag'})).result.resolved.tag.id;
  const request={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:2,kind:'add',payload:{title:'Named',notes:'  raw\n日本語  ',project_id:project,tag_ids:[tag],flagged:true}};
@@ -40,6 +40,6 @@ test('SQLite association failure rolls back action, initial tags, identity and r
 });
 for(const adapter of ['memory','SQLite D1'])test(adapter+' invalid stored Action is rejected without a compatibility edit/read path',async t=>{
  const fixture=adapter==='memory'?null:sqliteFixture();if(fixture)t.after(()=>fixture.sql.close());const store=fixture?createD1ActionStore(fixture.db):memoryActionStore(),ports={store,clock:()=>now,newId:()=>crypto.randomUUID()};const created=await actionCall(ports,'A','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'Valid'}});const id=created.result.resolved.actions[0].id;
- if(fixture)fixture.sql.prepare('UPDATE actions SET title=? WHERE owner=?').run('','A');else{const read=store.readSnapshot.bind(store);store.readSnapshot=async owner=>{const s=await read(owner);s.actions[0].title='';return s;};}
+ if(fixture)fixture.sql.prepare('UPDATE actions SET title=? WHERE owner=?').run('','A');else{const read=store.readSnapshot.bind(store);store.readSnapshot=async user=>{const s=await read(user);s.actions[0].title='';return s;};}
  const invalid=await store.readSnapshot('A');await assert.rejects(actionCall(ports,'A','list_actions'),e=>e.code==='invalid_input'||e.code==='invalid_state');await assert.rejects(actionCall(ports,'A','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:invalid.revision,kind:'edit',payload:{id,notes:'Cannot rescue old shape'}}));assert.deepEqual(await store.readSnapshot('A'),invalid);
 });

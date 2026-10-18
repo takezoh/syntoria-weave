@@ -8,12 +8,12 @@ globalThis[Symbol.for(bindingKey)]={};
 register('data:text/javascript,'+encodeURIComponent(`export function resolve(specifier,context,next){if(specifier==='cloudflare:workers')return {url:'data:text/javascript,'+encodeURIComponent('export const env=globalThis[Symbol.for(${JSON.stringify(bindingKey)})];'),shortCircuit:true};return next(specifier,context);}`),import.meta.url);
 const {POST:http}=await import('../../app/api/actions/route.ts');
 const {POST:mcp}=await import('../../app/mcp/route.ts');
-test('HTTP and MCP share exact description state, validation, replay and owner isolation',async t=>{
+test('HTTP and MCP share exact description state, validation, replay and user isolation',async t=>{
  const fixture=sqliteFixture();t.after(()=>{fixture.sql.close();delete globalThis[Symbol.for(bindingKey)].DB;});globalThis[Symbol.for(bindingKey)].DB=fixture.db;
- const headers=owner=>({'content-type':'application/json','oai-authenticated-user-id':owner,'oai-authenticated-user-email':'test@example.invalid'});
- const request=(body,owner='A')=>new Request('https://local.invalid/api/actions',{method:'POST',headers:headers(owner),body:JSON.stringify(body)});
- const web=async(name,args={},owner='A')=>{const result=await http(request({name,arguments:args},owner));return {status:result.status,data:await result.json()};};
- const rpc=async(name,args={},owner='A')=>{const result=await mcp(request({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}},owner));return (await result.json()).result;};
+ const headers=user=>({'content-type':'application/json','oai-authenticated-user-id':user,'oai-authenticated-user-email':'test@example.invalid'});
+ const request=(body,user='A')=>new Request('https://local.invalid/api/actions',{method:'POST',headers:headers(user),body:JSON.stringify(body)});
+ const web=async(name,args={},user='A')=>{const result=await http(request({name,arguments:args},user));return {status:result.status,data:await result.json()};};
+ const rpc=async(name,args={},user='A')=>{const result=await mcp(request({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}},user));return (await result.json()).result;};
  const write=(revision,kind,payload)=>({schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:revision,kind,payload});
  let revision=0;
  for(const kind of ['project','tag','perspective']){

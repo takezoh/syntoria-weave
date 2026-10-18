@@ -1,0 +1,112 @@
+{
+  "base_commit": "a3ee34831fd1d4fa225ae734b8aadc3c0c1bd7fc",
+  "dirty_source": true,
+  "source_manifest_sha256": "2ae7fb428624b2b386de85cb1f4b5affb07632a6f38e776a1a323674def76f5a",
+  "source_file_count": 191,
+  "observed_at": "2026-10-18T06:54:09.176633+00:00",
+  "product": "Weave",
+  "project": "example-project",
+  "region": "asia-southeast1",
+  "status": "database_and_existing_jobs_deployed_api_pending_gate",
+  "image": "asia-southeast1-docker.pkg.dev/example-project/action-store/service@sha256:182cf982801aef8050368e9bcc2e65a1c0cc8fe4a0c462d8bef4984d8165bc69",
+  "checks": {
+    "pnpm_check": {
+      "passed": true,
+      "tests_passed": 554,
+      "skipped": 0
+    },
+    "container_build": true,
+    "container_production_imports": true,
+    "hosted_postgres": {
+      "runtime_role": true,
+      "schema": true,
+      "unicode": true,
+      "exact_replay": true,
+      "user_isolation": true,
+      "concurrent_cas": true,
+      "undo": true,
+      "pooled_rls_reset": true
+    },
+    "content_hashes_equal_before_after": true,
+    "synthetic_rows_removed": true
+  },
+  "schema_journal": [
+    {
+      "version": "0001_state.sql",
+      "checksum": "cc284c43cf482e6fd740adc9758f102faaacf99128d9adc0c27ec8455154fdcf"
+    },
+    {
+      "version": "0002_user_identity.sql",
+      "checksum": "08a225bdf0d6ac4cd01973d0c81c6eb14bc252ed9a69176c6a165ae33491b8e8"
+    }
+  ],
+  "jobs": {
+    "migrator": {
+      "completionStatus": "EXECUTION_SUCCEEDED",
+      "completionTimestamp": "2026-10-18T06:49:53.678902Z",
+      "creationTimestamp": "2026-10-18T06:49:35.075807Z",
+      "name": "action-store-migrator-np79b"
+    },
+    "backup": {
+      "completionStatus": "EXECUTION_SUCCEEDED",
+      "completionTimestamp": "2026-10-18T06:51:23.767835Z",
+      "creationTimestamp": "2026-10-18T06:51:09.997344Z",
+      "name": "action-store-backup-mwspf"
+    }
+  },
+  "pre_migration_backup": {
+    "version": 1,
+    "object": "2026-10-18T06-47-28.653Z-acd5c9a0-13c1-4102-a9a0-33412c14c316.dump",
+    "sha256": "1246a0f11af2e42c54be4df24e29a8c82e512944e658b0868ad75e6487edf0c2",
+    "bytes": 32131,
+    "counts": {
+      "state.projects": "0",
+      "state.tags": "0",
+      "state.actions": "0",
+      "state.action_tags": "0",
+      "state.perspectives": "0",
+      "state.catalog_identity_ledger": "0",
+      "state.operations": "0",
+      "identity.subjects": "0",
+      "identity.client_grants": "0"
+    },
+    "created_at": "2026-10-18T06:47:29.675Z"
+  },
+  "post_migration_backup": {
+    "version": 1,
+    "object": "2026-10-18T06-51-18.940Z-0146f3e3-858f-4f86-b78f-38a5abed534e.dump",
+    "sha256": "558f0fa28591c7987752636a0575f24e6c7ac0514579fa2f9dc53d25613eb6fb",
+    "bytes": 32596,
+    "counts": {
+      "state.projects": "0",
+      "state.tags": "0",
+      "state.actions": "0",
+      "state.action_tags": "0",
+      "state.perspectives": "0",
+      "state.catalog_identity_ledger": "0",
+      "state.operations": "0",
+      "identity.subjects": "0",
+      "identity.client_grants": "0"
+    },
+    "created_at": "2026-10-18T06:51:19.948Z"
+  },
+  "secret_versions": {
+    "action-store-admin-database": 1,
+    "action-store-runtime-database": 1,
+    "action-store-backup-database": 1
+  },
+  "transient_credentials_removed": true,
+  "preserved": [
+    "D1 data and existing Sites service",
+    "IAM and access scopes",
+    "identity values and applied migration checksums"
+  ],
+  "not_deployed": [
+    "Weave API service: Gate connection implementation and Web OAuth client configuration are not available. No placeholder issuer or client secret was installed."
+  ],
+  "not_verified": [
+    "Hosted Weave HTTP/MCP/Web authentication and caller acceptance",
+    "D1-to-PostgreSQL data cutover",
+    "Backup Scheduler and monitoring provisioning"
+  ]
+}

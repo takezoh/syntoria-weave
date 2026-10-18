@@ -1,62 +1,46 @@
 # Syntoria Weave architecture
 
-Current sources are [shared data types](lib/data/types.ts), [data models](lib/data/model/), [domain](lib/domain/core.ts), [application](lib/application/action-service.ts), [D1 adapter](lib/adapters/d1-action-store.ts) and [schema](db/schema.ts).
+## Service and runtime
 
-## Responsibilities and runtime
+Weave is Syntoria's independent shared-state service for people and authorized AI callers. TypeScript on Node.js 24 LTS runs in Fastify 5 on GCP Cloud Run; a dedicated Neon PostgreSQL 18 database stores durable state through pg and Drizzle migrations. HTTP API, Remote MCP and the Web UI share one application/domain/storage path. MCP clients connect through the same authenticated service contract.
 
-Weave is Syntoria's State Store, through which caller-side LLMs share state with the user and other authorized callers. Its current model stores everyday work and personal actions, projects, tags and perspectives, exposed through API/MCP tools and a shared UI. ChatGPT is the current delivery environment. Meaning, organization, recommendations and workflow policy belong to the user's caller-side LLM. Weave validates input, persists state, projects lists and protects revision, replay, Undo and owner boundaries.
-
-User prompts, caller-side LLMs and schedulers decide when and how to invoke the tools. An agent can collect Slack/email commitments through its own authorized tools and write actions through Weave without a dedicated Weave integration. Source collection, external observation, scheduling and notification remain caller responsibilities. Weave publishes composable data capabilities rather than owning an assistant workflow; callers can change methods while keeping the same saved data.
-
-Conversation, the dedicated UI and authorized callers use the same owner-scoped state. A human correction or another caller's saved result becomes available on the next read. Each caller maintains its own conversational context and must reconcile it with the retrieved state before deciding what to do; storing a change does not update an LLM's context automatically. Current full-state reads return a complete snapshot and owner-wide revision.
-
-The architectural policy is to expose the data layer through a thin API/MCP interface that guarantees flexibility, robustness and safety. Humans and caller LLMs decide how to interpret and use the data. Operations expose composable state capabilities without requiring a particular planning method, classification meaning or assistance workflow. Backend restrictions must be justified by authorization, data integrity, deterministic operation semantics or resource limits; assistance recommendations are not additional validation rules.
-
-Thinness preserves the shared application/domain path and its atomicity, owner isolation, revision, replay and Undo guarantees. Saved descriptive text is caller-controlled context, not executable policy or authorization. Projects, tags and perspectives expose optional exact-text descriptions through the shared data API. Descriptions do not affect classification or perspective extraction.
-
-React 19 and TypeScript use App Router APIs through vinext/Vite. The production entry is [build/sites-worker.ts](build/sites-worker.ts), running in a Sites-managed Cloudflare Worker with D1.
+Personal AI interprets intent, organizes work and decides what to do. Weave validates input and transitions, preserves original text, stores current state and protects revision, replay, Undo and authorization boundaries. Caller-side tools and schedulers own source collection, notifications and execution. Weave has no recommendation LLM or workflow engine. Thymesis is a separately deployed service with its own database, API, credentials, history and cursors; there are no shared business tables or distributed transactions.
 
 ```mermaid
 flowchart LR
-  Host[ChatGPT conversation and MCP Apps UI] --> MCP[POST /mcp]
-  Web[Web preview with shared UI] --> HTTP[POST /api/actions]
-  MCP --> App[actionCall]
-  HTTP --> App
-  App --> Request[Pure request normalization and ID finalization]
-  App --> Domain[Pure transitions and projections]
-  App --> Port[ActionStore port]
-  Port --> Adapter[D1 adapter]
-  Adapter --> Storage[Pure row codec and storage plan]
-  Adapter --> DB[(Sites D1)]
+  AI[Authorized AI clients] --> MCP[Remote MCP]
+  Web[Web UI] --> HTTP[HTTP API]
+  MCP --> Auth[Verified request identity]
+  HTTP --> Auth
+  Auth --> App[Application / actionCall]
+  App --> Domain[Pure domain and data models]
+  App --> Port[UserActionStore port]
+  Port --> Adapter[PostgreSQL adapter]
+  Adapter --> DB[(Neon PostgreSQL)]
 ```
 
-| Location | Responsibility |
+## Responsibility boundaries
+
+| Layer | Responsibility |
 | --- | --- |
-| lib/data/types.ts | Shared readonly data contracts; type declarations only |
-| lib/data/model/request.ts | Pure request normalization and explicit generated-ID finalization |
-| lib/data/model/storage.ts | Pure D1 row codecs, receipt validation, changed-row plan and byte budgets |
-| lib/domain/ | Pure validation, lifecycle, containment, dates, order, direct flags, preview, delta, Undo |
+| lib/data/types.ts | Readonly contracts; declarations only |
+| lib/domain/ | Pure transitions, containment, dates, order, flags, projection, Preview and Undo |
+| lib/data/model/ | Pure request normalization, persisted DTOs, storage plans, receipt parsing, cursors and budgets |
 | lib/application/ | Operation orchestration through store, clock and ID ports |
-| lib/adapters/ | D1 SQL, atomic revision CAS, receipts, bindings |
-| lib/server/ | Authentication and production composition |
-| app/mcp/route.ts, lib/server/mcp.ts | Declarative private entry and request authentication/HTTP boundary |
-| lib/mcp/private-dispatcher.ts, lib/mcp/private-registry.ts | Capability-validated private JSON-RPC, tools, UI resources and host instructions |
-| lib/mcp/local-server.mjs, lib/mcp/public-registry.ts | Separate static stdio MCP, without private data or credentials |
-| app/api/actions/route.ts | Web JSON entry and authentication/Origin/content-type checks |
-| lib/ui/model/ | Data-only types and pure draft, retained-request, presentation and control decisions |
-| lib/ui/application/ | UI state normalization and progress through call, ID and view ports |
-| lib/ui/components/ | Outline and inspector DOM rendering from typed view data and callbacks |
-| lib/ui/effects/ | DOM events, host messaging, tool transport and acceptance fixture effects |
-| lib/ui/ports.ts, lib/ui/client.ts | Effect contracts and runtime composition |
-| lib/widget.ts | Self-contained UI composition |
-| lib/domain/assistance.ts | Host-delivered assistance policy |
-| app/board.tsx | Web iframe and HTTP relay using the shared UI |
-| db/, drizzle/ | Schema and SQL migrations |
-| scripts/, build/ | Execution-profile, build, migration and verification helpers |
+| lib/adapters/ | PostgreSQL SQL, transaction isolation, concurrency, receipts and failure recovery |
+| lib/server/ | Node HTTP composition, authentication, authorization and request capabilities |
+| lib/mcp/ and MCP entry | Tool discovery, JSON-RPC, resources and capability-checked dispatch |
+| HTTP entry | Web/API transport, session and Origin/content-type protection |
+| lib/ui/ | Pure UI state, explicit controller ports, DOM and transport adapters |
+| db/ and migrations | PostgreSQL schema, constraints and versioned migrations |
+| build/ and scripts/ | Node/container build, execution, migration and verification |
+| Infrastructure configuration | Cloud Run, secrets, IAM, database configuration and monitoring |
 
-The shared type module exports declarations only. Domain transitions consume readonly snapshots and return cloned results; request normalization produces slots, while application code allocates IDs and passes those explicit values to a pure finalizer. The storage model decodes database scalar rows and plans changed-row writes and budgets without SQL or owner identity. Only the D1 adapter owns SQL construction, trusted owner binding, CAS, atomic batching and failure recovery.
+Pure code is deterministic and does not mutate inputs. DB, HTTP, DOM, host communication, clock and IDs are injected effects. UI components consume readonly models and explicit callbacks; rendering does not initialize or mutate application state. UI never connects directly to the database. HTTP and MCP share transitions and user-bound persistence. Caller text is data, never executable policy or authorization.
 
-Pure code receives explicit time and never reaches DB, HTTP, DOM, environment, randomness or a host. Effects are injected at composition. UI never connects directly to D1. Both entry points use the same actionCall and persistence path.
+A consumer reads current state before reconciling its context. Saved changes do not automatically update a caller LLM's context. Complete reads return a user-wide revision; filtered selections are not bootstrap snapshots. Perspectives are extraction definitions, not an independent management engine.
+
+Operational topology, database guarantees and release requirements are defined in [infrastructure](docs/technical/infrastructure.md), [data model](docs/technical/data-model.md) and [deployment](docs/technical/deployment.md).
 
 ## Action contract
 
@@ -73,49 +57,45 @@ Lifecycle is active/on-hold/completed/dropped. Read-time projection evaluates De
 
 ## Persistence and recovery
 
-Reads obtain a consistent owner snapshot in one D1 batch. Owner revision is the latest operation revision, zero when empty. The receipt INSERT trigger conditionally checks revision. Changed rows, identity markers, receipts and pruning to the latest 100 operations commit atomically; unrelated rows are not rewritten. No owner_state or full-snapshot replacement exists.
+Neon PostgreSQL stores actions, catalogs, associations, identity markers and operation history. The PostgreSQL adapter acquires consistent snapshots and commits conditional revision validation, changed rows, receipt, delta and history pruning in one transaction. Writes for a user are serialized; reads create no records. Store only changed identities, never full-delete/full-save snapshots. Retain the latest 100 operations per user for replay, Undo and the change feed.
 
-The revision validates the state used for a mutation. Internal deltas and retained receipts support persistence, replay, Undo and incremental reads. Complete snapshots expose a matching opaque cursor and raw Action/Tag associations. Each consumer keeps its own position; no read receipt or server-side consumer checkpoint is stored. The feed pages whole persisted before/after operations from the existing latest-100 owner receipt window, with head-fenced continuation and explicit expiry. Cursor progress records retrieval position, not human reading, understanding or Action completion.
+Writes require schemaVersion 2, an operation ID and current expectedRevision. Identical replay returns the saved result with current state; changed input is rejected before graph validation or ID allocation. Missing responses are unknown outcomes: retain exact IDs and arguments for lookup or identical replay. Undo preserves later unrelated corrections and rejects target conflicts. Complete snapshots and change windows share a consistent revision and retention fence; cursor order follows committed user revisions. Cursor scope includes the stable internal user and configured CURSOR_EPOCH; rotate the epoch on cutover/timeline restore and require a full resync.
 
-Writes require schemaVersion 2, an operation ID and current expectedRevision. Identical replay uses the receipt and returns current state; different input under the same ID is rejected. Unknown outcomes retain exact arguments and IDs. Preview does not reserve state or generated IDs. Undo compares exact affected action state/revision and catalog identity markers, preserving later unrelated changes and rejecting target conflicts.
+## Authentication and authorization
 
-The declarative private entry exports only the authenticated server facade. That facade revalidates Sites authentication headers on every request; the private dispatcher validates the issued identity capability before every method, including discovery and notifications. Privileged imports are restricted to exact module edges, and HTTP entries cannot obtain raw D1. Its request-scoped identity capability constructs the owner-bound store; application arguments carry no owner. Hosted header provenance remains a separate acceptance gate. Request arguments cannot override the bound owner. Queries, mutations and receipts stay owner-scoped. Native SQL lives only in the reviewed adapter with closed identifiers and bound values. Generated receipt and bulk-JSON budgets reject oversized writes before the atomic batch. The independent local stdio artifact exposes static setup and diagnostics only and launches with an empty environment. Task text, personal data and credentials must not be logged indiscriminately.
+Use Auth0 OAuth/OIDC. Validate OAuth access tokens for AI/API callers and PostgreSQL-backed opaque sessions for Web users. Verify issuer, audience, expiry and access grants before issuing request-scoped identity capabilities. Map verified subjects to stable internal users. Business arguments and public identity headers cannot select a user. SQL, receipts and history are user-scoped. Web writes require CSRF/Origin protection. Privileged storage access exists only behind the authenticated composition boundary. Logs exclude action text, personal data and credentials.
 
 ## Verification
 
-The database schema uses actions and action_tags. Deployment must preserve the configured Sites project, DB binding and private visibility. Hosted migration and deployment require their own execution and verification.
-
-Use pnpm check and pnpm build for code changes. See [testing](docs/technical/testing.md), [data model](docs/technical/data-model.md), [API](docs/technical/mcp-api.md), and [deployment](docs/technical/deployment.md). SQLite, memory stores and mock-host UI tests do not establish hosted D1, Sites authentication or ChatGPT Work acceptance.
-
-Calendar synchronization, notifications, background jobs and external observation are not performed by Weave. Callers may compose those behaviors with their own capabilities and the published tools; this is not a restriction on caller-side workflows. Planned and duration estimates are unsupported data fields.
+Verify domain/application behavior, real PostgreSQL transactions, Node HTTP/MCP, deployed authorization, Web UI and each client integration separately. Test atomic failure, concurrent first and subsequent writes, replay, lost responses, Undo, user isolation, consistent snapshots and feed pagination. Record source, image digest, infrastructure configuration and deployment revision with evidence. See [testing](docs/technical/testing.md) and [deployment](docs/technical/deployment.md). Implementation and acceptance claims require evidence; architectural decisions do not establish deployed behavior.
 
 ## Saved perspectives
 
-Owner-scoped perspectives persist versioned extraction conditions with a name and optional description for context. Version 1 stores the legacy filter; version 2 stores a structured query with optional global ordering. Pure domain evaluation uses the confirmed owner snapshot at an explicit read time. Omitted sort preserves action-tree order; an explicit version 2 sort is global across matches. Definitions participate in the same consistent snapshot, atomic delta/revision/receipt and Undo path. Project/Tag references and deleted perspective identities are protected. list_perspectives and query_perspective expose the exact variant through the shared service. The shared UI provides Projects, Tags and saved Perspective browsing over the confirmed snapshot while retaining unsaved editor proposals. Explicit versioned summaries are visible; no query editor is provided.
+User-scoped perspectives persist versioned extraction conditions with a name and optional description for context. Version 1 stores the legacy filter; version 2 stores a structured query with optional global ordering. Pure domain evaluation uses the confirmed user snapshot at an explicit read time. Omitted sort preserves action-tree order; an explicit version 2 sort is global across matches. Definitions participate in the same consistent snapshot, atomic delta/revision/receipt and Undo transaction. Project/Tag references and deleted perspective identities are protected. list_perspectives and query_perspective expose the exact variant through the shared service. The shared UI provides Projects, Tags and saved Perspective browsing over the confirmed snapshot while retaining unsaved editor proposals. Explicit versioned summaries are visible; no query editor is provided.
 
 The UI accepts persisted state only as a complete current snapshot with revision and actions, projects, tags and perspectives arrays. Partial replies retain the previous snapshot and exact pending request until verified. Action and catalog drafts validate their complete required Title or Name; no legacy blank-record exceptions apply.
 
 The shared UI starts a local Action draft in every view without a persistence request. A valid nonempty Title, with complete valid edited fields and resolved parent/classification dependencies, commits one ordinary Action through the serial write lane. An explicitly selected visible persisted Action becomes the new Action’s parent and supplies its own project; an exact Tag occurrence contributes that direct Tag. Selected Project or Tag nodes supply direct classification, and no valid visible selection creates an unassigned root. Untouched drafts are removed when abandoned, including closing a catalog inspector; edited invalid or emptied proposals remain available until explicitly discarded. Explicit Add while a temporary object is selected discards that proposal before creating one replacement in its valid persisted parent/classification context. Pending or unknown persistence and protected dependent references block replacement rather than losing identity. Local identities never cross the API port. Confirmed generated UUIDs replace only identity and reference fields, preserving raw user text, newer proposals and the exact unknown request. Parent lifecycle and dates remain unchanged. Header Project/Tag drafts require valid nonempty names before distinct creation. Notes-only local proposals remain unsaved until a valid Title is supplied. Clearing a persisted Title retains an invalid local proposal without overwriting the saved value. Initial tag associations use the existing atomic delta/revision/receipt/Undo path.
 
-The shared UI saves valid editor changes through a debounced, owner-wide serial mutation lane. Blur and in-app navigation flush pending input; IME final text stays bound to its original Action. Routine changes use existing preview validation and immediate apply without a confirmation dialog. Only `action_move` uses direct apply at the latest owner revision; server validation, receipts, Undo and complete snapshot replies remain on the common operation path. Captured proposal acknowledgment preserves newer input. Field baselines distinguish own confirmed writes from external corrections; overlapping edits require inline reconciliation. Unknown outcomes retain exact operations, and an applied receipt whose refresh fails keeps the lane gated until authoritative refresh.
+The shared UI saves valid editor changes through a debounced, user-wide serial mutation lane. Blur and in-app navigation flush pending input; IME final text stays bound to its original Action. Routine changes use existing preview validation and immediate apply without a confirmation dialog. Only `action_move` uses direct apply at the latest user revision; server validation, receipts, Undo and complete snapshot replies remain on the common operation path. Captured proposal acknowledgment preserves newer input. Field baselines distinguish own confirmed writes from external corrections; overlapping edits require inline reconciliation. Unknown outcomes retain exact operations, and an applied receipt whose refresh fails keeps the lane gated until authoritative refresh.
 
 `lib/ui/client.ts` composes the shared client with ordinary TypeScript imports. `scripts/generate-widget-client.mjs` bundles it as one self-contained IIFE and writes a generated module under the dependency cache before check, test and build. `lib/widget.ts` embeds that module in both normal and verification resources. The DOM adapter consumes read-only published application state and sends controller events; application ports own state changes and host calls. Action rows use occurrence keys to retain nodes across saving-only changes. Gesture coordinates share one queued animation frame and cached row geometry; effective edge scrolling invalidates geometry, and final drops resolve the latest coordinates before finishing.
 
 The optional `UiDiagnosticsPort` counts list renders and movement fingerprints/intents only when the test resource explicitly opts in with `data-ui-diagnostics="true"`; the normal widget does not publish counters or action text. `lib/ui/effects/dom.d.ts` type-checks the TypeScript composition caller and mount-port shape. The adapter implementation remains JavaScript and is not internally type-checked by the current `tsconfig`; its read-only state rule is enforced separately by ESLint, while application interaction events remain a typed TypeScript union.
 
-Action list movement uses one bounded `action_move` intent over a complete owner snapshot. Selected roots move as a bundle; containment and destination sibling sequence change atomically while classification, lifecycle, own dates and subtree order remain unchanged. The pure planner includes hidden siblings, preserves source gaps and uses deterministic destination ranks. Existing CAS, delta, receipt and Undo apply unchanged. Direct status icons and Project/Tag assignment share the UI serial autosave lane; pointer/touch and keyboard chooser produce the same movement intent.
+Action list movement uses one bounded `action_move` intent over a complete user snapshot. Selected roots move as a bundle; containment and destination sibling sequence change atomically while classification, lifecycle, own dates and subtree order remain unchanged. The pure planner includes hidden siblings, preserves source gaps and uses deterministic destination ranks. Existing CAS, delta, receipt and Undo apply unchanged. Direct status icons and Project/Tag assignment share the UI serial autosave lane; pointer/touch and keyboard chooser produce the same movement intent.
 
 The responsive header shows the current function name/icon and a floating navigation menu, replacing sidebar and mobile view selectors. Checked contextual display choices and icon-only Refresh share that header. Refresh sits at the far right and also exposes global save state through an accessible live description and the pure save-status projection’s state icon. Saved, waiting and writing states remain visually distinct when reduced motion disables animation; the button retains its Refresh action and accessible name. Unsettled states also show the projection’s label beside Refresh, so unknown outcomes and failures are distinguishable without reaching offscreen recovery messages. Animation runs only during actual writes. Header Add Project/Tag opens the matching tree and a temporary catalog inspector; same-view selection supplies its catalog parent, while a different view creates at the root. Add Action uses the explicit visible object context. Searchable Project/Tag pickers use stable catalog UUIDs and inline get-or-create; creation and optional assignment remain separate serial writes. Action-to-catalog drops use one atomic multi-Action classification operation. Native mouse and pointer/touch gestures share frozen intent, preserve list geometry during dragging and reuse the existing receipt/Undo path.
 
-The shared widget applies complete, validated host safe-area insets on all four sides inside its assigned `100dvh` viewport. The flex workspace fills the resulting content area once, and the sticky header remains below the top inset while the document scrolls; a fixed backdrop protects that reserved band from scrolling content and input. Zero or absent insets preserve portable layout; malformed updates retain the last valid values. The local Chromium harness checks the built resource across desktop and mobile-sized viewports with a synthetic host; actual ChatGPT iOS overlap and device safe-area behavior remain unverified.
+The shared widget applies complete, validated host safe-area insets on all four sides inside its assigned `100dvh` viewport. The flex workspace fills the resulting content area once, and the sticky header remains below the top inset while the document scrolls; a fixed backdrop protects that reserved band from scrolling content and input. Zero or absent insets preserve portable layout; malformed updates retain the last valid values. The local Chromium harness checks the built resource across desktop and mobile-sized viewports with a synthetic host; actual client-device overlap and safe-area behavior remain unverified.
 
-Tree row edges and horizontal movement choose containment depth without a separate root drop region. A pure hit-intent model consumes adapter-supplied geometry and full semantic ancestry. Project and Tag movement change durable sibling order or parent through one ordinary atomic operation. Both catalog ranks use required order/name/UUID comparison; missing order is invalid. Project and Tag order use additive migrations 0013 and 0016 respectively. Catalog gestures are single-object and preserve Action membership.
+Tree row edges and horizontal movement choose containment depth without a separate root drop region. A pure hit-intent model consumes adapter-supplied geometry and full semantic ancestry. Project and Tag movement change durable sibling order or parent through one ordinary atomic operation. Both catalog ranks use required order/name/UUID comparison; missing order is invalid. Catalog gestures are single-object and preserve Action membership.
 
 Due and Defer share native date selection and an explicit 24-hour text clock. A first date selection defaults to 09:00 in the explicit client timezone. Complete numeric clock input is normalized for mobile entry; partial input remains an unsaved proposal. Custom seconds and milliseconds, saved UTC instants, and DST gap/fold rejection are preserved. Clearing Due saves null; explicitly clearing Defer releases it.
 
 Action lifecycle controls and the orange Flag control have a visual gap. Validation feedback is adjacent to the responsible editable fields with invalid/described-by semantics; conflict, unknown-result and transport recovery retain their separate existing controls. Date/time placeholders remain HH:mm without replacing partial raw input.
 
-Projects and Tags require durable nonnegative safe-integer sibling order. Catalog outlines use order, then exact name and UUID. Both catalog kinds support relative before/after/inside/root moves through their existing atomic owner-revision/receipt/Undo path. Tree-edge outdent preserves Action classification and does not add a separate drop area.
+Projects and Tags require durable nonnegative safe-integer sibling order. Catalog outlines use order, then exact name and UUID. Both catalog kinds support relative before/after/inside/root moves through their existing atomic user-revision/receipt/Undo path. Tree-edge outdent preserves Action classification and does not add a separate drop area.
 
 
 Interaction state is owned by the typed UI application boundary. Pure interaction, gesture and view transitions retain occurrence keys separately from unique Action IDs, validate related structure, correlate catalog acknowledgments, and preserve deferred composition intents, date proposals and picker/navigation state. Gesture context reuses prepared movement/tree indexes; pointer updates publish only the small interaction subtree and retain unchanged frozen view/draft references without rendering the list. The DOM adapter owns geometry, capture, animation frames, node/signature caches and focus effects. Keyed rows recursively reconcile changed attributes, text and handlers while retaining compatible child controls. Focus restoration uses `preventScroll`, including rows reinserted after a move. Composition input updates the retained draft under the application save gate, so an external correction remains a conflict until the user chooses a resolution.

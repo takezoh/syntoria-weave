@@ -1,6 +1,6 @@
 import { canonical, fail, id, integer, object } from '../../domain/core';
 import { delta, validateDelta } from '../../domain/operations';
-import type { Action, DeepReadonly, OperationResult, OwnerCommitRequest, Perspective, Receipt, Snapshot } from '../types';
+import type { Action, DeepReadonly, OperationResult, UserCommitRequest, Perspective, Receipt, Snapshot } from '../types';
 import { persistedPerspective } from '../../domain/persisted-dto';
 
 export const MAX_BOUND_JSON_BYTES = 100000;
@@ -105,8 +105,8 @@ function perspectiveStorageRow(value: Perspective): object {
   return { ...metadata, filter: canonical(query) };
 }
 
-/** Build a pure, owner-free description of the row writes and enforce all plan budgets. */
-export function planStorageCommit(request: OwnerCommitRequest): StoragePlan {
+/** Build a pure, user-free description of the row writes and enforce all plan budgets. */
+export function planStorageCommit(request: UserCommitRequest): StoragePlan {
   const { operationId, payload, before, after } = request;
   const changes = delta(before, after);
   const result: OperationResult = {

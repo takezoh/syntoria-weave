@@ -2,7 +2,7 @@
 
 **Keep less in your head. Your AI keeps track of the rest.** Design your own workflow with your AI—GTD, a simple daily list or something entirely new; it captures, organizes and reviews your tasks your way while you stay in control.
 
-Syntoria Weave is Syntoria's State Store: where AI shares structured state with people and other authorized AI callers. The state it holds is what is currently true of the work—open actions, items waiting on a decision, the relations between them and the intent recorded against them—together with the original input, its background and references back to the source. Its current data model covers everyday work and personal actions, including unfinished thoughts and reference notes. Conversations, the dedicated UI and authorized caller workflows read and update the same saved state, so you can delegate upkeep while retaining a place to inspect and correct it. The intended benefit is less effort remembering, collecting, organizing and reviewing, with more attention for action, decisions and rest. Weave currently provides its data tools and shared UI as a ChatGPT plugin; the concept does not depend on a particular assistant or management method.
+Syntoria Weave is Syntoria's State Store: where AI shares structured state with people and other authorized AI callers. The state it holds is what is currently true of the work—open actions, items waiting on a decision, the relations between them and the intent recorded against them—together with the original input, its background and references back to the source. Its current data model covers everyday work and personal actions, including unfinished thoughts and reference notes. Conversations, the dedicated UI and authorized caller workflows read and update the same saved state, so you can delegate upkeep while retaining a place to inspect and correct it. The intended benefit is less effort remembering, collecting, organizing and reviewing, with more attention for action, decisions and rest. Weave exposes shared-state capabilities through API/MCP and a dedicated UI. A ChatGPT plugin is one client integration; the service does not depend on a particular assistant or management method.
 
 ## Who it is for
 
@@ -12,7 +12,7 @@ Syntoria Weave is Syntoria's State Store: where AI shares structured state with 
 | GTD practitioners and people who run their own systems | The method stays in prompts while actions, containment, projects, tags, dates and perspectives remain stable |
 | People who build their own agents or scheduled workflows | Composable API/MCP tools accept changes from any authorized caller workflow |
 
-Weave supports personal workflows. Shared state stays within the authenticated owner's boundary: multiple conversations or authorized callers work with that owner's records, without exposing them to other owners. Calendar planning, reminders and background execution belong to the caller's environment.
+Weave supports personal workflows. Shared state stays within the authenticated user's boundary: multiple conversations or authorized callers work with that user's records, without exposing them to other users. Calendar planning, reminders and background execution belong to the caller's environment.
 
 ## Value and approach
 
@@ -27,7 +27,7 @@ Weave supports personal workflows. Shared state stays within the authenticated o
 | Continue with current context | An authorized conversation or workflow can read the current saved state, including corrections made through the UI or another conversation, before deciding what to do next |
 | Stay in control without watching every change | Writes based on an outdated revision are rejected instead of overwriting newer edits; the UI retains unsaved proposals; identical retries are recognized and not applied twice; lost responses can be checked or resent exactly; Undo refuses to erase later corrections |
 | See and fix anything | Conversation and UI read and update the same saved actions |
-| See relevant work | ChatGPT presents candidates with reasons, distinct from the complete list |
+| See relevant work | Your AI presents candidates with reasons, distinct from the complete list |
 
 Your AI handles interpretation, judgment, organization, recommendations and management policy. Weave stores, retrieves and updates structured state through API/MCP operations and a dedicated UI, with validation, revisions, atomicity, replay, Undo and ownership. Reading state gives the AI information to consider; the AI remains responsible for understanding it and revising its judgment. The API entity is named action. Containment, projects, tags, order, direct flags, dates and perspectives support GTD or another caller-chosen management method without requiring a fixed workflow.
 
@@ -38,9 +38,9 @@ User prompts, the user's AI and caller-side schedulers can use the same tools. A
 - Weave does not remind, notify, plan a calendar or run in the background.
 - Weave has no AI of its own and does not decide what matters.
 - Weave saves what the caller requests. It cannot prove that your AI interpreted you correctly; inspect and correct actions as needed.
-- Undo works only within retained recent history, the latest 100 operations per owner, and refuses when it would erase later corrections. Not every change can be undone.
+- Undo works only within retained recent history, the latest 100 operations per user, and refuses when it would erase later corrections. Not every change can be undone.
 - Confirmation steps shown by the host are outside Weave.
-- Weave currently works through ChatGPT; other assistants have not been verified.
+- Current host acceptance evidence concerns ChatGPT; other client integrations require their own verification.
 - Reduced management effort is an intended benefit, not a measured result.
 
 ## Everyday usage
@@ -75,17 +75,17 @@ Completing all children never automatically completes the parent. A descendant c
 
 ## Conversation, UI and reliability
 
-Conversation accepts uncertainty, helps organize relationships and explains candidate choices. The dedicated ChatGPT UI provides the saved list, notes, dates, order and Flag controls for direct correction. Conversations and UI use one durable state for the authenticated owner.
+Conversation accepts uncertainty, helps organize relationships and explains candidate choices. The dedicated UI provides the saved list, notes, dates, order and Flag controls for direct correction. Conversations and UI use one durable state for the authenticated user.
 
 For example, correct a trip action's title in the UI, then ask ChatGPT in another conversation to read the current action before planning the next step. That read retrieves the saved correction even if the conversation still contains the old title. An authorized AI workflow can use the same state to continue its own work. Weave preserves the shared records; each caller decides what the correction means for its recommendations or actions.
 
-Current reads provide a full snapshot with an owner-wide revision, or a requested selection of actions. The revision protects writes from stale state. A read does not record human read status, complete an action or prove that an AI has incorporated the information into its decisions.
+Current reads provide a full snapshot with a user-wide revision, or a requested selection of actions. The revision protects writes from stale state. A read does not record human read status, complete an action or prove that an AI has incorporated the information into its decisions.
 
 After a conflict compare the latest saved state with the retained proposal. After a missing response preserve the original request and check its result or resend identically. Do not claim success or failure merely from response loss. Undo does not silently erase later target edits. These guarantees reduce the supervision burden of delegating organization.
 
 ## Scope and evidence
 
-Current scope includes original-input preservation, actions, containment, order, direct flags, projects/tags, explicit on-hold, Due/Defer, lifecycle editing, replay and Undo, shared by conversation and UI. Independent prerequisite edges and sequential/parallel modes are unsupported. Planned, estimates and recurrence are not implemented data capabilities. Calendar synchronization, notifications, external-source collection and background execution are caller capabilities; callers may compose such workflows with Weave data tools, and they are not prerequisites or planned integrations for using the plugin.
+Current scope includes original-input preservation, actions, containment, order, direct flags, projects/tags, explicit on-hold, Due/Defer, lifecycle editing, replay and Undo, shared by conversation and UI. Independent prerequisite edges and sequential/parallel modes are unsupported. Planned, estimates and recurrence are not implemented data capabilities. Calendar synchronization, notifications, external-source collection and background execution are caller capabilities; callers may compose such workflows with Weave data tools, and they are not prerequisites or planned integrations for using the service.
 
 Local tests and implementation completion do not establish hosted acceptance or long-term reductions in management effort. Hosted behavior requires verification in the actual delivery environment.
 

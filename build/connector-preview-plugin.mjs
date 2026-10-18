@@ -161,7 +161,7 @@ export function connectorPreview() {
           await writeFile(`${requestPath}.tmp`, body, { mode: 0o600 });
           await rename(`${requestPath}.tmp`, requestPath);
           submitted = true;
-          // Read the owner's deadline per call, so a restarted session can use
+          // Read the user's deadline per call, so a restarted session can use
           // longer provider waits without rebuilding or restarting the Site.
           const deadline = Math.min(
             session.expiresAt ?? Infinity,

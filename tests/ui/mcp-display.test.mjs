@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {reg
 // Metadata reads require no storage; provide an empty Worker environment at its effect boundary.
 register('data:text/javascript,'+encodeURIComponent("export function resolve(specifier,context,next){if(specifier==='cloudflare:workers')return {url:'data:text/javascript,export const env={};',shortCircuit:true};return next(specifier,context);}"),import.meta.url);
 const {POST}=await import('../../app/mcp/route.ts');
-function request(method,params={},headers={}){return new Request('https://local.invalid/mcp',{method:'POST',headers:{'Content-Type':'application/json','oai-authenticated-user-id':'test-owner','oai-authenticated-user-email':'test@example.invalid',...headers},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});}
+function request(method,params={},headers={}){return new Request('https://local.invalid/mcp',{method:'POST',headers:{'Content-Type':'application/json','oai-authenticated-user-id':'test-user','oai-authenticated-user-email':'test@example.invalid',...headers},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});}
 test('private MCP authenticates before every JSON-RPC method and rejects unapproved transport',async()=>{
  for(const method of ['initialize','ping','tools/list','resources/list','resources/read']){
   const unauthenticated=await POST(new Request('https://local.invalid/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params:{}})}));
@@ -10,7 +10,7 @@ test('private MCP authenticates before every JSON-RPC method and rejects unappro
  }
  const nullOrigin=await POST(request('tools/list',{}, {Origin:'null'}));
  assert.equal(nullOrigin.status,403);
- const badType=await POST(new Request('https://local.invalid/mcp',{method:'POST',headers:{'Content-Type':'text/plain','oai-authenticated-user-id':'test-owner','oai-authenticated-user-email':'test@example.invalid'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list',params:{}})}));
+ const badType=await POST(new Request('https://local.invalid/mcp',{method:'POST',headers:{'Content-Type':'text/plain','oai-authenticated-user-id':'test-user','oai-authenticated-user-email':'test@example.invalid'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list',params:{}})}));
  assert.equal(badType.status,415);
 });
 test('MCP exposes one Syntoria Weave launcher while list retains the shared resource',async()=>{
@@ -80,7 +80,7 @@ test('private entry cannot expose discovery through a pre-auth debug branch',asy
 });
 test('every private dispatcher method rejects unissued identity capabilities before parsing or private effects',async()=>{
  const {dispatchPrivateMcp}=await import('../../lib/mcp/private-dispatcher.ts');
- for(const owner of [null,'A',{owner:'A'}])for(const method of ['initialize','ping','tools/list','resources/list','resources/read','tools/call','notifications/initialized']){
-  await assert.rejects(dispatchPrivateMcp(owner,{jsonrpc:'2.0',id:1,method}),e=>e.code==='unauthenticated');
+ for(const user of [null,'A',{user:'A'}])for(const method of ['initialize','ping','tools/list','resources/list','resources/read','tools/call','notifications/initialized']){
+  await assert.rejects(dispatchPrivateMcp(user,{jsonrpc:'2.0',id:1,method}),e=>e.code==='unauthenticated');
  }
 });

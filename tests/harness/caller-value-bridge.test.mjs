@@ -16,7 +16,7 @@ function manifest(overrides = {}) {
     purpose: 'test the caller-value bridge boundary',
     dataClass: 'synthetic',
     endpoint: 'http://127.0.0.1:37009/mcp',
-    ownerId: 'issue20-test-owner',
+    userId: 'issue20-test-user',
     evidenceDir: '/home/davinci/evidence/issue20/tests/caller-value-test',
     capabilities: { mcpRead: true, mcpWrite: false, resources: false, uiIntervention: false, prepareFixture: false, snapshot: false, checkpoint: false },
     permittedTools: ['list_actions'],
@@ -96,11 +96,11 @@ test('generated MCP UI resource accepts the production TextResourceContents shap
   assert.equal(extractResourceHtml([{ uri: 'ui://other/resource', mimeType: 'text/html', text: html }]), null);
 });
 
-test('remote endpoints, caller-selected owners and unrecorded identities cannot enter the bridge', () => {
+test('remote endpoints, caller-selected users and unrecorded identities cannot enter the bridge', () => {
   assert.throws(() => validateManifest(manifest({ endpoint: 'https://example.invalid/mcp' })), /Endpoint must/);
   assert.throws(() => validateManifest(manifest({ endpoint: 'http://127.0.0.1:37009/mcp?target=elsewhere' })), /Endpoint must/);
   const scoped = manifest();
-  assert.throws(() => validateOperation({ command: 'call', name: 'list_actions', arguments: { owner: 'someone-else' } }, scoped), /cannot be supplied/);
+  assert.throws(() => validateOperation({ command: 'call', name: 'list_actions', arguments: { user: 'someone-else' } }, scoped), /cannot be supplied/);
   const query = manifest({ permittedTools: ['query_actions'] });
   assert.throws(() => validateOperation({ command: 'call', name: 'query_actions', arguments: { project_id: '10000000-0000-4000-8000-000000000099' } }, query), /Unrecorded entity/);
 });
@@ -122,7 +122,7 @@ test('the transport persists and records the exact write intent before a missing
     record: async value => events.push(structuredClone(value)),
     fetchImpl: async (endpoint, options) => {
       assert.equal(endpoint, scoped.endpoint);
-      assert.equal(options.headers['oai-authenticated-user-id'], scoped.ownerId);
+      assert.equal(options.headers['oai-authenticated-user-id'], scoped.userId);
       const request = JSON.parse(options.body);
       sent.push(request);
       if (request.method === 'tools/list') return new Response(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: { tools: [{ name: 'apply_change' }] } }));

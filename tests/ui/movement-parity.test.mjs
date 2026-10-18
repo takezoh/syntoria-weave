@@ -1,17 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {actionCallForOwner} from '../helpers/owner-composition.mjs';
+import {actionCallForUser} from '../helpers/user-composition.mjs';
 import {memoryActionStore} from '../helpers/memory-action-store.mjs';
 
 const now='2026-10-03T00:00:00Z';
 const uuid=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 
 async function exercise(mode,{stale=false,invalid=false,undoConflict=false}={}){
- const store=memoryActionStore(),owner='move-parity';let recordId=300,operationId=20;
+ const store=memoryActionStore(),user='move-parity';let recordId=300,operationId=20;
  const ports={store,clock:()=>now,newId:()=>uuid(recordId++)};
- const call=(name,args)=>actionCallForOwner(ports,owner,name,args);
+ const call=(name,args)=>actionCallForUser(ports,user,name,args);
  async function apply(kind,payload){
-  const current=await store.readSnapshot(owner);
+  const current=await store.readSnapshot(user);
   return call('apply_change',{schemaVersion:2,operationId:uuid(operationId++),expectedRevision:current.revision,kind,payload});
  }
  const parent=(await apply('add',{title:'Bundle parent'})).result.resolved.actions[0].id;
@@ -20,7 +20,7 @@ async function exercise(mode,{stale=false,invalid=false,undoConflict=false}={}){
  const hidden=(await apply('add',{title:'Completed hidden sibling',parent_id:target})).result.resolved.actions[0].id;
  await apply('status',{id:hidden,status:'completed'});
  const sibling=(await apply('add',{title:'Visible sibling',parent_id:target})).result.resolved.actions[0].id;
- const initial=await store.readSnapshot(owner);
+ const initial=await store.readSnapshot(user);
  const payload=invalid
   ?{ids:[parent],placement:'inside',anchor_id:child}
   :{ids:[parent],placement:'inside',anchor_id:target};
@@ -31,7 +31,7 @@ async function exercise(mode,{stale=false,invalid=false,undoConflict=false}={}){
   const rejection=await captureError(()=>mode==='direct'
    ?call('apply_change',args)
    :call('preview_change',{expectedRevision,kind:'action_move',payload}));
-  return {rejection,snapshot:await store.readSnapshot(owner)};
+  return {rejection,snapshot:await store.readSnapshot(user)};
  }
  let sent=args;
  if(mode==='preview'){
@@ -44,17 +44,17 @@ async function exercise(mode,{stale=false,invalid=false,undoConflict=false}={}){
  const changedInput=await captureError(()=>call('apply_change',{
   ...sent,payload:{ids:[parent],placement:'root'},
  }));
- const afterMove=await store.readSnapshot(owner);
+ const afterMove=await store.readSnapshot(user);
  let externalCorrection=null;
  if(undoConflict)externalCorrection=await apply('edit',{id:parent,title:'External correction'});
- const beforeUndo=await store.readSnapshot(owner);
+ const beforeUndo=await store.readSnapshot(user);
  let undo=null,undoError=null;
  try{
   undo=await call('undo_change',{schemaVersion:2,operationId:uuid(901),expectedRevision:beforeUndo.revision,undoOf:moveId});
  }catch(error){undoError=error.code||error.name;}
  return {
   moved,replay,receipt,changedInput,afterMove,externalCorrection,undo,undoError,
-  final:await store.readSnapshot(owner),ids:{parent,child,target,hidden,sibling},
+  final:await store.readSnapshot(user),ids:{parent,child,target,hidden,sibling},
  };
 }
 

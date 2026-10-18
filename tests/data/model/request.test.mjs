@@ -104,7 +104,7 @@ test('existing get-or-create finalizes with no generated ID and caller marker-li
   assert.equal(finalized.change.payload.id, '__generated_id_0__');
 });
 
-test('finalization rejects missing, duplicate, operation and owner-reserved generated IDs', () => {
+test('finalization rejects missing, duplicate, operation and user-reserved generated IDs', () => {
   const normalized = normalizeChange(snapshot, { kind: 'add', payload: { title: 'Action' } });
   assert.throws(() => finalizeChange(snapshot, uuid(9), normalized, []));
   assert.throws(() => finalizeChange(snapshot, uuid(9), normalized, [uuid(9)]));

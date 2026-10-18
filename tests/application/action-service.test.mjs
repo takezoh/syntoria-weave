@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';
+import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';
 import {memoryActionStore} from '../helpers/memory-action-store.mjs';
 const uuid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const clock=()=> '2026-10-03T01:02:03.000Z';
@@ -48,6 +48,19 @@ test('generated UUID collisions stop after eight attempts without committing',as
  assert.equal(p.idsUsed(),8);assert.equal((await store.readSnapshot('A')).revision,0);assert.equal(await store.readReceipt('A',uuid(9)),null);
 });
 
+test('receipt mismatch precedes lazy snapshot validation and matching replay validates the captured state',async()=>{
+ const store=memoryActionStore(),p=ports(store,[uuid(2)]);let commits=0,decoded=0;
+ const commit=store.commit.bind(store);store.commit=request=>{commits++;return commit(request);};
+ const request={schemaVersion:2,operationId:uuid(1),expectedRevision:0,kind:'add',payload:{title:'Original'}};
+ await actionCall(p,'A','apply_change',request);assert.equal(commits,1);
+ const read=store.readOperationState.bind(store);
+ store.readOperationState=async(user,operationId)=>{const state=await read(user,operationId);return {...state,snapshot:()=>{decoded++;const current=state.snapshot();current.actions[0].title='';return current;}};};
+ await assert.rejects(actionCall(p,'A','apply_change',{...request,payload:{title:'Different'}}),error=>error.code==='idempotency_conflict');
+ assert.equal(decoded,0);assert.equal(p.idsUsed(),1);assert.equal(commits,1);
+ await assert.rejects(actionCall(p,'A','apply_change',request),error=>error.code==='invalid_input');
+ assert.equal(decoded,1);assert.equal(p.idsUsed(),1);assert.equal(commits,1);
+});
+
 test('structure_create resolves unique local refs and preview IDs remain provisional',async()=>{
  const store=memoryActionStore(),p=ports(store,[uuid(2),uuid(3),uuid(4),uuid(5),uuid(6),uuid(7),uuid(8)]);
  const capture=await actionCall(p,'A','capture_intent',{schemaVersion:2,operationId:uuid(1),expectedRevision:0,title:'Original title',text:'Parent and child',source:'conversation'});
@@ -76,10 +89,10 @@ test('query_actions reads the shared snapshot without writing and permits all ac
 });
 
 test('missing identity and unknown arguments do not access storage',async()=>{
- const {requireOwner}=await import('../../lib/server/auth.ts');
- assert.throws(()=>requireOwner(new Headers()),e=>e.code==='unauthenticated');
+ const {requireUser}=await import('../../lib/server/auth.ts');
+ assert.throws(()=>requireUser(new Headers()),e=>e.code==='unauthenticated');
  let reads=0;const p={store:{readSnapshot(){reads++;throw new Error('unexpected');}},clock,newId:()=>uuid(1)};
- await assert.rejects(actionCall(p,'A','list_actions',{owner:'B'}),e=>e.code==='invalid_input');assert.equal(reads,0);
+ await assert.rejects(actionCall(p,'A','list_actions',{user:'B'}),e=>e.code==='invalid_input');assert.equal(reads,0);
 });
 
 test('client timezone resolves date preview to UTC without storing settings',async()=>{

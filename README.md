@@ -36,9 +36,9 @@ If you have set up a to-do app three times and stopped maintaining it three time
 
 Weave supports personal workflows over your own saved state. Calendar planning, reminders and background workflows are arranged in your AI's environment.
 
-## Add Syntoria Weave to ChatGPT
+## ChatGPT integration
 
-Ask ChatGPT Work to read [INSTALL.md](INSTALL.md) and perform the installation:
+For the optional ChatGPT integration, ask ChatGPT to read [INSTALL.md](INSTALL.md) and perform the installation:
 
 ```text
 Read https://github.com/takezoh/syntoria-weave/blob/main/INSTALL.md and install Syntoria Weave for me.
@@ -65,7 +65,7 @@ See [use cases and example prompts](docs/usage/use-cases.md) for capturing conce
 
 Weave stores shared state; your AI interprets it and decides how to help. Your prompts, ChatGPT or an authorized agent you set up determine what to capture, how to organize it and when to act. Weave provides the tools to read and update actions, preserves their relationships and keeps changes consistent and easy to correct. Each reader can retrieve the current saved state before making its next decision.
 
-ChatGPT is the current delivery environment. Weave has no AI or background scheduler of its own; a deferred task returns to the list when it is next read after its Defer time.
+ChatGPT is one supported integration for the shared-state service. Weave has no AI or background scheduler of its own; a deferred task returns to the list when it is next read after its Defer time.
 
 ## What your list contains
 

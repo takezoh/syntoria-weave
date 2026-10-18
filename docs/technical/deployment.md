@@ -1,77 +1,74 @@
-# Development, deployment and operations
+# Deployment and operations
 
-Updated: 2026-10-03. See [development](../development.md), [architecture](../../ARCHITECTURE.md) and [testing](testing.md).
+See the executable paths and provider prerequisites in the [infrastructure runbook](infrastructure-runbook.md).
 
-## Deployment boundary
+## Environment contract
 
-Deploying Syntoria Weave publishes its data tools and shared UI. User prompts, caller-side LLMs and schedulers determine management workflows and execution timing. Choosing GTD, collecting Slack/email inputs through a caller's tools or scheduling reads does not require a new Weave deployment when existing operations suffice. Host access and caller execution must be verified in their own environment; a Weave release does not install or prove those workflows.
+Each environment has one independent Cloud Run API service, a dedicated Neon PostgreSQL database and separate database roles, an Auth0 API resource and Web client, version-pinned secrets, a private Artifact Registry repository, Terraform state, backups and monitoring. Local development runs the same Node entry and PostgreSQL 17 with test-only identity fixtures; it is not deployed identity acceptance. Do not share production data or credentials with staging/CI. Use [infrastructure operating values](infrastructure.md#resource-configuration).
 
-## Local execution
+Configuration is explicit and validated before startup:
 
-Use Node.js >=22.13 and pnpm@11.25.0 with the frozen lockfile. Do not change dependency versions without a relevant requirement.
-
-```sh
-pnpm install --frozen-lockfile
-pnpm check
-pnpm build
-pnpm db:migrate:local
-pnpm start
-```
-
-Local migration reads built dist/server/wrangler.json, so build first. It accepts no arguments and uses --local with .wrangler/state; it cannot switch to hosted D1. start runs the built Worker locally. pnpm dev uses the ordinary preview wrapper. Without .sites-runtime/execution-profile.json the checkout is portable (vinext, port 5173); managed-linux uses its validated Vite build path. [execution-profile](../../scripts/execution-profile.mjs) and [run-framework](../../scripts/run-framework.mjs) own selection. Local settings are not source artifacts.
-
-Portable mock authentication and local storage do not establish production authentication or user isolation. pnpm test:ui:built retrieves built resources and exercises a mock host, not actual Work behavior.
-
-## Hosted target and migration 0009
-
-[hosting.json](../../.openai/hosting.json) identifies the existing Sites project and DB binding. Preserve both and the private user-only access scope; do not create duplicate Sites/Plugins. R2 is unused. GitHub development source and Sites-managed source are separate; a GitHub push alone is not deployment.
-
-0000 through 0008 remain unchanged. [0009](../../drizzle/0009_action_model.sql) deliberately resets authorized disposable test data for all owners, including projects, tags, reservations and receipts. It removes tasks/task_tags/dependencies and creates empty actions/action_tags. This is not a data-preserving migration. Do not run it against a DB containing valuable data without a new migration plan.
-
-For a requested deployment, stop old writes, apply 0009 and switch to the new Worker in one coordinated cutover. Old code cannot run on the new tables; there is no old-name API alias, data fallback, receipt replay or Undo across the reset. Reload clients/tools/resources and use fresh operation IDs after the cutover. Do not silently repeat an old unknown request as a fresh save. SQL rollback and Worker rollback are separate; there is no generic reverse migration.
-
-## Additive perspective migration 0010
-
-[0010](../../drizzle/0010_ambiguous_umar.sql) creates owner-scoped perspective storage only. Unlike historical 0009, it does not reset existing data or receipts. Determine the target DB's applied migrations first; do not rerun the action-model reset for a perspective upgrade. Apply pending migrations before switching to a Worker that reads perspectives, since that Worker requires the new table. Preserve the existing Site, DB binding and private scope. Implementing or testing this migration locally is not evidence of hosted rollout.
-
-## Release procedure
-
-1. Complete code validation and identify current Site, access scope, DB and migration state.
-2. Update the exact Sites-managed source using its standard workflow. Keep transient credentials out of files, URLs, logs and documentation.
-3. Build the artifact from that exact source commit, locally or using the same commit in remote build.
-4. Publish its version and observe terminal deployment status. Re-publishing an existing version should use that version.
-5. Retrieve actual host tool definitions/resources, verify caches and accept the changed behavior in conversation and dedicated UI.
-6. Record GitHub commit, Sites source commit, artifact/version/deployment, timestamp, scope and host results together.
-
-Source updates, artifact creation, published deployment and host acceptance are separate facts. Editing skills/action-tools/SKILL.md does not mean it was installed on the host.
-
-## Failure recovery
-
-| Situation | Response |
+| Configuration | Meaning |
 | --- | --- |
-| Missing write response | Preserve exact name/ID/arguments; inspect receipt or resend identically |
-| Revision conflict | Keep proposal, reread, compare and review a new operation |
-| Undo conflict | Preserve later corrections; do not guess an inverse edit |
-| Stale UI/tools | Verify connection and actual resources; protect unsaved proposals |
-| D1 unavailable | Do not claim success or definite failure for unknown outcomes |
-| Deployment failed | Record failure and exact source/version; identify the last successful version |
+| PUBLIC_ORIGIN | Canonical absolute HTTPS origin and trusted Host/Origin; local test origin is separate |
+| OAUTH_ISSUER, OAUTH_RESOURCE, WEB_CLIENT_ID | Exact Auth0 issuer, resource=PUBLIC_ORIGIN+/mcp and Web client |
+| CURSOR_EPOCH | Nonsecret deployment UUID, stable for releases and rotated for cutover/timeline restore |
+| WRITE_MODE | blocked or enabled; defaults to blocked until release acceptance |
+| DATABASE_URL secret version | Primary direct TLS endpoint and limited runtime role |
+| WEB_CLIENT_SECRET, LOGIN_ENCRYPTION_KEY, CSRF_KEY secret versions | Web/OIDC and session protection; no secret values in artifacts or Terraform |
+| Runtime limits | Pool=5, concurrency=20, max instances=3, role cap=40 and validated total DB capacity >=64 |
+| Schema range | Minimum/maximum compatible migration journal version for this artifact |
+| Backup/alert settings | Authorized bucket, retention, alert recipients and environment budget thresholds |
 
-Logs should contain generic infrastructure errors rather than action text, personal information or credentials. There is no dedicated monitoring/alert system yet.
+All entry points enforce WRITE_MODE before dispatching a mutation; reads, status lookup and metadata remain available. No header or argument bypasses the fence. The control is a release/configuration effect, not a business field or user override. A maintenance rejection returns a bounded retryable error without fabricating an operation receipt. In-flight commits remain unknown until settled; a new fence does not roll them back retroactively.
 
-[Previous deployment evidence](../evidence/20261003-final-deployment.json) and [Work acceptance](../note/note-20261002-work-benefit-acceptance.md) describe the pre-action-model version. Rechecking them with node docs/note/evidence/verify-work-regression-20261003.mjs verifies recorded evidence integrity, not a new host test.
+## Reproducible build and IaC
 
-Calendar sync, notifications, external arrival observation and background execution remain unsupported. Defer expiry appears on the next read; arrival needs the user's report. General availability, pricing, exports, account deletion and backup/restore UI remain separate work.
+Use Node 24 LTS and package.json's pinned pnpm with frozen installation. `pnpm check` and `pnpm build` must verify the actual Node/PostgreSQL implementation, including boundary suites; inspect their paths instead of treating command names as proof. The build emits a Node entry plus content-hashed static UI assets and required licenses. A multi-stage container runs as a non-root user with production dependencies and contains no local settings, database dumps, credentials, fixture routes or mock authentication. Tag for discoverability and deploy by immutable image digest.
 
-## Additive description migration 0011
+Terraform modules own state/bootstrap references, IAM/WIF, Artifact Registry, Cloud Run, secret containers, jobs, backup Scheduler and GCS buckets, monitoring, and GCP resource configuration. Neon and Auth0 settings follow the explicit provider prerequisites in the runbook. Use separate environment state. GCS state is private, versioned and locked; it contains no runtime secret values. Never execute untrusted pull-request code with deployment credentials.
 
-[0011](../../drizzle/0011_catalog_descriptions.sql) adds empty descriptions to existing projects, tags and perspectives without resetting data or receipts. Apply pending migrations before switching to a Worker that selects these columns. Do not rerun 0009 as a description upgrade. Dedicated editing UI and hosted rollout are separate work.
+Secret-returning operations (Neon role passwords, Auth0 confidential clients) run in a redacting bootstrap/rotation step outside Terraform resource state. Immediately write generated values as Secret Manager versions; retain only public IDs and version references. Terraform imports/manages only safe nonsecret surfaces that cannot export those values into state. Pin providers, test this property on actual plans/state, and fail if a provider leaks a secret. Runtime identity reads only its listed versions; migrator/backup have separately scoped versions. WIF restricts repository, environment and ref, and no service-account JSON key is installed.
 
-## Versioned perspective migration 0017
+## Credential rotation
 
-[0017](../../drizzle/0017_vengeful_blonde_phantom.sql) permits definition versions 1 and 2 and preserves existing owner rows, raw v1 definition JSON, primary keys, other tables and retained history. For rollout, apply the D1 migration first, switch every Worker/consumer to a version-2-capable build second, and only then permit version-2 writes. Readers predating version 2 are unsafe after a v2 row, receipt or delta has been persisted; rollback requires a forward-compatible repair or roll-forward deployment, not restoring the old binary. Applying this migration locally does not establish hosted rollout.
+Rotate runtime DB passwords under WRITE_MODE=blocked: drain requests, stop/restart all revisions that use the role, install the new secret version/password, and validate access before reopening writes. Do not assume an existing role can accept two password versions or that multiplying roles leaves the connection budget unchanged. Preserve exact unknown requests for reconciliation. Web client/key rotation either preserves a validated overlap or expires in-flight login attempts and starts a fresh PKCE flow; it never discards the proposal-owning UI. Secrets are pinned by version for deterministic rollout/recovery.
 
-## Revision guard migration 0012 and generic identifiers
+## Migration jobs and compatibility
 
-[0012](../../drizzle/0012_generic_revision_guard.sql) recreates the operations revision guard with the generic `revision_conflict` marker. It changes no records, revisions or receipts. The Worker classifies conflicts by that marker, which the earlier trigger message also contains, so the order of migration and Worker switch does not misclassify conflicts.
+Run migrations once as a Cloud Run job using the same immutable release image but a separate migrator identity/DB role. Protect the checksummed `schema_migrations` journal with a transaction advisory migration lock. Ordinary transactional DDL and journal updates commit together. For a nontransactional operation, declare its separate guarded step and recovery state explicitly; do not mark it complete on partial failure. API startup checks its supported schema range and fails readiness on incompatibility; scale-out never runs migrations.
 
-Published tool names and UI resource URIs are generic: open_actions, list_actions, add_action, rename_action and open_verification, with resources under ui://action-tools/. No aliases exist for earlier names. Before switching, resolve outstanding unknown outcomes of the earlier add and rename tools with operation_status or a current read: receipts bind the tool name, so an identical resend under the new name is rejected and the earlier name is unknown. After deployment, confirm that the host refetches tools and resources, and update caller prompts that name tools. The hosted plugin listing name is configured outside the repository.
+Use additive expand/contract releases when revisions overlap. Schema removal follows verification that no serving revision depends on removed objects. Release concurrency is one per environment. Do not automatically reverse a schema migration when rolling back an image. Database constraints, encoded text values and identity grants are part of compatibility testing.
+
+## Initial data cutover
+
+1. Rehearse with synthetic data in staging. Confirm real PostgreSQL, identity, HTTP/MCP/Web, replay, Undo, feed, connection budgets and restore behavior against the candidate image.
+2. Inventory source identities, actual data schema/history and in-flight unknown operations without logging content. Configure explicit (issuer,subject)->stable user and client grants. Preserve the user strings already associated with records; never merge by email.
+3. Block all source business writes across every transport. Wait for in-flight work and resolve or document unknown requests by exact IDs. Confirm a test mutation is rejected and revision watermarks no longer advance; do not assume a UI shutdown fences other callers.
+4. Obtain a transaction-consistent export of logical tables and retained operation/history/identity markers. Encrypt it and compute a manifest of counts, IDs, user revision watermarks, association/reference counts, canonical request/result/delta hashes and export digest. Keep raw content outside shared source/logs.
+5. Create the PostgreSQL schema in an isolated target with WRITE_MODE=blocked. Import in a transaction using the exact scalar codecs. Do not run destructive data resets. Validate decoded equality, graph invariants, ordered operations, names and marker generations. A failed import rolls back; do not open a partial target.
+6. Configure the same stable canonical service identity used for new client registration. Rotate CURSOR_EPOCH and revoke imported transient sessions/login attempts. Validate subject/client bindings, authentication rejection and read-only HTTP/MCP/Web on the actual target. Require full client snapshot resync while retaining unsaved proposals and unknown operation IDs.
+7. Set target WRITE_MODE=enabled once. Perform a bounded synthetic-user write/replay/Undo check, then switch normal clients. Keep source writes fenced. Record cutover timestamp and final source/initial target watermarks. Never enable both writers.
+
+Before target writes begin, a failed cutover can discard the unserved target and reopen the unchanged source after verifying its fence/watermarks. After target writes, the source is stale: rollback requires a validated reverse data transfer under a fence or roll-forward repair. Changing routing alone is unsafe. Resource retirement is a separate operation after acceptance and backup verification.
+
+## Normal release
+
+1. Check source and run all required suites; build and publish the immutable container. Retain source, artifact digest, config/IaC revision and proposed schema range.
+2. Apply reviewed environment configuration with redacted outputs. Install explicit secret versions; validate issuer/resource/origin, grants, region and connection budget.
+3. Run the migrator once and inspect its terminal result/journal. On failure leave traffic unchanged and report the concrete state.
+4. Deploy a no-traffic revision using the same canonical PUBLIC_ORIGIN, then run startup/schema and authenticated smoke checks. A tagged URL is not an alternative token audience or trusted Origin; invoke transport with the configured canonical identity or a separately configured staging origin.
+5. Shift traffic gradually for compatible releases and observe error/latency/pool metrics. Pin all serving revisions to the same CURSOR_EPOCH. Releases involving an incompatible schema or identity/cursor change use a fenced cutover, not a canary across incompatible protocols.
+6. Validate direct authenticated HTTP, stateless MCP discovery/read, Web UI and negative authorization. Actual MCP client/UI checks are separate from server transport success. Record terminal deployment status and all unverified surfaces.
+
+## Backup and restoration
+
+Production uses a 7-day Neon PITR window and nightly consistent encrypted logical exports retained in private GCS for 30 days. Use a dedicated export role with all-row SELECT policies and pg_dump --enable-row-security; verify count/digest manifests and never run exports under a user-filtered API role. Jobs have timeout/retry limits and a single-run guard; partial uploads are not successful backups. Alert on job failure or backup age >26 h.
+
+Monthly rehearsal: restore a selected backup/PITR point into an isolated DB; validate checksums, schema, all decoded rows, references, receipt/delta continuity and Undo fixtures. Drop sessions/login attempts. Replay the current operator-maintained disabled-subject/client-grant manifest, then verify unauthorized access remains rejected. An administrative revocation writes and verifies its versioned control record before applying the DB change; only completion of both is reported as successful revocation. Authorization revocations are recorded outside the DB backup timeline in a private versioned control artifact; restoration without that current manifest is blocked. No public personal information is stored in it.
+
+For a production restore, fence and drain API writes, preserve the incident export, restore to an isolated target, validate and reconcile authorization, rotate CURSOR_EPOCH and runtime credentials as required, then change connection configuration and reopen traffic. Clients must refetch full state and reconcile unresolved requests before resuming; restoring a DB can lose acknowledged updates, so do not silently replay a stale proposal. Logical-backup targets are RPO <=24 h and RTO <=60 min; PITR may provide a newer recovery point but is not a zero-loss promise. Record actual times and data-loss scope.
+
+## Release evidence
+
+A release record binds source commit, image digest, build/suite results, IaC/configuration revision, secret version references (never values), schema journal/checksums, Cloud Run revision, endpoint, timestamp, access scope and actual verification results. Report server correctness, deployed identity, browser operation, MCP client/host behavior and latency separately. No local fake or document validation is hosted acceptance.

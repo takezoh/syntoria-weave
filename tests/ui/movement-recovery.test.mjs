@@ -8,7 +8,7 @@ import {createMovementModel} from '../../lib/ui/model/movement.ts';
 import {createTreeDropModel} from '../../lib/ui/model/tree-drop.ts';
 import {createCatalogDraftModel} from '../../lib/ui/model/catalog-drafts.ts';
 import {createTransientModel} from '../../lib/ui/model/transient-create.ts';
-import {actionCallForOwner} from '../helpers/owner-composition.mjs';
+import {actionCallForUser} from '../helpers/user-composition.mjs';
 import {memoryActionStore} from '../helpers/memory-action-store.mjs';
 
 const now='2026-10-03T00:00:00Z';
@@ -17,10 +17,10 @@ const settle=async()=>{for(let index=0;index<120;index++)await Promise.resolve()
 
 async function fixture(){
  const store=memoryActionStore(),calls=[],messages=[],timerQueue=new Map();
- const ports={store,clock:()=>now,newId:uuid},owner='move-recovery';
- const real=(name,args={})=>actionCallForOwner(ports,owner,name,args);
+ const ports={store,clock:()=>now,newId:uuid},user='move-recovery';
+ const real=(name,args={})=>actionCallForUser(ports,user,name,args);
  const write=async(kind,payload)=>real('apply_change',{
-  schemaVersion:2,operationId:uuid(),expectedRevision:(await store.readSnapshot(owner)).revision,kind,payload,
+  schemaVersion:2,operationId:uuid(),expectedRevision:(await store.readSnapshot(user)).revision,kind,payload,
  });
  const ids=[];
  for(const title of ['Source','Other','Destination','Unrelated'])

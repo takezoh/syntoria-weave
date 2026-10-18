@@ -12,7 +12,7 @@ const effectGlobals = new Set([
   'indexedDB', 'caches', 'AbortController',
 ]);
 const effectCapabilities = new Set([
-  'D1Database', 'D1PreparedStatement', 'D1Result', 'D1ResultMeta', 'KVNamespace', 'R2Bucket',
+  'Pool', 'PoolClient', 'FastifyInstance', 'D1Database', 'D1PreparedStatement', 'D1Result', 'D1ResultMeta', 'KVNamespace', 'R2Bucket',
   'DurableObjectNamespace', 'DurableObjectState', 'ExecutionContext', 'Fetcher', 'Queue',
   'WorkflowBinding', 'AnalyticsEngineDataset', 'WorkerEntrypoint', 'ScheduledController',
   'MessageBatch', 'Env', 'WorkerEnv', 'D1Env',
@@ -230,7 +230,7 @@ const privateComposition = {
 };
 
 /** Exact reviewed location for native SQL; every other module must use named domain operations. */
-const sqlAllowlist = new Set(['lib/adapters/d1-action-store.ts']);
+const sqlAllowlist = new Set(['lib/adapters/d1-action-store.ts','lib/adapters/postgres/action-store.ts','lib/adapters/postgres/identity-store.ts','lib/adapters/postgres/migrations.ts','lib/adapters/postgres/transfer.ts']);
 
 const rawSqlLocation = {
   meta: { type: 'problem', schema: [], messages: { sql: 'Raw SQL ({{what}}) is confined to the approved adapter; use a closed descriptor or a reviewed named operation.' } },
@@ -244,7 +244,7 @@ const rawSqlLocation = {
       ImportDeclaration(node) { if (typeof node.source.value === 'string' && /^drizzle-orm/.test(node.source.value)) report(node, node.source.value); },
       MemberExpression(node) {
         const name = node.computed && node.property.type === 'Literal' ? node.property.value : node.property.name;
-        if (name === 'prepare' && !nativeAllowed) report(node, name);
+        if ((name === 'prepare' || (name === 'query' && node.parent.type === 'CallExpression' && node.parent.callee === node)) && !nativeAllowed) report(node, name);
         if (name === 'raw' && !(node.object.type === 'Identifier' && node.object.name === 'String')) report(node, 'sql.raw');
         if (name === 'exec' && !nativeAllowed) report(node, name);
       },
@@ -254,6 +254,12 @@ const rawSqlLocation = {
 
 // Privileged dependencies are permitted per edge, never by exempting an entire importer.
 const capabilityEdges = new Map([
+ ['lib/adapters/postgres/transfer.ts',new Set(['lib/adapters/postgres/action-store'])],
+ ['lib/adapters/postgres/action-store.ts',new Set(['lib/server/node/principal'])],
+ ['lib/mcp/dispatcher.ts',new Set(['lib/mcp/private-registry'])],
+ ['lib/server/node/authentication.ts',new Set(['lib/server/node/principal','lib/server/node/config','lib/adapters/postgres/identity-store'])],
+ ['lib/server/node/server.ts',new Set(['lib/server/node/principal','lib/server/node/authentication','lib/server/node/config'])],
+ ['lib/server/node/main.ts',new Set(['lib/server/node/config','lib/server/node/authentication','lib/server/node/server','lib/adapters/postgres/pool','lib/adapters/postgres/migrations','lib/adapters/postgres/identity-store','lib/adapters/postgres/action-store'])],
  ['app/mcp/route.ts',new Set(['lib/server/mcp'])],
  ['app/api/actions/route.ts',new Set(['lib/server/actions'])],
  ['lib/server/mcp.ts',new Set(['lib/server/auth','lib/mcp/private-dispatcher'])],
@@ -279,10 +285,10 @@ const capabilityDirection = {
 function namedCall(node,name){return node?.type==='CallExpression'&&node.callee.type==='Identifier'&&node.callee.name===name;}
 function identifier(node,name){return node?.type==='Identifier'&&node.name===name;}
 function exportedFunction(program,name){return program.body.find(n=>n.type==='ExportNamedDeclaration'&&n.declaration?.type==='FunctionDeclaration'&&n.declaration.id?.name===name)?.declaration;}
-function isOwnerGuard(node){
+function isUserGuard(node){
  const declaration=node?.type==='VariableDeclaration'&&node.kind==='const'&&node.declarations.length===1?node.declarations[0]:null;
  const call=declaration?.init,headers=call?.arguments?.[0];
- return identifier(declaration?.id,'owner')&&namedCall(call,'requireOwner')&&call.arguments.length===1&&headers?.type==='MemberExpression'&&!headers.computed&&identifier(headers.object,'req')&&identifier(headers.property,'headers');
+ return identifier(declaration?.id,'user')&&namedCall(call,'requireUser')&&call.arguments.length===1&&headers?.type==='MemberExpression'&&!headers.computed&&identifier(headers.object,'req')&&identifier(headers.property,'headers');
 }
 const privateAuth = {
  meta:{type:'problem',schema:[],messages:{auth:'Private HTTP entry must only export the authenticated facade. The facade must obtain request identity before its sole private dispatch, and the dispatcher must validate that identity before any private method.'}},
@@ -308,20 +314,20 @@ const privateAuth = {
      dispatchCall=ret?.type==='ReturnStatement'&&ret.argument?.type==='AwaitExpression'?ret.argument.argument:null;
      const parsed=dispatchCall?.arguments[1],reader=parsed?.type==='AwaitExpression'?parsed.argument:null;
      guardCall=guard?.declarations?.[0]?.init;
-     if(!post?.async||post.params.length!==1||!identifier(post.params[0],'req')||body.length!==1||attempt.type!=='TryStatement'||attempt.block.body.length!==2||!isOwnerGuard(guard)||!namedCall(dispatchCall,'dispatchPrivateMcp')||dispatchCall.arguments.length!==2||!identifier(dispatchCall.arguments[0],'owner')||!namedCall(reader,'readGuardedJson')||reader.arguments.length!==1||!identifier(reader.arguments[0],'req'))report(program);
+     if(!post?.async||post.params.length!==1||!identifier(post.params[0],'req')||body.length!==1||attempt.type!=='TryStatement'||attempt.block.body.length!==2||!isUserGuard(guard)||!namedCall(dispatchCall,'dispatchPrivateMcp')||dispatchCall.arguments.length!==2||!identifier(dispatchCall.arguments[0],'user')||!namedCall(reader,'readGuardedJson')||reader.arguments.length!==1||!identifier(reader.arguments[0],'req'))report(program);
     }else{
      const dispatch=exportedFunction(program,'dispatchPrivateMcp'),first=dispatch?.body.body[0];
      validationCall=first?.type==='ExpressionStatement'?first.expression:null;
-     if(!dispatch?.async||!identifier(dispatch.params[0],'owner')||!namedCall(validationCall,'verifiedOwner')||validationCall.arguments.length!==1||!identifier(validationCall.arguments[0],'owner'))report(program);
+     if(!dispatch?.async||!identifier(dispatch.params[0],'user')||!namedCall(validationCall,'verifiedUser')||validationCall.arguments.length!==1||!identifier(validationCall.arguments[0],'user'))report(program);
     }
    },
    Identifier(node){
     // No aliases, module-time capabilities, catch-path dispatch, or guard lookalikes.
-    const protectedNames=file==='lib/server/mcp.ts'?['requireOwner','dispatchPrivateMcp']:file==='lib/mcp/private-dispatcher.ts'?['verifiedOwner','actionCall']:[];
+    const protectedNames=file==='lib/server/mcp.ts'?['requireUser','dispatchPrivateMcp']:file==='lib/mcp/private-dispatcher.ts'?['verifiedUser','actionCall']:[];
     if(!protectedNames.includes(node.name))return;
     if(node.parent.type==='ImportSpecifier')return;
-    if(node.name==='actionCall'){if(!namedCall(node.parent,'actionCall')||node.parent.callee!==node||!identifier(node.parent.arguments[0],'owner'))report(node);return;}
-    const expected=node.name==='requireOwner'?guardCall:node.name==='dispatchPrivateMcp'?dispatchCall:validationCall;
+    if(node.name==='actionCall'){if(!namedCall(node.parent,'actionCall')||node.parent.callee!==node||!identifier(node.parent.arguments[0],'user'))report(node);return;}
+    const expected=node.name==='requireUser'?guardCall:node.name==='dispatchPrivateMcp'?dispatchCall:validationCall;
     if(node.parent!==expected||expected?.callee!==node)report(node);
    }
   };
@@ -342,12 +348,12 @@ function containsD1DatabaseType(node){
  if(node.type==='TSTypeReference'&&node.typeName?.type==='Identifier'&&node.typeName.name==='D1Database')return true;
  return Object.entries(node).some(([key,value])=>key!=='parent'&&(Array.isArray(value)?value.some(containsD1DatabaseType):containsD1DatabaseType(value)));
 }
-const ownerSql = {
- meta:{type:'problem',schema:[],messages:{owner:'Native SQL must bind owner and scope SELECT/DELETE or INSERT/conflict keys to owner; only direct prepare and batch calls are allowed on D1, without computed access or method extraction.'}},
+const userSql = {
+ meta:{type:'problem',schema:[],messages:{user:'Native SQL must bind owner and scope SELECT/DELETE or INSERT/conflict keys to owner; only direct prepare and batch calls are allowed on D1, without computed access or method extraction.'}},
  create(context){
   if(relative(context.cwd,context.filename).replaceAll('\\','/')!=='lib/adapters/d1-action-store.ts')return {};
   const databaseHandles=new Set();
-  const report=node=>context.report({node,messageId:'owner'});
+  const report=node=>context.report({node,messageId:'user'});
   const trackParameters=node=>{
    for(const parameter of node.params??[]){
     const value=parameter.type==='TSParameterProperty'?parameter.parameter:parameter;
@@ -358,7 +364,7 @@ const ownerSql = {
   const checkPrepare=node=>{
    const arg=node.arguments[0],text=arg?context.sourceCode.getText(arg):'';
    const bind=node.parent?.parent;
-   const bound=bind?.type==='CallExpression'&&bind.arguments.some(a=>a.type==='Identifier'&&a.name==='owner');
+   const bound=bind?.type==='CallExpression'&&bind.arguments.some(a=>a.type==='Identifier'&&a.name==='user');
    const read=/^['`"]SELECT /.test(text),remove=/^['`"]DELETE /.test(text),insert=/^['`"]INSERT /.test(text);
    const scope=(read||remove)?/WHERE owner=\?/.test(text):insert&&/\(owner,/.test(text)&&(!/ON CONFLICT/.test(text)||/ON CONFLICT\(owner,/.test(text));
    if(!bound||!scope)report(node);
@@ -433,6 +439,6 @@ const readonlyUiState = {
   };
  }
 };
-const boundaries = { rules: { 'pure-effects': pureEffects, 'data-type-only':dataTypeOnly, 'ui-model-capability':uiModelCapability, 'dependency-direction': dependencyDirection, 'private-composition': privateComposition, 'raw-sql-location': rawSqlLocation, 'capability-direction':capabilityDirection, 'private-auth':privateAuth, 'owner-sql':ownerSql,'readonly-ui-state':readonlyUiState } };
+const boundaries = { rules: { 'pure-effects': pureEffects, 'data-type-only':dataTypeOnly, 'ui-model-capability':uiModelCapability, 'dependency-direction': dependencyDirection, 'private-composition': privateComposition, 'raw-sql-location': rawSqlLocation, 'capability-direction':capabilityDirection, 'private-auth':privateAuth, 'user-sql':userSql,'readonly-ui-state':readonlyUiState } };
 
 export default boundaries;
