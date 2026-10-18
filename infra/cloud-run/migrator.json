@@ -1,0 +1,59 @@
+{
+  "apiVersion": "run.googleapis.com/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "weave-migrator",
+    "namespace": "123456789012"
+  },
+  "spec": {
+    "template": {
+      "spec": {
+        "taskCount": 1,
+        "template": {
+          "spec": {
+            "serviceAccountName": "weave-migrator@example-project.iam.gserviceaccount.com",
+            "maxRetries": 0,
+            "timeoutSeconds": "900",
+            "containers": [
+              {
+                "image": "asia-southeast1-docker.pkg.dev/example-project/weave/service@sha256:821d0d2060002b65a9fecfeb7a4c492a6560e1b3dbd3b149187acab26f28b82c",
+                "command": [
+                  "node"
+                ],
+                "args": [
+                  "dist/server/admin.mjs",
+                  "migrate"
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_DATABASE_URL",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "weave-admin-database",
+                        "key": "2"
+                      }
+                    }
+                  },
+                  {
+                    "name": "NODE_ENV",
+                    "value": "production"
+                  },
+                  {
+                    "name": "BACKUP_BUCKET",
+                    "value": "weave-backups-example-project"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

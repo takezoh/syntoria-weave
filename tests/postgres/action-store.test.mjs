@@ -8,7 +8,7 @@ import {checkRuntime} from '../../lib/adapters/postgres/migrations.ts';
 const now='2026-10-18T00:00:00.000Z';
 test('real PostgreSQL transaction, replay, user, Undo and feed contract',async t=>{
  const f=await postgresFixture();t.after(()=>f.close());
- const identity=user=>issuePrincipal({user,issuer:'test',subject:user,clientId:'test',scopes:['state:read','state:write']});
+ const identity=user=>issuePrincipal({user,issuer:'test',subject:user,connectionId:`test:${user}`,clientId:'test',scopes:['state:read','state:write']});
  const store=user=>createPostgresActionStore(f.pool,identity(user));
  const call=(user,name,args={})=>actionCall({store:store(user),clock:()=>now,newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope(user,'test-epoch')},name,args);
  const write=async(user,kind,payload)=>call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await call(user,'list_actions')).revision,kind,payload});

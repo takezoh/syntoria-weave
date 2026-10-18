@@ -1,0 +1,123 @@
+{
+  "apiVersion": "serving.knative.dev/v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "weave-api",
+    "namespace": "123456789012",
+    "annotations": {
+      "run.googleapis.com/ingress": "all"
+    }
+  },
+  "spec": {
+    "template": {
+      "metadata": {
+        "annotations": {
+          "autoscaling.knative.dev/minScale": "1",
+          "autoscaling.knative.dev/maxScale": "3",
+          "run.googleapis.com/execution-environment": "gen2"
+        }
+      },
+      "spec": {
+        "serviceAccountName": "weave-runtime@example-project.iam.gserviceaccount.com",
+        "containerConcurrency": 20,
+        "timeoutSeconds": 30,
+        "containers": [
+          {
+            "image": "asia-southeast1-docker.pkg.dev/example-project/weave/service@sha256:821d0d2060002b65a9fecfeb7a4c492a6560e1b3dbd3b149187acab26f28b82c",
+            "ports": [
+              {
+                "containerPort": 8080
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "1",
+                "memory": "512Mi"
+              }
+            },
+            "startupProbe": {
+              "httpGet": {
+                "path": "/health/ready",
+                "port": 8080
+              },
+              "periodSeconds": 5,
+              "timeoutSeconds": 3,
+              "failureThreshold": 24
+            },
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/health/live",
+                "port": 8080
+              },
+              "periodSeconds": 30
+            },
+            "env": [
+              {
+                "name": "NODE_ENV",
+                "value": "production"
+              },
+              {
+                "name": "PUBLIC_ORIGIN",
+                "value": "__RENDER_REQUIRED__"
+              },
+              {
+                "name": "OAUTH_ISSUER",
+                "value": "__RENDER_REQUIRED__"
+              },
+              {
+                "name": "OAUTH_RESOURCE",
+                "value": "__RENDER_REQUIRED__"
+              },
+              {
+                "name": "SHARED_COOKIE_DOMAIN",
+                "value": "__RENDER_REQUIRED__"
+              },
+              {
+                "name": "SPA_ORIGINS",
+                "value": "__RENDER_REQUIRED__"
+              },
+              {
+                "name": "GATE_BROWSER_CLIENT_ID",
+                "value": "weave-web"
+              },
+              {
+                "name": "GATE_RESOURCE_CLIENT_ID",
+                "value": "weave-api"
+              },
+              {
+                "name": "GATE_ALLOWED_CLIENT_IDS",
+                "value": "weave-web,weave-mcp"
+              },
+              {
+                "name": "CURSOR_EPOCH",
+                "value": "2dc1ecc6-3bd5-4dd1-908a-af7d3e7a698a"
+              },
+              {
+                "name": "WRITE_MODE",
+                "value": "enabled"
+              },
+              {
+                "name": "DATABASE_URL",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "weave-runtime-database",
+                    "key": "2"
+                  }
+                }
+              },
+              {
+                "name": "GATE_RESOURCE_CLIENT_SECRET",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "weave-gate-client-secret",
+                    "key": "1"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

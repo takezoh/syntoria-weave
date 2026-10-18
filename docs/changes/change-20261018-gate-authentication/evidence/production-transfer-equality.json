@@ -1,0 +1,56 @@
+{
+  "state.projects": {
+    "count": 3,
+    "sha256": "da694f4dd4cb2314447de82b41ba8530c52a2273d678d41515961db480e1d047",
+    "expectedSha256": "da694f4dd4cb2314447de82b41ba8530c52a2273d678d41515961db480e1d047",
+    "equal": true
+  },
+  "state.tags": {
+    "count": 9,
+    "sha256": "709d06c2f3f6ca43af18fc8ef9ac55897da7052458326a117390ce90eb7f455d",
+    "expectedSha256": "709d06c2f3f6ca43af18fc8ef9ac55897da7052458326a117390ce90eb7f455d",
+    "equal": true
+  },
+  "state.actions": {
+    "count": 84,
+    "sha256": "00c9b7ff7f3d6077fa00c87ccb53e1540e2d77123635d718ad1b97873ced29df",
+    "expectedSha256": "00c9b7ff7f3d6077fa00c87ccb53e1540e2d77123635d718ad1b97873ced29df",
+    "equal": true
+  },
+  "state.action_tags": {
+    "count": 211,
+    "sha256": "5e8027ce1028a7e67571872740cd2b6bfd319d7280628453583a730e36410726",
+    "expectedSha256": "5e8027ce1028a7e67571872740cd2b6bfd319d7280628453583a730e36410726",
+    "equal": true
+  },
+  "state.perspectives": {
+    "count": 1,
+    "sha256": "715580d5b8810d459dd4547a7b7d34d3e3579383136bd1dfc0e74154f278593e",
+    "expectedSha256": "715580d5b8810d459dd4547a7b7d34d3e3579383136bd1dfc0e74154f278593e",
+    "equal": true
+  },
+  "state.catalog_identity_ledger": {
+    "count": 227,
+    "sha256": "d1d846557e73931459617386f345e3c040a1de45ff8860a8f0f375931508a0e2",
+    "expectedSha256": "d1d846557e73931459617386f345e3c040a1de45ff8860a8f0f375931508a0e2",
+    "equal": true
+  },
+  "state.operations": {
+    "count": 100,
+    "sha256": "91848416114c4858d3c1697510d05ac2adc3a4a26e49f7fae241ca48b469aa2b",
+    "expectedSha256": "91848416114c4858d3c1697510d05ac2adc3a4a26e49f7fae241ca48b469aa2b",
+    "equal": true
+  },
+  "identity.subjects": {
+    "count": 0,
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "expectedSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "equal": true
+  },
+  "identity.client_grants": {
+    "count": 0,
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "expectedSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "equal": true
+  }
+}

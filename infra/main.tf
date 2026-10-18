@@ -1,21 +1,23 @@
 locals {
 
-  secret_ids = toset(["runtime-database", "admin-database", "backup-database", "web-client-secret", "login-key", "csrf-key"])
+  secret_ids = toset(["runtime-database", "admin-database", "backup-database", "gate-client-secret", "login-key", "csrf-key"])
   runtime_secrets = {
-    DATABASE_URL         = "runtime-database"
-    WEB_CLIENT_SECRET    = "web-client-secret"
-    LOGIN_ENCRYPTION_KEY = "login-key"
-    CSRF_KEY             = "csrf-key"
+    DATABASE_URL                = "runtime-database"
+    GATE_RESOURCE_CLIENT_SECRET = "gate-client-secret"
   }
 
   runtime_env = {
-    PUBLIC_ORIGIN  = var.public_origin
-    OAUTH_ISSUER   = var.oauth_issuer
-    OAUTH_RESOURCE = "${var.public_origin}/mcp"
-    WEB_CLIENT_ID  = var.web_client_id
-    CURSOR_EPOCH   = var.cursor_epoch
-    WRITE_MODE     = var.writes_enabled ? "enabled" : "blocked"
-    NODE_ENV       = "production"
+    PUBLIC_ORIGIN           = var.public_origin
+    OAUTH_ISSUER            = var.oauth_issuer
+    OAUTH_RESOURCE          = "${var.public_origin}/mcp"
+    SHARED_COOKIE_DOMAIN    = var.shared_cookie_domain
+    SPA_ORIGINS             = jsonencode(var.spa_origins)
+    GATE_BROWSER_CLIENT_ID  = var.gate_browser_client_id
+    GATE_RESOURCE_CLIENT_ID = var.gate_resource_client_id
+    GATE_ALLOWED_CLIENT_IDS = join(",", var.gate_allowed_client_ids)
+    CURSOR_EPOCH            = var.cursor_epoch
+    WRITE_MODE              = var.writes_enabled ? "enabled" : "blocked"
+    NODE_ENV                = "production"
   }
 
 
@@ -84,7 +86,7 @@ resource "google_secret_manager_secret_iam_member" "job" {
 
 resource "google_cloud_run_v2_service" "api" {
 
-  name                = var.name
+  name                = "${var.name}-api"
   location            = var.region
   ingress             = "INGRESS_TRAFFIC_ALL"
   deletion_protection = true
@@ -195,7 +197,7 @@ resource "google_cloud_run_v2_service_iam_member" "https" {
 
 resource "google_storage_bucket" "backup" {
 
-  name                        = "${var.project_id}-${var.name}-backups"
+  name                        = "${var.name}-backups-${var.project_id}"
   location                    = var.region
   uniform_bucket_level_access = true
   public_access_prevention    = "enforced"

@@ -56,7 +56,7 @@ Use the same consistent acquisition for feed head, oldest retained revision and 
 
 ### Commit algorithm
 
-`UserActionStore.commit` receives canonical input, prepared before/after state, now and optional Undo target. Generate the pure changed-row/storage plan before acquiring a write connection; no external call is made while holding the lock.
+`UserActionStore.commit` receives canonical input, prepared before/after state, now and optional Undo target. Generate the pure changed-row/storage plan before acquiring a write connection; Gate introspection is repeated under the acquired lock before business effects; no external user interaction occurs under the lock.
 
 1. Check out a client and BEGIN at READ COMMITTED; set transaction-local user and deadlines. Recheck the verified principal/client grant using its immutable auth context; a disabled grant rejects before business effects.
 2. Acquire `pg_advisory_xact_lock($1::bigint)`, with the signed 64-bit key derived from the first 8 bytes of SHA-256 of the UTF-8 domain-separated string `action-tools/owner-commit/v1` + NUL + exact user. This versioned cryptographic namespace is fixed; use the same derivation in API, migrations and fixtures. Hash collisions only serialize unrelated users; SQL/RLS identity never uses the hash. Transaction-level locks release automatically on commit/rollback and cover concurrent first writes without a user-state row.

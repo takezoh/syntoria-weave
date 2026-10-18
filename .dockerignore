@@ -5,6 +5,8 @@ dist
 .vinext
 .wrangler
 .sites-runtime
+.local
+**/.local
 .env*
 *.pem
 *.PNG

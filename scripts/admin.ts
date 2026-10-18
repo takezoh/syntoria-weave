@@ -27,7 +27,7 @@ try{
   }
   case 'snapshot':{
    const [user,path]=args;if(!user||!path)throw new Error('Expected user and private output file.');
-   const principal=issuePrincipal({user,issuer:'admin',subject:user,clientId:'admin',scopes:['state:read']});
+   const principal=issuePrincipal({user,issuer:'admin',subject:user,connectionId:'admin',clientId:'admin',scopes:['state:read']});
    const value=await createPostgresActionStore(pool,principal).readSnapshot();validateGraph(value);
    await writeFile(path,JSON.stringify(value),{mode:0o600,flag:'wx'});break;
   }

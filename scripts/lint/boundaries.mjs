@@ -246,7 +246,7 @@ const rawSqlLocation = {
         const name = node.computed && node.property.type === 'Literal' ? node.property.value : node.property.name;
         if ((name === 'prepare' || (name === 'query' && node.parent.type === 'CallExpression' && node.parent.callee === node)) && !nativeAllowed) report(node, name);
         if (name === 'raw' && !(node.object.type === 'Identifier' && node.object.name === 'String')) report(node, 'sql.raw');
-        if (name === 'exec' && !nativeAllowed) report(node, name);
+        if (name === 'exec' && !nativeAllowed && !(node.object.type === 'Literal' && node.object.regex)) report(node, name);
       },
     };
   },
@@ -257,7 +257,7 @@ const capabilityEdges = new Map([
  ['lib/adapters/postgres/transfer.ts',new Set(['lib/adapters/postgres/action-store'])],
  ['lib/adapters/postgres/action-store.ts',new Set(['lib/server/node/principal'])],
  ['lib/mcp/dispatcher.ts',new Set(['lib/mcp/private-registry'])],
- ['lib/server/node/authentication.ts',new Set(['lib/server/node/principal','lib/server/node/config','lib/adapters/postgres/identity-store'])],
+ ['lib/server/node/authentication.ts',new Set(['lib/server/node/principal','lib/server/node/config','lib/server/node/gate-verifier','lib/adapters/postgres/identity-store'])],
  ['lib/server/node/server.ts',new Set(['lib/server/node/principal','lib/server/node/authentication','lib/server/node/config'])],
  ['lib/server/node/main.ts',new Set(['lib/server/node/config','lib/server/node/authentication','lib/server/node/server','lib/adapters/postgres/pool','lib/adapters/postgres/migrations','lib/adapters/postgres/identity-store','lib/adapters/postgres/action-store'])],
  ['app/mcp/route.ts',new Set(['lib/server/mcp'])],

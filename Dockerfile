@@ -14,7 +14,7 @@ COPY --from=build /app/LICENSE /app/licenses/application-LICENSE
 COPY --from=build /app/vendor/shadcn-tailwind-4.13.0.LICENSE.md /app/licenses/shadcn-tailwind-LICENSE.md
 ENV NODE_ENV=production PORT=8080
 WORKDIR /app
-COPY --from=build --chown=postgres:postgres /app/dist ./dist
+COPY --from=build --chown=postgres:postgres /app/dist/server ./dist/server
 COPY --from=build --chown=postgres:postgres /app/node_modules ./node_modules
 COPY --from=build --chown=postgres:postgres /app/package.json ./package.json
 COPY --from=build --chown=postgres:postgres /app/db/postgres/migrations ./db/postgres/migrations

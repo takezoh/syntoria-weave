@@ -1,10 +1,10 @@
 import {fail} from '../../domain/core';
 export type Scopes = readonly string[];
-export type Principal = Readonly<{user:string;issuer:string;subject:string;clientId:string;scopes:Scopes}>;
+export type Principal = Readonly<{user:string;issuer:string;subject:string;connectionId:string;clientId:string;scopes:Scopes}>;
 const issued=new WeakSet<object>();
 /** Only authentication composition can mint a request capability. */
 export function issuePrincipal(value:Principal):Principal {
- if(!value.user||!value.subject||!value.clientId)fail('unauthenticated','Verified identity is required.',401);
+ if(!value.user||!value.subject||!value.connectionId||!value.clientId)fail('unauthenticated','Verified identity is required.',401);
  const principal=Object.freeze({...value,scopes:Object.freeze([...value.scopes])});issued.add(principal);return principal;
 }
 export function verifyPrincipal(value:Principal):Principal {
