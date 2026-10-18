@@ -4,6 +4,8 @@ The plugin release contains a runnable local MCP server, the shared UI resource 
 
 ## Build and configure
 
+Initial ChatGPT installation uses [install-plugin](../../skills/install-plugin/SKILL.md). Updates use [update-plugin](../../skills/update-plugin/SKILL.md). Both construct the installation package from shared implementation/templates and deployment-specific connection settings. The Remote MCP URL is required in the generated config.json; a generic package alone is not a configured installation.
+
 Use the pinned Node.js and package manager. Run the required checks, then build the plugin from the selected source version. Render only public endpoint/client settings and the explicit private data-directory path into an ignored operator-specific artifact. Never distribute token state, database settings, resource-client secrets or GitHub credentials.
 
 ```sh

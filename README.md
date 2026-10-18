@@ -36,11 +36,19 @@ If you have set up a to-do app three times and stopped maintaining it three time
 
 Weave supports personal workflows over your own saved state. Calendar planning, reminders and background workflows are arranged in your AI's environment.
 
-## Connect your AI
+## Install in ChatGPT
 
-Install the [MCP plugin](INSTALL.md) to use the shared list UI and action tools in a local MCP client, or connect your client to the deployed Remote MCP. The dedicated browser UI reads and updates the same saved state.
+In the ChatGPT desktop app, open Work and ask it to build and install the plugin:
 
-After connecting, ask your AI to show your actions and open the list.
+```text
+Read https://github.com/takezoh/syntoria-weave/blob/main/INSTALL.md and build and install Syntoria Weave for me using my deployed service's connection settings.
+```
+
+Provide your deployment's MCP URL, Gate issuer and registered public OAuth client ID when requested. The [install-plugin skill](skills/install-plugin/SKILL.md) builds an installation package from the shared source and templates using those settings, then installs it in ChatGPT. Complete Gate sign-in and connection approval, then ask ChatGPT to show your actions and open the list.
+
+For an existing installation, ask Work to read the latest [update-plugin skill](skills/update-plugin/SKILL.md) and update it while preserving your connection settings.
+
+See [ChatGPT installation](INSTALL.md) for the full procedure. To connect another MCP client, follow [MCP client setup](docs/technical/mcp-installation.md). The dedicated browser UI reads and updates the same saved state.
 
 ## Use cases: ask your AI
 

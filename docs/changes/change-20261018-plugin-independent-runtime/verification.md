@@ -34,3 +34,7 @@ Actual plugin installation, client resource caching/rendering and host lifecycle
 The documentation tool's conformance command crashes on pre-existing string boundary entries (`AttributeError: str has no attribute get`). Ordinary schema/content/reference checks pass; formal conformance/closure is not claimed. Root used the canonical documentation parser/serializer for nested metadata because the patch CLI supports only top-level scalar/list values.
 
 The scope-evidence query reports only the pre-existing untracked `IMG_1875.PNG` and `IMG_1876.PNG` as outside this change. They are neither modified nor staged. All implementation paths are declared; no test-member gaps were reported. The evidence tool cannot resolve the extensionless Dockerfile declaration, whose source is restored unchanged from the baseline.
+
+## Installation documentation and skill correction
+
+The follow-up separates MCP client setup from ChatGPT installation, restores README's Work installation prompt and adds the installation workflow skill. Content/reference and skill-frontmatter validation cover these documentation-only changes; the earlier application-suite result is not a new ChatGPT installation claim. The documented renderer inputs, required config.json fields, strict connection-tool arguments and stdio launcher match code. Actual ChatGPT installation remains unexecuted.
