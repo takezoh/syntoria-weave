@@ -1,19 +1,82 @@
-# Install Syntoria Weave in ChatGPT
+# Install Syntoria Weave
 
-Use Work in the ChatGPT desktop app to build and install the plugin for your deployed Weave service. The plugin supplies action tools, the shared UI and the action-tools skill. Its local MCP server connects to the independent backend through Gate OAuth.
+Build and install a personal ChatGPT plugin connected to the user's existing Weave service. Execute this procedure in ChatGPT Work with local computer access in the desktop app. Use Node.js 24 LTS and the packageManager version in package.json. Backend provisioning is separate; follow [deployment](docs/technical/deployment.md) only when explicitly requested. General MCP client setup has its own [guide](docs/technical/mcp-installation.md).
 
-Ask Work:
+## Select the service and installation
 
-```text
-Read https://github.com/takezoh/syntoria-weave/blob/main/INSTALL.md and build and install Syntoria Weave for me using my deployed service's connection settings. Verify authenticated reads and the shared UI.
+1. Obtain the user's complete HTTPS Remote MCP URL, Gate issuer and registered public OAuth client ID from supplied settings or an identified existing configuration. Ask only for missing values. The URL varies by deployment; do not infer it from examples or commit it to source.
+2. Confirm that the public client registers exactly `http://127.0.0.1:55437/callback`. Authentication must use that existing public client; no DB, GitHub or confidential resource-client secret is needed.
+3. Inspect the existing personal plugin/marketplace entry when updating. Retain its actual registration identity, configuration and private OAuth state. For a new installation choose a stable local package directory and a separate private data directory. Keep token state outside the package and host's install cache.
+4. Use the source branch requested for the installation and record its commit. Read the current [action-tools contract](skills/action-tools/SKILL.md); no installation skill is delivered to the plugin.
+
+## Build the configured plugin
+
+From the selected source checkout:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm check
+pnpm build
 ```
 
-Supply the deployment's MCP URL, Gate issuer and registered public OAuth client ID, or identify an existing local configuration to reuse. These values vary by deployment. Keep them in local settings outside tracked source. Work also needs a private directory for OAuth state outside the plugin install directory.
+Set the invoking shell's `GATE_ISSUER`, `MCP_URL`, `OAUTH_CLIENT_ID` and `ACTION_DATA_DIRECTORY` to the supplied settings and chosen absolute private data path. They are explicit renderer inputs. Do not print tokens or secret environment values.
 
-Work follows the [install-plugin skill](skills/install-plugin/SKILL.md) and the [ChatGPT installation procedure](docs/technical/plugin-installation.md). The repository supplies the common implementation, UI and definition templates. The skill receives the deployment settings and constructs the configured installation package; the generic template package alone cannot connect to your service. No published plugin-directory listing is required for the personal local-marketplace route.
+```sh
+node scripts/render-plugin.mjs \
+  --issuer "$GATE_ISSUER" \
+  --resource-endpoint "$MCP_URL" \
+  --client-id "$OAUTH_CLIENT_ID" \
+  --data-directory "$ACTION_DATA_DIRECTORY"
+node scripts/build-plugin.mjs --config .local/dist/action-tools/config.json
+```
 
-Complete the returned Gate sign-in/connection approval. Then ask ChatGPT to retrieve your actions and open the list. Confirm both the saved data and actual UI behavior. Authorization is reused across calls and restarts.
+The common implementation/UI and definition templates are source inputs. The configured `dist/plugin/` is the installable output. Inspect its generated `config.json` for the selected `resourceEndpoint`, `issuer` and `clientId`. The required Remote MCP URL belongs in that file; `mcp.json` defines the local stdio launcher. A generic build without config.json cannot connect to the service.
 
-For updates, ask Work to read the latest [update-plugin skill](skills/update-plugin/SKILL.md) and update the installation while preserving its configuration and private OAuth state.
+Verify the artifact-manifest.json hashes and that resources/actions-v4.html equals dist/spa/workspace.html. The package must include its launcher/server, manifests, UI resource, action-tools skill/references and licenses. It must exclude private token state and confidential backend credentials. The builder distributes only skills/action-tools; construction and update instructions remain in this source checkout.
 
-For a general MCP client, use the separate [MCP setup guide](docs/technical/mcp-installation.md). Backend provisioning follows [deployment](docs/technical/deployment.md). Actual ChatGPT installation and UI acceptance must be observed; repository tests alone do not establish them.
+## Register and install in ChatGPT
+
+1. Copy the complete configured `dist/plugin/` to the selected stable local package directory. Preserve any existing private data directory. The installed copy does not require this checkout or node_modules.
+2. Add or update only the matching entry in the user's personal marketplace at `~/.agents/plugins/marketplace.json`. Preserve other entries. The host's built-in `@plugin-creator`, when available, can register the existing configured folder; retain the supplied portable manifests and stdio wiring.
+3. For manual registration, use the [official local-marketplace format](https://developers.openai.com/plugins/build/plugins#install-a-local-plugin-manually). Include marketplace name and the plugin entry's name, local source, installation/authentication policies and category. The plugin name is `action-tools`; use `Syntoria Weave` as the host display name. Resolve source.path relative to the marketplace root and point it at the stable configured folder, not the source templates. For example, a personal folder `~/.codex/plugins/action-tools-personal` uses `./.codex/plugins/action-tools-personal` under the home-rooted personal marketplace.
+4. Restart the ChatGPT desktop app. Open the Plugins Directory, choose the local marketplace and install or refresh its entry. Record the actual registration returned/shown by the host; do not invent plugin IDs. Start a new Work conversation with the plugin enabled so it loads current tools/resources. Creating files alone does not complete installation or refresh the host's installed cache.
+
+For a new personal entry, the following is a concrete example for the package directory above. Merge the entry into an existing catalog rather than replacing that catalog. Reuse existing names when updating.
+
+```json
+{
+  "name": "action-tools-personal-marketplace",
+  "interface": {"displayName": "Personal Plugins"},
+  "plugins": [
+    {
+      "name": "action-tools",
+      "source": {
+        "source": "local",
+        "path": "./.codex/plugins/action-tools-personal"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
+```
+
+## Authenticate and verify
+
+1. Discover the installed tools and call `connect_action_service` with `{}`. This authenticates the endpoint already in config.json; it does not accept a URL or configure a connection.
+2. Have the user open the returned URL and complete Gate sign-in/connection approval. The browser callback must reach the loopback listener on the machine running MCP.
+3. Call `get_connection_status`, then `list_actions` for an authenticated read. Local credential presence alone does not prove service acceptance.
+4. Call `open_actions` and inspect actual ChatGPT rendering and tool communication. Verify retained proposals and unknown-result recovery separately. Missing write responses retain exact tool names, operation IDs and arguments; do not create fresh IDs to retry.
+
+Valid authorization is reused across calls and restarts. A later issuer, MCP URL or client change requires updating the local configuration, restarting the MCP process and reconnecting. Remote revocation uses Gate connection controls; disconnect_action_service clears local authorization.
+
+## Update an existing installation
+
+Use the [update-plugin skill](skills/update-plugin/SKILL.md) and [update workflow](docs/technical/plugin-workflow.md). Rebuild with the existing deployment settings and preserve private OAuth state outside the replacement package. The installation procedure itself is not a skill bundled for everyday action management.
+
+## Report the result
+
+Report source commit, configured artifact identity/hash, selected service configuration, actual plugin registration, authenticated-read result and observed UI/cache behavior. Exclude tokens and personal action text. Mark any installation, authentication or rendering step not observed as incomplete; local tests do not establish ChatGPT acceptance.
