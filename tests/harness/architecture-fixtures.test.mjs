@@ -11,6 +11,8 @@ function lint(code,filename){
 const reports=(messages,rule)=>messages.some(item=>item.ruleId==='architecture/'+rule);
 test('negative dependencies include extensionless aliases, re-exports and indirect capability shims',()=>{
  for(const source of ["import {x} from '@/lib/server/node/server';x();","export * from '@/lib/adapters/d1-action-store';","export * from '@/lib/domain/shim';"]){assert(reports(lint(source,'lib/mcp/local/server.mjs'),'private-composition'));}
+ assert(!reports(lint("import {createActionUiResource} from '../ui-resource.ts';void createActionUiResource;",'lib/mcp/local/server.mjs'),'private-composition'));
+ assert(reports(lint("import {createPostgresActionStore} from '@/lib/adapters/postgres/action-store';void createPostgresActionStore;",'lib/mcp/local/server.mjs'),'private-composition'));
  assert(reports(lint("export * from '@/lib/adapters/d1-action-store';",'lib/domain/shim.ts'),'capability-direction'));
  assert(reports(lint("import {x} from '../adapters/d1-action-store';x();",'lib/application/sample.ts'),'dependency-direction'));
 });

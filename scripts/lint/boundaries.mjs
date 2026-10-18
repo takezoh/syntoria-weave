@@ -208,7 +208,7 @@ const privateTargets = [
 const publicSurfaces = path => path === 'lib/mcp/local-server.mjs' || path.startsWith('lib/mcp/local/') || path === 'build/local-mcp-vite.config.mjs';
 function allowedLocalTarget(target) {
   return target?.startsWith('node:') || target?.startsWith('lib/mcp/local/') ||
-    ['lib/mcp/tool-definitions.ts','lib/widget.ts','openid-client','vite'].includes(target);
+    ['lib/mcp/tool-definitions.ts','lib/mcp/ui-resource.ts','lib/widget.ts','openid-client','vite'].includes(target);
 }
 
 const privateComposition = {
