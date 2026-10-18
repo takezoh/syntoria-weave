@@ -115,7 +115,7 @@ export type Receipt = Readonly<{
   revision_after: number;
   undo_of: string | null;
 }>;
-/** Owner-bound retained operation rows used to build an incremental read page. */
+/** User-bound retained operation rows used to build an incremental read page. */
 export type RetainedOperation = Readonly<{
   operation_id: string;
   revision_before: number;
@@ -141,8 +141,8 @@ export type OperationResult = Readonly<{
   changedIds: readonly string[];
   resolved?: OperationResolution;
 }>;
-/** Owner identity is intentionally absent; trusted composition binds it outside the request. */
-export type OwnerCommitRequest = Readonly<{
+/** User identity is intentionally absent; trusted composition binds it outside the request. */
+export type UserCommitRequest = Readonly<{
   operationId: string;
   payload: string;
   before: Snapshot;

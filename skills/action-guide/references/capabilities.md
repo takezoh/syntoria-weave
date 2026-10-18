@@ -4,7 +4,7 @@
 
 The service persists structured actions, validates input and ownership, performs deterministic state transitions and supplies a shared UI. Meaning, classification, prioritization and management method belong to the user and caller-side LLM. External-source collection, observation, calendar sync, scheduling and notifications require the caller's own authorized capabilities.
 
-The current delivery environment is ChatGPT with Sites-managed authentication. A skill installed in another assistant does not establish a supported authenticated connection there. Never accept owner identity from operation arguments or invent authentication headers.
+The current delivery environment is ChatGPT with Sites-managed authentication. A skill installed in another assistant does not establish a supported authenticated connection there. Never accept user identity from operation arguments or invent authentication headers.
 
 ## Discover exact operations
 
@@ -17,7 +17,7 @@ The current source advertises input schemas but no output schemas. The typed cha
 | Goal | Current tools or change kinds |
 | --- | --- |
 | Inspect the shared UI | `open_actions` |
-| Read the complete snapshot and owner-wide revision | `list_actions`, `get_relevant_context` |
+| Read the complete snapshot and user-wide revision | `list_actions`, `get_relevant_context` |
 | Retrieve a filtered set | `query_actions` |
 | Read and evaluate saved views | `list_perspectives`, `query_perspective` |
 | Preserve original input | `capture_intent` with a caller-supplied title and exact text |
@@ -42,6 +42,6 @@ The current source advertises input schemas but no output schemas. The typed cha
 
 ## Write guarantees and limits
 
-New writes require schemaVersion 2, an operation UUID and the latest owner-wide revision. Preview does not reserve state. Identical retained requests replay their receipt without rolling back later corrections; changed input under the same ID is rejected. Undo may refuse later changes to its target.
+New writes require schemaVersion 2, an operation UUID and the latest user-wide revision. Preview does not reserve state. Identical retained requests replay their receipt without rolling back later corrections; changed input under the same ID is rejected. Undo may refuse later changes to its target.
 
-Only the latest 100 operations per owner are retained. A missing response is an unknown outcome. Keep exact name, ID and arguments for lookup or identical replay; `not_observed` can mean pruned history. Do not turn an unknown request into a fresh write by changing its ID or revision. An explicit revision rejection can be reconciled against current state before a genuinely new request.
+Only the latest 100 operations per user are retained. A missing response is an unknown outcome. Keep exact name, ID and arguments for lookup or identical replay; `not_observed` can mean pruned history. Do not turn an unknown request into a fresh write by changing its ID or revision. An explicit revision rejection can be reconciled against current state before a genuinely new request.

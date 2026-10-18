@@ -4,7 +4,7 @@
 
 The query object accepts only `where` and `order_by`. Conditions are nonempty recursive `and`/`or`, unary `not`, or field/operator/value leaves. Project and Tag leaves support `eq`, `ne`, `in` and `not_in`; Status supports the same operators; Flag and Defer support `eq` and `ne`. Empty `in` sets match nothing and empty `not_in` sets match everything. Negation applies to the complete positive match. Null in Project or Tag predicates means unassigned or untagged. Tag sets match any overlapping association. Classification leaves default `include_descendants` to true during normalization; false restricts them to the referenced node. Classification hierarchy is independent of Action containment.
 
-Normalization accepts plain data records with exact keys and dense, undecorated arrays. It rejects accessors, symbols, non-enumerable keys, invalid UUIDs, and explicit `undefined` values. Resource preflight is iterative and checks array cardinality before reading child values; logical normalization follows only after its depth and node budgets pass. Reference collection includes UUIDs under negative operators and `not`, and owner-snapshot validation checks every referenced Project and Tag.
+Normalization accepts plain data records with exact keys and dense, undecorated arrays. It rejects accessors, symbols, non-enumerable keys, invalid UUIDs, and explicit `undefined` values. Resource preflight is iterative and checks array cardinality before reading child values; logical normalization follows only after its depth and node budgets pass. Reference collection includes UUIDs under negative operators and `not`, and user-snapshot validation checks every referenced Project and Tag.
 
 | Limit | Bound | Purpose |
 | --- | ---: | --- |

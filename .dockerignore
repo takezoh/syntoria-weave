@@ -1,0 +1,24 @@
+.git
+node_modules
+dist
+.next
+.vinext
+.wrangler
+.sites-runtime
+.env*
+*.pem
+*.PNG
+outputs
+work
+coverage
+.codex
+.agents
+infra/*.tfstate*
+infra/*.tfplan
+
+# Ephemeral CI identity files.
+gha-creds-*.json
+
+infra/.terraform
+*.dump
+*.backup

@@ -1,5 +1,5 @@
 import { actionCall, ActionError } from "@/lib/server/actions";
-import { verifiedOwner, type VerifiedIdentity } from "@/lib/server/auth";
+import { verifiedUser, type VerifiedIdentity } from "@/lib/server/auth";
 import { privateDefinitions, privateResources } from "@/lib/mcp/private-registry";
 import { UI_URI, widgetHtml } from "@/lib/widget";
 import { VERIFICATION_UI_URI, verificationWidgetHtml } from "@/lib/verification-widget";
@@ -8,8 +8,8 @@ import { z, ZodError } from "zod";
 const headers={"Cache-Control":"private, no-store"};
 function reply(id:unknown,result:unknown){return Response.json({jsonrpc:"2.0",id,result},{headers});}
 /** Every private method requires a capability issued by the request authentication boundary. */
-export async function dispatchPrivateMcp(owner:VerifiedIdentity,raw:unknown) {
- verifiedOwner(owner);
+export async function dispatchPrivateMcp(user:VerifiedIdentity,raw:unknown) {
+ verifiedUser(user);
  let id:unknown=null;
  try{
   const body=z.object({
@@ -28,7 +28,7 @@ export async function dispatchPrivateMcp(owner:VerifiedIdentity,raw:unknown) {
   if(body.method==="resources/templates/list")return reply(id,{resourceTemplates:[]});
   if(body.method==="resources/read" && (p.uri===UI_URI||p.uri===VERIFICATION_UI_URI))return reply(id,{contents:[{uri:p.uri,mimeType:"text/html;profile=mcp-app",text:p.uri===VERIFICATION_UI_URI?verificationWidgetHtml:widgetHtml,_meta:{"openai/ui":{availableDisplayModes:["inline","fullscreen"]},ui:{prefersBorder:true,csp:{connectDomains:[],resourceDomains:[]}},"openai/widgetDescription":"Structured actions: normal, deferred, completed, details and safe editing."}}]});
   if(body.method==="tools/call"){
-   try {const data=await actionCall(owner,p.name??"",p.arguments??{});return reply(id,{content:[{type:"text",text:JSON.stringify(data)}],structuredContent:data});}
+   try {const data=await actionCall(user,p.name??"",p.arguments??{});return reply(id,{content:[{type:"text",text:JSON.stringify(data)}],structuredContent:data});}
    catch(e){if(!(e instanceof ActionError||e instanceof ZodError))console.error("storage unavailable");return reply(id,{isError:true,structuredContent:{error:{code:e instanceof ActionError?e.code:e instanceof ZodError?"invalid_input":"outcome_unknown",message:e instanceof ActionError?e.message:"結果を確認し、同じ要求を再試行してください。"}},content:[{type:"text",text:e instanceof ActionError?e.code+": "+e.message:e instanceof ZodError?"invalid_input: 入力内容を確認してください。":"結果不明です。同じ入力を保ち、一覧を取得して確認してください。"}]});}
   }
   return Response.json({jsonrpc:"2.0",id,error:{code:-32601,message:"Method not found"}},{headers});

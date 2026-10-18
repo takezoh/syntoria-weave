@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createD1ActionStore} from '../helpers/owner-composition.mjs';
-import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';
+import {createD1ActionStore} from '../helpers/user-composition.mjs';
+import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';
 import {memoryActionStore} from '../helpers/memory-action-store.mjs';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 const now='2026-10-03T00:00:00.000Z';
@@ -13,9 +13,9 @@ for(const variant of ['v1','v2'])for(const kind of ['memory','SQLite D1'])test(k
  const fixture=kind==='memory'?null:sqliteFixture();if(fixture)t.after(()=>fixture.sql.close());
  const store=fixture?createD1ActionStore(fixture.db):memoryActionStore();let generated=0;
  const ports={store,clock:()=>now,newId:()=>{generated++;return crypto.randomUUID();}};
- const call=(owner,name,args={})=>actionCall(ports,owner,name,args);
- const write=async(owner,kind,payload)=>call(owner,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(owner)).revision,kind,payload});
- const revert=async(owner,result)=>call(owner,'undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(owner)).revision,undoOf:result.result.operationId});
+ const call=(user,name,args={})=>actionCall(ports,user,name,args);
+ const write=async(user,kind,payload)=>call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(user)).revision,kind,payload});
+ const revert=async(user,result)=>call(user,'undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(user)).revision,undoOf:result.result.operationId});
  const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'perspective_add',payload:{name:'Focus',...definitions[variant]}};
  const preview=await call('A','preview_change',{expectedRevision:0,kind:args.kind,payload:args.payload});assert.equal(preview.resolved.perspective.preview_only,true);assert.equal(preview.affected_perspectives[0].after.preview_only,true);assert.equal((await store.readSnapshot('A')).revision,0);
  if(fixture)fixture.lose();else store.lose();await assert.rejects(call('A','apply_change',args),/lost response/);
@@ -23,7 +23,7 @@ for(const variant of ['v1','v2'])for(const kind of ['memory','SQLite D1'])test(k
  const receipt=JSON.parse((await store.readReceipt('A',args.operationId)).result),pid=receipt.resolved.perspective.id;
  assert.notEqual(pid,args.operationId);assert.notEqual(pid,preview.resolved.perspective.id);assert.equal((await call('A','list_perspectives')).perspectives[0].id,pid);assert.equal((await call('A','list_perspectives')).perspectives[0].definition_version,variant==='v1'?1:2);assert.equal((await call('B','list_perspectives')).perspectives.length,0);
  await assert.rejects(call('B','query_perspective',{id:pid}),e=>e.code==='not_found');await assert.rejects(call('B','apply_change',{...args,kind:'perspective_edit',payload:{id:pid,name:'hijack'}}),e=>e.code==='not_found');
- await assert.rejects(call('A','list_perspectives',{owner:'B'}),e=>e.code==='invalid_input');await assert.rejects(write('A','perspective_add',{id:crypto.randomUUID(),name:'caller ID',filter:{}}),e=>e.code==='invalid_input');
+ await assert.rejects(call('A','list_perspectives',{user:'B'}),e=>e.code==='invalid_input');await assert.rejects(write('A','perspective_add',{id:crypto.randomUUID(),name:'caller ID',filter:{}}),e=>e.code==='invalid_input');
  const corrected=await write('A','perspective_edit',{id:pid,name:'Correction',...(variant==='v1'?{filter:{}}:{query:{}})}),beforeReplay=generated;
  const replay=await call('A','apply_change',args);assert.equal(replay.perspectives[0].name,'Correction');assert.equal(replay.perspectives[0].definition_version,variant==='v1'?1:2);assert.equal(replay.revision,2);assert.equal(replay.result.revision,1);assert.equal(generated,beforeReplay);
  await assert.rejects(call('A','apply_change',{...args,payload:{name:'Changed',...definitions[variant]}}),e=>e.code==='idempotency_conflict');

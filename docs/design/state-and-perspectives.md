@@ -68,7 +68,7 @@ compatibility_policies:
 
 **Saved facts and intent, condition-based views, and context-based recommendations** are separate concerns.
 
-| Concern | Example | Owner |
+| Concern | Example | User |
 | --- | --- | --- |
 | Source-of-truth state | Original input, corrected title, parent-child links, dependencies, Defer date | D1 and Weave change contract |
 | Deterministic projection/filter | Regular, deferred and completed lists; waiting reasons; matching explicit conditions | Weave reads and verifiable conditions |
@@ -87,12 +87,12 @@ This describes the current repository implementation, not proof of what is deplo
 | dependencies | dependent, prerequisite | What another item depends on; separate from parent-child |
 | Dates | `due_at`, `defer_until` | Deadline versus when a task can return to the regular list |
 | Waiting | `status=waiting`, dependency reasons | Waiting versus Defer |
-| projects / tags | owner, stable UUID, local name, `parent_id` | Separate hierarchies and derived paths; no forced GTD project meaning |
+| projects / tags | user, stable UUID, local name, `parent_id` | Separate hierarchies and derived paths; no forced GTD project meaning |
 | task_tags | `task_id`, `tag_id` | Association between a task and multiple tags |
 | identity ledger | Latest change revision per identity | Evidence for ID reservations after deletion and Undo conflicts |
 | operations | operation_id, request, result, delta, before/after revisions, undo_of | Evidence for global revision, retries, result lookups and Undo |
 
-The server-side authentication boundary determines the owner; users cannot choose an arbitrary owner or SQL. Conversation/UI display state and unsaved drafts are not the source of truth.
+The server-side authentication boundary determines the user; users cannot choose an arbitrary user or SQL. Conversation/UI display state and unsaved drafts are not the source of truth.
 
 The current model stores hierarchical general-purpose projects/tags and their task associations. It has no independent attributes for GTD-specific outcome-defining project types, estimated duration, Planned, saved perspectives or review records. Do not present these as available or send unknown fields to the API.
 
@@ -108,7 +108,7 @@ Preserving explicit information, the source of inferences and user corrections i
 
 Parent-child means containment; a dependency is a prerequisite for execution. Do not infer dependencies from list order or execution order from parent-child links alone.
 
-“An outcome to achieve” is a useful concept for GTD projects, but do not constrain the current project node to that type. Do not force a one-off action to become a project. Resolve projects/tags by owner, parent and trimmed case-sensitive local name; reject duplicate names under the same parent. Weave generates new entity UUIDs, separate from operationId.
+“An outcome to achieve” is a useful concept for GTD projects, but do not constrain the current project node to that type. Do not force a one-off action to become a project. Resolve projects/tags by user, parent and trimmed case-sensitive local name; reject duplicate names under the same parent. Weave generates new entity UUIDs, separate from operationId.
 
 ### Waiting, future candidates and Defer
 
@@ -180,7 +180,7 @@ These are meanings to evaluate in Weave based on GTD and state/view design refer
 | Context tags (place, tool, person) | Repeatedly find candidates suited to context | Avoid excessive required input |
 | Duration / energy | Filter candidates for limited time or condition | Allow unknown; do not overstate estimate accuracy |
 | Waiting person/condition/check date | A wait reason alone is insufficient for follow-up | Separate planned time from actual arrival confirmation |
-| Review record | Distinguish AI inspection from the user's own reconsideration | Reading by AI does not mean user reviewed |
+| Review record | Distinguish AI inspection from the user's own reconsideration | Reading by AI does not mea user reviewed |
 | Inference rationale / correction history | Reuse to avoid repeating the same misunderstanding | Original input and user correction take precedence |
 | Recurrence | Distinguish fixed interval from completion criterion | Outside MVP; design new occurrences separately from past completion history |
 

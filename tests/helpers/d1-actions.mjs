@@ -1,4 +1,4 @@
-import {actionCallForOwner,createD1ActionStore} from './owner-composition.mjs';
+import {actionCallForUser,createD1ActionStore} from './user-composition.mjs';
 export {ActionError} from '../../lib/domain/core.ts';
-export {requireOwner} from '../../lib/server/auth.ts';
-export function actionCall(db,owner,name,args,clock=()=>new Date().toISOString()){return actionCallForOwner({store:createD1ActionStore(db),clock,newId:()=>crypto.randomUUID()},owner,name,args);}
+export {requireUser} from '../../lib/server/auth.ts';
+export function actionCall(db,user,name,args,clock=()=>new Date().toISOString()){return actionCallForUser({store:createD1ActionStore(db),clock,newId:()=>crypto.randomUUID()},user,name,args);}

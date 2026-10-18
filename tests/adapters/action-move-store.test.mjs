@@ -1,15 +1,15 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
-import {createD1ActionStore} from '../helpers/owner-composition.mjs';import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';import {memoryActionStore} from '../helpers/memory-action-store.mjs';import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
+import {createD1ActionStore} from '../helpers/user-composition.mjs';import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';import {memoryActionStore} from '../helpers/memory-action-store.mjs';import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 const now='2026-10-03T00:00:00.000Z';
-for(const kind of ['memory','SQLite D1'])test(kind+' action_move preserves atomic CAS/replay/Undo/owner contracts',async t=>{
+for(const kind of ['memory','SQLite D1'])test(kind+' action_move preserves atomic CAS/replay/Undo/user contracts',async t=>{
  const fixture=kind==='memory'?null:sqliteFixture();if(fixture)t.after(()=>fixture.sql.close());const store=fixture?createD1ActionStore(fixture.db):memoryActionStore();let allocated=0;
- const call=(owner,name,args={})=>actionCall({store,clock:()=>now,newId:()=>{allocated++;return crypto.randomUUID();}},owner,name,args);
- const write=async(owner,kind,payload)=>call(owner,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(owner)).revision,kind,payload});
+ const call=(user,name,args={})=>actionCall({store,clock:()=>now,newId:()=>{allocated++;return crypto.randomUUID();}},user,name,args);
+ const write=async(user,kind,payload)=>call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot(user)).revision,kind,payload});
  const project=(await write('A','project_get_or_create',{name:'P'})).result.resolved.project.id,tag=(await write('A','tag_get_or_create',{name:'T'})).result.resolved.tag.id;
  const create=async(title,p={})=>(await write('A','add',{title,notes:' exact\n日本語 ',project_id:project,tag_ids:[tag],flagged:true,...p})).result.resolved.actions[0].id;
  const a=await create('A',{order:20}),hidden=await create('Hidden',{order:40}),b=await create('B',{order:80}),child=await create('Child',{parent_id:a,order:99});
  await write('A','edit',{id:child,status:'on-hold',due_at:'2026-10-05T09:00:00Z',defer_until:'2026-10-04T09:00:00Z'});
- const foreign=(await write('B','add',{title:'Owner B'})).result.resolved.actions[0].id;
+ const foreign=(await write('B','add',{title:'User B'})).result.resolved.actions[0].id;
  const before=await store.readSnapshot('A'),idsUsed=allocated,invalid={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:before.revision,kind:'action_move',payload:{ids:[a,foreign],placement:'inside',anchor_id:b}};
  await assert.rejects(call('A','apply_change',invalid),e=>e.code==='not_found');assert.deepEqual(await store.readSnapshot('A'),before);assert.equal(await store.readReceipt('A',invalid.operationId),null);assert.equal(allocated,idsUsed);
  const request={...invalid,operationId:crypto.randomUUID(),payload:{ids:[b,a,child],placement:'after',anchor_id:hidden}};

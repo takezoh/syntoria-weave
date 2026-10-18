@@ -39,7 +39,7 @@ test('application/controller use ports and reject concrete adapters', () => {
   assert(lint('import x from "./dom.js";', 'lib/ui/effects/tool-client.ts').some(item => item.ruleId === 'architecture/dependency-direction'));
 });
 
-test('UI application state owner is protected by the same dependency boundary', () => {
+test('UI application state user is protected by the same dependency boundary', () => {
   assert(lint('import x from "../effects/dom.js";', 'lib/ui/application/controller.ts').some(item => item.ruleId === 'architecture/dependency-direction'));
   assert(lint('document.querySelector("button");', 'lib/ui/application/controller.ts').some(item => item.ruleId === 'architecture/pure-effects'));
   assert(lint('import x from "../application/controller.ts";', 'lib/ui/components/outline-list.ts').some(item => item.ruleId === 'architecture/dependency-direction'));

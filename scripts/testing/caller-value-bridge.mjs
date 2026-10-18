@@ -13,7 +13,7 @@ const CHANGE_KINDS = new Set([
 const EDIT_FIELDS = new Set(['title', 'notes', 'parent_id', 'due_at', 'defer_until', 'order', 'flagged', 'status']);
 const ENTITY_ID_KEYS = new Set(['id', 'action_id', 'project_id', 'tag_id', 'perspective_id', 'parent_id', 'anchor_id', 'inbox_action_id']);
 const ENTITY_ID_ARRAY_KEYS = new Set(['ids', 'action_ids', 'project_ids', 'tag_ids', 'perspective_ids']);
-const OWNER_KEYS = new Set(['owner', 'ownerid', 'owner_id', 'userid', 'user_id']);
+const FORBIDDEN_IDENTITY_KEYS = new Set(['user', 'owner', 'ownerid', 'owner_id', 'userid', 'user_id']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class HarnessError extends Error {
@@ -26,13 +26,13 @@ export class HarnessError extends Error {
 
 export function validateManifest(manifest, { repoRoot, evidenceRoot = EVIDENCE_ROOT } = {}) {
   if (!isRecord(manifest)) throw new HarnessError('Run manifest must be a JSON object.');
-  const allowed = new Set(['schemaVersion', 'runId', 'purpose', 'dataClass', 'endpoint', 'ownerId', 'evidenceDir', 'capabilities', 'permittedTools', 'permittedResources', 'fixtures', 'writeKinds', 'writableActionIds', 'writeFields']);
+  const allowed = new Set(['schemaVersion', 'runId', 'purpose', 'dataClass', 'endpoint', 'userId', 'evidenceDir', 'capabilities', 'permittedTools', 'permittedResources', 'fixtures', 'writeKinds', 'writableActionIds', 'writeFields']);
   rejectUnknownKeys(manifest, allowed, 'manifest');
   if (manifest.schemaVersion !== 1) throw new HarnessError('Unsupported run manifest schemaVersion.');
   if (typeof manifest.runId !== 'string' || !/^[a-z][a-z0-9-]{2,79}$/.test(manifest.runId)) throw new HarnessError('runId must be a lowercase synthetic run identifier.');
   if (typeof manifest.purpose !== 'string' || !manifest.purpose.trim()) throw new HarnessError('Run manifest purpose is required.');
   if (manifest.dataClass !== 'synthetic') throw new HarnessError('Only synthetic run data is permitted.');
-  if (typeof manifest.ownerId !== 'string' || !/^issue20-[a-z0-9][a-z0-9-]{1,55}$/.test(manifest.ownerId)) throw new HarnessError('ownerId must use the recorded issue20 synthetic-owner namespace.');
+  if (typeof manifest.userId !== 'string' || !/^issue20-[a-z0-9][a-z0-9-]{1,55}$/.test(manifest.userId)) throw new HarnessError('userId must use the recorded issue20 synthetic-user namespace.');
   if (typeof manifest.endpoint !== 'string') throw new HarnessError('A recorded MCP endpoint is required.');
   const endpoint = new URL(manifest.endpoint);
   if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || !endpoint.port || endpoint.pathname !== '/mcp' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
@@ -134,7 +134,7 @@ function targetActionIds(kind, payload) {
 
 export function validateOperation(operation, manifest, identityLedger = emptyLedger(manifest)) {
   if (!isRecord(operation)) throw new HarnessError('Operation must be a JSON object.');
-  if (hasOwnerKey(operation)) throw new HarnessError('Owner identity is fixed by the run manifest and cannot be supplied by an operation.');
+  if (hasUserKey(operation)) throw new HarnessError('User identity is fixed by the run manifest and cannot be supplied by an operation.');
   if (typeof operation.command !== 'string') throw new HarnessError('Operation command is required.');
   switch (operation.command) {
     case 'discover':
@@ -144,7 +144,7 @@ export function validateOperation(operation, manifest, identityLedger = emptyLed
       rejectUnknownKeys(operation, new Set(['command', 'name', 'arguments']), 'operation');
       if (typeof operation.name !== 'string' || !manifest.permittedTools.includes(operation.name)) throw new HarnessError('Tool is not permitted by this run manifest.');
       if (!isRecord(operation.arguments)) throw new HarnessError('arguments must be a JSON object.');
-      if (hasOwnerKey(operation.arguments)) throw new HarnessError('Tool arguments cannot choose an owner.');
+      if (hasUserKey(operation.arguments)) throw new HarnessError('Tool arguments cannot choose a user.');
       if (WRITE_TOOLS.has(operation.name) && !manifest.capabilities.mcpWrite) throw new HarnessError('This run is read-only; write tool call rejected before HTTP.');
       validateRecordedIds(operation.arguments, identityLedger);
       validateWriteRequest(manifest, operation.name, operation.arguments);
@@ -237,7 +237,7 @@ export function createBridge(manifest, { fetchImpl = fetch, record = async () =>
       method: 'POST', endpoint: manifest.endpoint,
       headers: {
         'Content-Type': 'application/json',
-        'oai-authenticated-user-id': manifest.ownerId,
+        'oai-authenticated-user-id': manifest.userId,
         'oai-authenticated-user-email': `${manifest.runId}@local.invalid`,
       },
       body: rawBody,
@@ -288,7 +288,7 @@ export function createBridge(manifest, { fetchImpl = fetch, record = async () =>
   async function invokeTool(name, args, operation = { command: 'call', name, arguments: args }) {
     if (!manifest.permittedTools.includes(name)) throw new HarnessError('Tool is not permitted by this run manifest.');
     if (WRITE_TOOLS.has(name) && !manifest.capabilities.mcpWrite) throw new HarnessError('This run is read-only; write tool call rejected before HTTP.');
-    if (hasOwnerKey(args)) throw new HarnessError('Tool arguments cannot choose an owner.');
+    if (hasUserKey(args)) throw new HarnessError('Tool arguments cannot choose a user.');
     validateRecordedIds(args, identityLedger);
     validateWriteRequest(manifest, name, args);
     if (WRITE_TOOLS.has(name)) {
@@ -372,7 +372,7 @@ function validateRecordedIds(value, ledger, key = '') {
     return;
   }
   for (const [childKey, child] of Object.entries(value)) {
-    if (OWNER_KEYS.has(childKey.toLowerCase())) throw new HarnessError('Tool arguments cannot choose an owner.');
+    if (FORBIDDEN_IDENTITY_KEYS.has(childKey.toLowerCase())) throw new HarnessError('Tool arguments cannot choose a user.');
     if (ENTITY_ID_KEYS.has(childKey)) {
       const values = Array.isArray(child) ? child : [child];
       for (const id of values) if (id !== null && (typeof id !== 'string' || !allEntityIds(ledger).has(id))) throw new HarnessError(`Unrecorded entity identity supplied in ${childKey}.`);
@@ -386,10 +386,10 @@ function allEntityIds(ledger) {
   return new Set(['actions', 'projects', 'tags', 'perspectives'].flatMap(type => ledger[type] ?? []));
 }
 
-function hasOwnerKey(value) {
-  if (Array.isArray(value)) return value.some(hasOwnerKey);
+function hasUserKey(value) {
+  if (Array.isArray(value)) return value.some(hasUserKey);
   if (!isRecord(value)) return false;
-  return Object.entries(value).some(([key, child]) => OWNER_KEYS.has(key.toLowerCase()) || hasOwnerKey(child));
+  return Object.entries(value).some(([key, child]) => FORBIDDEN_IDENTITY_KEYS.has(key.toLowerCase()) || hasUserKey(child));
 }
 
 function rejectUnknownKeys(value, allowed, label) {

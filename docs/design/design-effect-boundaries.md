@@ -23,13 +23,12 @@ owners: []
 relations: []
 source_paths:
 - lib/domain
-- lib/application
 - lib/ui
-- lib/adapters
-- lib/server
 - scripts/lint
 - AGENTS.md
-summary: Dependency direction and verification rules for pure functions, ports and adapters.
+- lib/application/action-service.ts
+summary: Dependency direction and verification rules for pure functions, ports and
+  adapters.
 ---
 
 ## Purpose
@@ -46,7 +45,7 @@ The domain and UI model do not depend on concrete adapters. The application refe
 
 ## Invariants
 
-Verify deterministic results for identical inputs and that inputs are not mutated. Preserve owner isolation, atomicity, revisions, identical-request retries and Undo that respects later corrections. Do not reinterpret an unknown result as a failed save; retain the original request ID and input.
+Verify deterministic results for identical inputs and that inputs are not mutated. Preserve user isolation, atomicity, revisions, identical-request retries and Undo that respects later corrections. Do not reinterpret an unknown result as a failed save; retain the original request ID and input.
 
 ## Collaboration
 

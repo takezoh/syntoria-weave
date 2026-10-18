@@ -4,7 +4,7 @@ import type {Change, OperationResolution, Snapshot} from '../data/types';
 import {finalizeChange,normalizeChange,type PreparedChange} from '../data/model/request';
 import {parseReceiptResult} from '../data/model/storage';
 import {decodeChangeCursor,DEFAULT_CHANGE_PAGE_SIZE,encodeChangeCursor,pageChangeWindow} from '../data/model/change-cursor';
-import type {OwnerActionPorts} from './ports';
+import type {UserActionPorts} from './ports';
 
 function generatedId(snapshot:Snapshot,newId:()=>string,operationId:string,reserved:Set<string>) {
  for(let attempt=0;attempt<8;attempt++){
@@ -31,7 +31,7 @@ function previewResolution(resolved:OperationResolution|undefined,createdActionI
  };
 }
 
-export async function actionCall(ports:OwnerActionPorts,name:string,args:unknown) {
+export async function actionCall(ports:UserActionPorts,name:string,args:unknown) {
  async function readCurrent(){const snapshot=await ports.store.readSnapshot();validateGraph(snapshot);return snapshot;}
  async function fullSnapshot(snapshot:Snapshot,now:string,result:unknown=null){const scope=await ports.changeCursorScope();return response(snapshot,now,result,encodeChangeCursor(scope,snapshot.revision));}
  const {store,clock,newId}=ports;
@@ -43,7 +43,7 @@ export async function actionCall(ports:OwnerActionPorts,name:string,args:unknown
  }
  if(name==='get_changes'){
   exact(a,['cursor','page_size']);const cursor=decodeChangeCursor(a.cursor),scope=await ports.changeCursorScope();
-  if(cursor.scope!==scope)fail('invalid_cursor','This cursor is invalid for the authenticated owner. Fetch a current snapshot and cursor to resync.');
+  if(cursor.scope!==scope)fail('invalid_cursor','This cursor is invalid for the authenticated user. Fetch a current snapshot and cursor to resync.');
   const pageSize=a.page_size===undefined?DEFAULT_CHANGE_PAGE_SIZE:a.page_size;
   if(!Number.isSafeInteger(pageSize)||Number(pageSize)<1||Number(pageSize)>100)fail('invalid_input','page_size must be an integer from 1 through 100.');
   const window=await store.readChangeWindow(cursor.position,cursor.through_revision);
@@ -74,9 +74,10 @@ export async function actionCall(ports:OwnerActionPorts,name:string,args:unknown
   exact(a,name==='undo_change'?['operationId','expectedRevision','schemaVersion','undoOf']:['operationId','expectedRevision','schemaVersion','kind','payload']);if(a.schemaVersion!==2)fail('schema_mismatch','版を確認してください。');operationId=id(a.operationId);expected=integer(a.expectedRevision);c={kind:text(a.kind??'undo',40),payload:object(a.payload??{})};if(name==='undo_change')undoOf=id(a.undoOf);
  } else fail('unknown_tool','未対応の操作です。',404);
 
- const original=canonical({name,args:a}),prior=await store.readReceipt(operationId);
- if(prior){if(prior.canonical_payload!==original)fail('idempotency_conflict','同じ要求IDに異なる入力が指定されています。',409);return fullSnapshot(await readCurrent(),now,parseReceiptResult(prior));}
- const before=await readCurrent();if(before.revision!==expected)fail('conflict','最新の一覧と未保存案を確認してください。',409);
+ const original=canonical({name,args:a}),operationState=await store.readOperationState(operationId),prior=operationState.receipt;
+ const readOperationCurrent=()=>{const snapshot=operationState.snapshot();validateGraph(snapshot);return snapshot;};
+ if(prior){if(prior.canonical_payload!==original)fail('idempotency_conflict','同じ要求IDに異なる入力が指定されています。',409);const current=readOperationCurrent();return fullSnapshot(current,now,parseReceiptResult(prior));}
+ const before=readOperationCurrent();if(before.revision!==expected)fail('conflict','最新の一覧と未保存案を確認してください。',409);
  let after:Snapshot,resolved:OperationResolution|undefined;
  if(undoOf){const target=await store.readReceipt(undoOf);if(!target)fail('not_found','取り消す操作が見つからないか、履歴の保持範囲外です。',404);if(target.undo_of)fail('invalid_state','取り消し操作自体の取り消しは未対応です。');const used=await store.hasUndo(undoOf);if(used)fail('undo_conflict','既に取り消されています。',409);after=undo(before,JSON.parse(target.delta),now,target.revision_after);}
  else {const prepared=prepareChange(before,c,newId,operationId);resolved=prepared.resolved;after=prepared.change?change(before,prepared.change,now):structuredClone(before);}

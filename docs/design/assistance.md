@@ -74,7 +74,7 @@ compatibility_policies:
 
 References to assistance policy in the governance metadata describe caller-side responsibilities and guidance, not a Weave-owned management service.
 
-Weave is a shared state store accessed through API/MCP tools and a shared UI. The user and authorized AI consumers read and update the same owner-scoped actions, projects, tags and perspectives. Each consumer owns its interpretation, working context and management method. User prompts, the host assistant and caller-side schedulers determine when and how the tools are used. A consumer AI is a caller, not a required component or a Weave-owned agent.
+Weave is a shared state store accessed through API/MCP tools and a shared UI. The user and authorized AI consumers read and update the same user-scoped actions, projects, tags and perspectives. Each consumer owns its interpretation, working context and management method. User prompts, the host assistant and caller-side schedulers determine when and how the tools are used. A consumer AI is a caller, not a required component or a Weave-owned agent.
 
 ```text
 User prompts / consumer LLM / caller-side scheduler
@@ -84,7 +84,7 @@ User prompts / consumer LLM / caller-side scheduler
                   Shared UI ↔ User
 ```
 
-| Concern | Owner |
+| Concern | User |
 | --- | --- |
 | Interpretation, organization, GTD or another method, review and recommendations | User and caller-side LLM workflow |
 | Reconciling retrieved state with a consumer's context, obtaining more context and deciding whether to revise a judgment | Consuming LLM or application |
@@ -93,7 +93,7 @@ User prompts / consumer LLM / caller-side scheduler
 | Structured data, deterministic queries and transitions, ownership, revisions, replay and Undo | Weave |
 | Direct inspection/correction and retained unsaved proposals | Weave shared UI |
 
-Saved perspectives are deterministic owner-scoped queries. Consumers retrieve the persisted v1 filter or v2 query through list_perspectives/query_perspective and decide how the result fits their own context. The shared UI evaluates a saved definition against the confirmed snapshot and shows its condition and ordering summary; it does not provide a query editor or choose a management method.
+Saved perspectives are deterministic user-scoped queries. Consumers retrieve the persisted v1 filter or v2 query through list_perspectives/query_perspective and decide how the result fits their own context. The shared UI evaluates a saved definition against the confirmed snapshot and shows its condition and ordering summary; it does not provide a query editor or choose a management method.
 
 Weave needs no dedicated connector to each agent or source for these workflows. A caller composes its available tools with Weave operations. Weave does not guarantee the caller has access, is configured, runs at a chosen time or makes correct semantic decisions.
 
@@ -101,7 +101,7 @@ Weave needs no dedicated connector to each agent or source for these workflows. 
 
 A human may correct a date in the UI while one AI organizes actions and another conversation later reviews them. Shared storage makes the saved correction available; each consumer must read the current state and reconcile its own assumptions. Consumers can know different versions of the same shared state. Saving a change does not automatically refresh their context or prove that they understood it.
 
-The current read contract provides complete snapshots and owner-wide revision through `list_actions` or `get_relevant_context`. A resumed conversation uses those reads and the available original notes to continue. Conversational context that was never saved must be supplied or recovered by the caller.
+The current read contract provides complete snapshots and user-wide revision through `list_actions` or `get_relevant_context`. A resumed conversation uses those reads and the available original notes to continue. Conversational context that was never saved must be supplied or recovered by the caller.
 
 The implemented [Change Cursor API](product.md#change-cursor-api-and-adoption-history) provides `get_change_cursor` and `get_changes` for retrieving retained changes from a consumer-held position. The consumer interprets the records, fetches any additional context and decides whether to revise a recommendation, act or notify. It saves its own position only after processing succeeds. Cursor progress, human read status, Action completion and correct understanding remain distinct. This source contract and local Worker evidence do not establish deployment or host availability.
 
@@ -128,7 +128,7 @@ These are composition examples, not evidence that any particular host workflow h
 
 ## Safety and recovery contract
 
-Thinness preserves the code-enforced operation contract. Trusted authentication selects owner; saved text is context, not authorization. Reads provide state rather than relying on conversational memory. Writes use schemaVersion 2, operation ID and latest owner revision. Preview is optional and does not reserve state; the caller can use it to inspect scope and date risks.
+Thinness preserves the code-enforced operation contract. Trusted authentication selects user; saved text is context, not authorization. Reads provide state rather than relying on conversational memory. Writes use schemaVersion 2, operation ID and latest user revision. Preview is optional and does not reserve state; the caller can use it to inspect scope and date risks.
 
 Missing responses are unknown outcomes. Keep exact IDs and arguments, look up the operation or replay identically; do not retry with a fresh operation ID. Conflicts require reconciliation against current state without losing the proposal. Undo uses retained history and rejects later target corrections. See [API](../technical/mcp-api.md) for exact semantics and retention limits.
 

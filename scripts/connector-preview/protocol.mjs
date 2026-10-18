@@ -18,7 +18,7 @@ export const grantSchema = z
 export const grantsSchema = z.array(grantSchema);
 
 // Only the owning agent sets these limits. Sessions otherwise last until their
-// owner closes them; Node timers need a signed 32-bit millisecond duration.
+// user closes them; Node timers need a signed 32-bit millisecond duration.
 const duration = z
   .number()
   .int()

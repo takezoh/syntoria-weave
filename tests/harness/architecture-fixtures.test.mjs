@@ -28,7 +28,7 @@ test('actual repository config rejects direct D1 imports in both HTTP entries',a
   }
  }
 });
-test('owner-scope hashing stays behind its exact trusted composition edges',async()=>{
+test('user-scope hashing stays behind its exact trusted composition edges',async()=>{
  for(const path of ['lib/server/actions.ts','lib/server/change-cursor-scope.ts'])assert(!reports(await actualLint(readFileSync(path,'utf8'),path),'capability-direction'));
  assert(reports(await actualLint("import {changeCursorScope} from './change-cursor-scope';void changeCursorScope;",'lib/server/mcp.ts'),'capability-direction'));
 });
@@ -38,45 +38,45 @@ test('actual repository config rejects pre-auth private dispatch and alternate e
  export const dynamic='force-dynamic';
  export async function POST(req){let id=null;try{
   if(req.headers.get('x-debug'))return Response.json({tools:privateDefinitions});
-  const owner=requireOwner(req.headers);const body={};
-  return actionCall(owner,'list_actions',body);
+  const user=requireUser(req.headers);const body={};
+  return actionCall(user,'list_actions',body);
  }catch{return Response.json({id});}}`;
  for(const mutant of [legacyBypass,original+"export function PUT(){return Response.json({});}",original.replace('POST,GET','POST')])assert(reports(await actualLint(mutant,path),'private-auth'));
  const boundary=readFileSync('lib/server/mcp.ts','utf8');
  assert(!reports(await actualLint(boundary,'lib/server/mcp.ts'),'private-auth'));
  for(const mutant of [
-  boundary.replace('const owner=requireOwner(req.headers);','const owner="A";'),
-  boundary.replace('dispatchPrivateMcp(owner,','dispatchPrivateMcp("A",'),
-  boundary.replace('const owner=requireOwner(req.headers);',"if(req.headers.get('x-debug'))return Response.json({tools:privateDefinitions});\n  const owner=requireOwner(req.headers);"),
-  boundary.replace('return await dispatchPrivateMcp(owner,await readGuardedJson(req));',"return await dispatchPrivateMcp(owner,await readGuardedJson(req));").replace('}catch(e){',"}catch(e){ return dispatchPrivateMcp(owner,{});"),
+  boundary.replace('const user=requireUser(req.headers);','const user="A";'),
+  boundary.replace('dispatchPrivateMcp(user,','dispatchPrivateMcp("A",'),
+  boundary.replace('const user=requireUser(req.headers);',"if(req.headers.get('x-debug'))return Response.json({tools:privateDefinitions});\n  const user=requireUser(req.headers);"),
+  boundary.replace('return await dispatchPrivateMcp(user,await readGuardedJson(req));',"return await dispatchPrivateMcp(user,await readGuardedJson(req));").replace('}catch(e){',"}catch(e){ return dispatchPrivateMcp(user,{});"),
  ])assert(reports(await actualLint(mutant,'lib/server/mcp.ts'),'private-auth'));
- const leaked=boundary.replace("import {requireOwner}","import {privateDefinitions} from '../mcp/private-registry';\nimport {requireOwner}");
+ const leaked=boundary.replace("import {requireUser}","import {privateDefinitions} from '../mcp/private-registry';\nimport {requireUser}");
  assert(reports(await actualLint(leaked,'lib/server/mcp.ts'),'capability-direction'));
 });
 test('actual repository config requires runtime capability validation before private dispatcher branches',async()=>{
  const path='lib/mcp/private-dispatcher.ts',source=readFileSync(path,'utf8');
  assert(!reports(await actualLint(source,path),'private-auth'));
- for(const mutant of [source.replace(' verifiedOwner(owner);',''),source.replace('actionCall(owner,','actionCall("A",'),source.replace(' verifiedOwner(owner);'," if(raw)return Response.json({tools:privateDefinitions});\n verifiedOwner(owner);")])assert(reports(await actualLint(mutant,path),'private-auth'));
+ for(const mutant of [source.replace(' verifiedUser(user);',''),source.replace('actionCall(user,','actionCall("A",'),source.replace(' verifiedUser(user);'," if(raw)return Response.json({tools:privateDefinitions});\n verifiedUser(user);")])assert(reports(await actualLint(mutant,path),'private-auth'));
 });
-test('owner SQL checks execution forms and rejects D1 exec or extracted/computed prepare under actual config',async()=>{
+test('user SQL checks execution forms and rejects D1 exec or extracted/computed prepare under actual config',async()=>{
  const source=readFileSync('lib/adapters/d1-action-store.ts','utf8');
- assert(!reports(await actualLint(source,'lib/adapters/d1-action-store.ts'),'owner-sql'));
+ assert(!reports(await actualLint(source,'lib/adapters/d1-action-store.ts'),'user-sql'));
  for(const fixture of ['d1-exec.fixture','computed-prepare.fixture','prepare-alias.fixture','prepare-destructure.fixture','dynamic-method.fixture','computed-destructure.fixture','prepare-reflect.fixture','d1-dump.fixture']){
-  const code=readFileSync('tests/fixtures/owner-sql/'+fixture,'utf8');
-  assert(reports(await actualLint(code,'lib/adapters/d1-action-store.ts'),'owner-sql'),fixture+' must fail under the actual config');
+  const code=readFileSync('tests/fixtures/user-sql/'+fixture,'utf8');
+  assert(reports(await actualLint(code,'lib/adapters/d1-action-store.ts'),'user-sql'),fixture+' must fail under the actual config');
  }
- const safe=readFileSync('tests/fixtures/owner-sql/scoped-prepare.fixture','utf8');
- assert(!reports(await actualLint(safe,'lib/adapters/d1-action-store.ts'),'owner-sql'));
+ const safe=readFileSync('tests/fixtures/user-sql/scoped-prepare.fixture','utf8');
+ assert(!reports(await actualLint(safe,'lib/adapters/d1-action-store.ts'),'user-sql'));
 });
 test('removing owner WHERE, owner bind, or conflict key from actual adapter fails the gate',async()=>{
  const source=readFileSync('lib/adapters/d1-action-store.ts','utf8');
- assert(!reports(await actualLint(source,'lib/adapters/d1-action-store.ts'),'owner-sql'));
- for(const mutant of [source.replace('WHERE owner=? AND operation_id=?','WHERE operation_id=?'),source.replace('.bind(owner,operationId)','.bind(operationId)'),source.replace('ON CONFLICT(owner,','ON CONFLICT(')])assert(reports(await actualLint(mutant,'lib/adapters/d1-action-store.ts'),'owner-sql'));
+ assert(!reports(await actualLint(source,'lib/adapters/d1-action-store.ts'),'user-sql'));
+ for(const mutant of [source.replace('WHERE owner=? AND operation_id=?','WHERE operation_id=?'),source.replace('.bind(user,operationId)','.bind(operationId)'),source.replace('ON CONFLICT(owner,','ON CONFLICT(')])assert(reports(await actualLint(mutant,'lib/adapters/d1-action-store.ts'),'user-sql'));
 });
 test('runtime sql.raw remains forbidden inside reviewed adapter',()=>{
  const source="import {sql} from 'drizzle-orm';sql.raw('arbitrary');";
  // The reviewed adapter may build closed native statements, never a raw ORM escape hatch.
- assert(reports(lint(source,'lib/adapters/d1-action-store.ts'),'owner-sql')||reports(lint(source,'lib/adapters/d1-action-store.ts'),'raw-sql-location'));
+ assert(reports(lint(source,'lib/adapters/d1-action-store.ts'),'user-sql')||reports(lint(source,'lib/adapters/d1-action-store.ts'),'raw-sql-location'));
 });
 test('DOM adapter public state is read-only and changes use controller events',async()=>{
  const path='lib/ui/effects/dom.js',source=readFileSync(path,'utf8');
@@ -160,7 +160,7 @@ test('actual repository config guards every data-model extension and TypeScript 
  for(const filename of ['lib/data/model/__capability__.ts','lib/domain/__capability__.ts']){
   for(const name of ['D1Database','D1PreparedStatement','D1Result','KVNamespace','ExecutionContext','Env','WorkerEnv','D1Env'])assert(reports(await actualLint(`type Leaked = ${name};`,filename),'pure-effects'),filename+': '+name);
  }
- for(const source of ["import {OwnerActionStore} from '../../application/ports';", "import {createOwnerBoundActionStore} from '../../adapters/d1-action-store';", "import {env} from 'cloudflare:workers';", "Date.now();"]){
+ for(const source of ["import {UserActionStore} from '../../application/ports';", "import {createUserBoundActionStore} from '../../adapters/d1-action-store';", "import {env} from 'cloudflare:workers';", "Date.now();"]){
   const messages=await actualLint(source,'lib/data/model/__forbidden_dependency__.ts');
   assert(messages.some(item=>item.ruleId==='architecture/dependency-direction'||item.ruleId==='architecture/capability-direction'||item.ruleId==='architecture/pure-effects'),source);
  }

@@ -17,7 +17,7 @@ export default defineConfig([
   {
     files: ['lib/**/*.{ts,tsx,mts,js,jsx,mjs}', 'app/**/*.{ts,tsx}', 'build/**/*.{ts,mjs}'],
     plugins: { architecture: boundaries },
-    rules: { 'architecture/dependency-direction': 'error', 'architecture/data-type-only': 'error', 'architecture/raw-sql-location': 'error', 'architecture/capability-direction':'error', 'architecture/private-auth':'error','architecture/owner-sql':'error' },
+    rules: { 'architecture/dependency-direction': 'error', 'architecture/data-type-only': 'error', 'architecture/raw-sql-location': 'error', 'architecture/capability-direction':'error', 'architecture/private-auth':'error','architecture/user-sql':'error' },
   },
   {
     files: ['lib/ui/effects/dom.js'],

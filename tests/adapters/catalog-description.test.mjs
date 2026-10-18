@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createD1ActionStore} from '../helpers/owner-composition.mjs';
-import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';
+import {createD1ActionStore} from '../helpers/user-composition.mjs';
+import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';
 import {memoryActionStore} from '../helpers/memory-action-store.mjs';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 const now='2026-10-03T00:00:00.000Z';
@@ -14,7 +14,7 @@ const envelope=(revision,kind,payload)=>({schemaVersion:2,operationId:crypto.ran
 for(const backend of ['memory','SQLite D1'])for(const kind of kinds)test(`${backend} ${kind} description round trips, replay, CAS and Undo`,async t=>{
  const fixture=backend==='memory'?null:sqliteFixture();if(fixture)t.after(()=>fixture.sql.close());
  const store=fixture?createD1ActionStore(fixture.db):memoryActionStore(),ports={store,clock:()=>now,newId:()=>crypto.randomUUID()};
- const call=(name,args={},owner='A')=>actionCall(ports,owner,name,args);
+ const call=(name,args={},user='A')=>actionCall(ports,user,name,args);
  const write=async(op,payload)=>call('apply_change',envelope((await store.readSnapshot('A')).revision,op,payload));
  const revert=async(result)=>call('undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await store.readSnapshot('A')).revision,undoOf:result.result.operationId});
  const raw='  Purpose\r\n日本語 🐈\n  ';
@@ -83,14 +83,14 @@ for(const kind of kinds)test(`SQLite ${kind} description failure rolls back rece
 test('description migration preserves existing data and old receipt bytes, and incomplete Undo rejection',async t=>{
  const fixture=sqliteFixture({beforeDescriptionMigration:true});t.after(()=>fixture.sql.close());const {sql}=fixture;
  const ids=Object.fromEntries(kinds.map(kind=>[kind,crypto.randomUUID()]));
- for(const owner of ['A','B'])for(const [index,kind] of kinds.entries()){
+ for(const user of ['A','B'])for(const [index,kind] of kinds.entries()){
   const row={id:ids[kind],name:'Renamed',...(kind==='perspective'?{filter:{},definition_version:1}:{parent_id:null}),revision:index+1,created_at:now,updated_at:now};
   const before={...row,name:'Original'};
-  if(kind==='perspective')sql.prepare('INSERT INTO perspectives VALUES(?,?,?,?,?,?,?,?)').run(owner,row.id,row.name,'{}',1,row.revision,now,now);
-  else sql.prepare(`INSERT INTO ${table(kind)} VALUES(?,?,?,?,?,?,?)`).run(owner,row.id,row.name,null,row.revision,now,now);
-  sql.prepare('INSERT INTO catalog_identity_ledger VALUES(?,?,?,?)').run(owner,kind,row.id,index+1);
+  if(kind==='perspective')sql.prepare('INSERT INTO perspectives VALUES(?,?,?,?,?,?,?,?)').run(user,row.id,row.name,'{}',1,row.revision,now,now);
+  else sql.prepare(`INSERT INTO ${table(kind)} VALUES(?,?,?,?,?,?,?)`).run(user,row.id,row.name,null,row.revision,now,now);
+  sql.prepare('INSERT INTO catalog_identity_ledger VALUES(?,?,?,?)').run(user,kind,row.id,index+1);
   const delta={actions:[],projects:[],tags:[],action_tags:[],perspectives:[],[table(kind)]:[{before,after:row}]};
-  sql.prepare('INSERT INTO operations VALUES(?,?,?,?,?,?,?,?,?)').run(owner,crypto.randomUUID(),'original request bytes','{}',JSON.stringify(delta),index,index+1,null,now);
+  sql.prepare('INSERT INTO operations VALUES(?,?,?,?,?,?,?,?,?)').run(user,crypto.randomUUID(),'original request bytes','{}',JSON.stringify(delta),index,index+1,null,now);
  }
  const tables=['projects','tags','perspectives','operations','catalog_identity_ledger'],before=Object.fromEntries(tables.map(name=>[name,sql.prepare(`SELECT * FROM ${name} ORDER BY owner`).all()]));
  sql.exec(readFileSync('drizzle/0011_catalog_descriptions.sql','utf8'));

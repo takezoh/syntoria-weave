@@ -1,0 +1,29 @@
+{
+  "product": "Lore",
+  "status": "deployed",
+  "source_sha256": "300b650e3b143d3f6d3f1b6a603bddf651586f385beb1572d422eb5f5cf3bddf",
+  "build_id": "72e236ee-217b-497b-938d-768a4b8554dc",
+  "image": "asia-southeast1-docker.pkg.dev/syntoria/lore/runtime@sha256:47e114cd67bc7e25d1378d2b905542156e34efdaac1e9a41d63d7dc257609771",
+  "api_revision": "lore-api-00002-pkv",
+  "worker_revision": "lore-worker-00002-bww",
+  "migration": "0041_user_identity.sql",
+  "preserved_table_hashes": 42,
+  "preserved_prior_migration_checksums": 40,
+  "ledger": {
+    "status": "already-current",
+    "replayed": 0,
+    "purged": 0
+  },
+  "http_checks_passed": 9,
+  "queue": "RUNNING",
+  "scheduler": "ENABLED",
+  "scaling": "auto",
+  "dispatch_resumed_at": "2026-10-18T07:04:21Z",
+  "iam_and_identity_preserved": true,
+  "temporary_secrets_plaintext_backups_and_test_resources_removed": true,
+  "limitations": [
+    "Normal-user OAuth/MCP positive path is not verified.",
+    "External /healthz returned Google-side 404; DB/GCS-backed /readyz returned 200."
+  ],
+  "primary_evidence_path": "/home/dev/dev/thymesis/docs/eval/user-identity-release-20261018.json"
+}

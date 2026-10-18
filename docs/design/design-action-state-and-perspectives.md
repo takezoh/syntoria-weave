@@ -39,7 +39,7 @@ Keep durable user intent, deterministic projection, and host recommendations sep
 
 ## Boundaries
 
-Domain consumes an explicit snapshot, operation and timestamp and provides pure validation/transitions/projections. Application consumes store/clock/ID ports and provides owner-scoped operations. D1 provides atomic revision CAS, delta writes, receipts and pruning. UI consumes the same API and preserves proposals and unknown requests. No layer introduces independent prerequisite dependencies, execution modes or a recommendation LLM.
+Domain consumes an explicit snapshot, operation and timestamp and provides pure validation/transitions/projections. Application consumes store/clock/ID ports and provides user-scoped operations. D1 provides atomic revision CAS, delta writes, receipts and pruning. UI consumes the same API and preserves proposals and unknown requests. No layer introduces independent prerequisite dependencies, execution modes or a recommendation LLM.
 
 Project/tag classification is separate from action containment. A project hierarchy organizes classification; it does not inherit completion, Defer, membership, or flags. IDs identify records; names and paths are display/input forms.
 
@@ -64,7 +64,7 @@ Ordering permits gaps and equal ranks. Omitted order appends after the maximum r
 
 ## Collaboration and failure responsibility
 
-Only trusted server authentication determines owner. All changes use the shared API and atomic store path. Preview reveals effects without reserving state. Unknown results preserve exact operation ID/input for receipt lookup or replay. Dirty UI title/notes/order/flag proposals survive refresh and host notifications. Undo rejects later changes to the affected action and protects unrelated records.
+Only trusted server authentication determines user. All changes use the shared API and atomic store path. Preview reveals effects without reserving state. Unknown results preserve exact operation ID/input for receipt lookup or replay. Dirty UI title/notes/order/flag proposals survive refresh and host notifications. Undo rejects later changes to the affected action and protects unrelated records.
 
 Hosted D1 and ChatGPT resources are distinct acceptance boundaries. Local mocks cannot prove host caching, authentication injection or actual conversation behavior.
 
@@ -76,14 +76,14 @@ Migration 0009 intentionally resets authorized disposable test data, including p
 
 ## Conformance
 
-Verify pure transitions and input preservation; SQLite/defaults/reset/CAS/atomicity; receipt/replay/Undo/owner isolation; and actual generated UI proposal retention, rank/flag controls and result recovery. The repository gate is pnpm check plus pnpm build. Hosted rollout must verify actual tools/resources and UI behavior on the deployed version.
+Verify pure transitions and input preservation; SQLite/defaults/reset/CAS/atomicity; receipt/replay/Undo/user isolation; and actual generated UI proposal retention, rank/flag controls and result recovery. The repository gate is pnpm check plus pnpm build. Hosted rollout must verify actual tools/resources and UI behavior on the deployed version.
 
 Sources: [data model](../technical/data-model.md), [API](../technical/mcp-api.md), [testing](../technical/testing.md), [change](../changes/change-20261003-action-order-and-flag/change.md).
 
 ## Versioned saved perspectives
 
-A saved perspective is owned by one authenticated user and contains extraction conditions. Owner is mandatory in storage; queries and references stay within that owner. Definitions are an explicit discriminated union: version 1 stores a legacy `filter`, and version 2 stores a structured `query` with optional global `order_by`. Metadata edits retain the saved variant; definition edits replace it and cannot downgrade a version 2 definition.
+A saved perspective is owned by one authenticated user and contains extraction conditions. User is mandatory in storage; queries and references stay within that user. Definitions are an explicit discriminated union: version 1 stores a legacy `filter`, and version 2 stores a structured `query` with optional global `order_by`. Metadata edits retain the saved variant; definition edits replace it and cannot downgrade a version 2 definition.
 
-Version 1 preserves its filter contract, including direct-only Project/Tag matching when `include_descendants` is omitted and action-tree relative order. Version 2 uses the shared pure query kernel; each classification leaf includes descendants by default unless it says otherwise. An omitted sort preserves action-tree order, while explicit sort is global across matching actions. Both variants evaluate the confirmed owner snapshot at read time, never copy or change Action state, and never insert a nonmatching parent into results.
+Version 1 preserves its filter contract, including direct-only Project/Tag matching when `include_descendants` is omitted and action-tree relative order. Version 2 uses the shared pure query kernel; each classification leaf includes descendants by default unless it says otherwise. An omitted sort preserves action-tree order, while explicit sort is global across matching actions. Both variants evaluate the confirmed user snapshot at read time, never copy or change Action state, and never insert a nonmatching parent into results.
 
 Status sets, direct Flag, read-time Defer and explicit Project/Tag membership are mechanical conditions, not recommendations. Classification descendant expansion is distinct from action containment. Stored definitions are dynamic: edits, classification changes and Defer expiry affect the next read. Removal and Undo use ordinary revision, receipt and identity guarantees; missing references must not silently widen the view. Definitions and returned matches remain separate from host recommendations.

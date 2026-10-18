@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['22', '24']
+        node: ['24']
     steps:
       - uses: actions/checkout@v6.1.0
         with:
@@ -29,5 +29,22 @@ jobs:
         run: corepack pnpm install --frozen-lockfile
       - name: Lint, typecheck and test
         run: corepack pnpm check
-      - name: Build the Worker
+      - name: Build the Node service
         run: corepack pnpm build
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          persist-credentials: false
+      - name: Build the production container
+        run: docker build --tag action-tools:ci .
+      - name: Verify non-root runtime and backup tools
+        run: docker run --rm --entrypoint /bin/sh action-tools:ci -c 'test "$(id -u)" -ne 0 && node --version && pg_dump --version && test -s /etc/ssl/certs/ca-certificates.crt'
+      - name: Verify production entry dependencies
+        run: >-
+          docker run --rm --entrypoint node action-tools:ci --input-type=module -e
+          'try { await import("./dist/server/index.mjs"); throw new Error("Expected explicit configuration"); }
+          catch (error) { if (error.message !== "Missing configuration: PUBLIC_ORIGIN") throw error; console.log("Production imports passed"); }'

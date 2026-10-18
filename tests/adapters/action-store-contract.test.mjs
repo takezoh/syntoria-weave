@@ -1,26 +1,26 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createD1ActionStore} from '../helpers/owner-composition.mjs';
-import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';
+import {createD1ActionStore} from '../helpers/user-composition.mjs';
+import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';
 import {memoryActionStore} from '../helpers/memory-action-store.mjs';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 const now='2026-10-03T00:00:00.000Z';
 for(const kind of ['memory','SQLite D1'])test(kind+' ActionStore shared contract',async t=>{
  const fixture=kind==='memory'?null:sqliteFixture();
  const store=fixture?createD1ActionStore(fixture.db):memoryActionStore();
- const call=(owner,name,args={})=>actionCall({store,clock:()=>now,newId:()=>crypto.randomUUID()},owner,name,args);
+ const call=(user,name,args={})=>actionCall({store,clock:()=>now,newId:()=>crypto.randomUUID()},user,name,args);
  const op=crypto.randomUUID();let actionId;
  const args={schemaVersion:2,operationId:op,expectedRevision:0,kind:'add',payload:{title:'A action'}};
- await t.test('new owners start at isolated revision zero',async()=>{assert.equal((await store.readSnapshot('A')).revision,0);assert.equal((await store.readSnapshot('B')).revision,0);});
+ await t.test('new users start at isolated revision zero',async()=>{assert.equal((await store.readSnapshot('A')).revision,0);assert.equal((await store.readSnapshot('B')).revision,0);});
  await t.test('receipt and snapshot are atomically visible',async()=>{const saved=await call('A','apply_change',args);actionId=saved.result.resolved.actions[0].id;assert.notEqual(actionId,op);assert.equal((await store.readSnapshot('A')).revision,1);assert.equal(JSON.parse((await store.readReceipt('A',op)).result).revision,1);assert.equal((await store.readSnapshot('B')).actions.length,0);assert.equal(await store.readReceipt('B',op),null);});
- await t.test('owners remain isolated while the server generates entity IDs',async()=>{await call('B','apply_change',{...args,payload:{title:'B action'}});assert.equal((await call('B','list_actions')).actions[0].title,'B action');assert.equal((await call('A','list_actions')).actions[0].title,'A action');});
+ await t.test('users remain isolated while the server generates entity IDs',async()=>{await call('B','apply_change',{...args,payload:{title:'B action'}});assert.equal((await call('B','list_actions')).actions[0].title,'B action');assert.equal((await call('A','list_actions')).actions[0].title,'A action');});
  await t.test('same request replays, different input is rejected',async()=>{assert.equal((await call('A','apply_change',args)).revision,1);await assert.rejects(call('A','apply_change',{...args,payload:{id:actionId,title:'replacement'}}),e=>e.code==='idempotency_conflict');});
  await t.test('stale revision does not create receipt',async()=>{const operationId=crypto.randomUUID();await assert.rejects(call('A','apply_change',{...args,operationId}),e=>e.code==='conflict');assert.equal(await store.readReceipt('A',operationId),null);});
  await t.test('simultaneous writes have one winner',async()=>{const ids=[crypto.randomUUID(),crypto.randomUUID()];const r=await Promise.allSettled(ids.map(operationId=>call('A','apply_change',{schemaVersion:2,operationId,expectedRevision:1,kind:'edit',payload:{id:actionId,title:operationId}})));assert.equal(r.filter(x=>x.status==='fulfilled').length,1);assert.equal(r.filter(x=>x.status==='rejected'&&x.reason.code==='conflict').length,1);assert.equal((await store.readSnapshot('A')).revision,2);});
  await t.test('lost response preserves receipt and replay does not overwrite later correction',async()=>{if(fixture)fixture.lose();else store.lose();const operationId=crypto.randomUUID();const request={schemaVersion:2,operationId,expectedRevision:2,kind:'edit',payload:{id:actionId,title:'unknown'}};await assert.rejects(call('A','apply_change',request),/lost response/);await call('A','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:3,kind:'edit',payload:{id:actionId,title:'correction'}});const replay=await call('A','apply_change',request);assert.equal(replay.revision,4);assert.equal(replay.result.revision,3);assert.equal(replay.actions[0].title,'correction');});
- await t.test('Undo receipts are owner isolated and cannot be reused',async()=>{const operationId=crypto.randomUUID();await call('A','apply_change',{schemaVersion:2,operationId,expectedRevision:4,kind:'edit',payload:{id:actionId,title:'undo target'}});assert.equal(await store.hasUndo('A',operationId),false);await assert.rejects(call('B','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:1,undoOf:operationId}),e=>e.code==='not_found');await call('A','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:5,undoOf:operationId});assert.equal(await store.hasUndo('A',operationId),true);assert.equal(await store.hasUndo('B',operationId),false);assert.equal((await store.readSnapshot('A')).actions[0].title,'correction');await assert.rejects(call('A','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:6,undoOf:operationId}),e=>e.code==='undo_conflict');});
+ await t.test('Undo receipts are user isolated and cannot be reused',async()=>{const operationId=crypto.randomUUID();await call('A','apply_change',{schemaVersion:2,operationId,expectedRevision:4,kind:'edit',payload:{id:actionId,title:'undo target'}});assert.equal(await store.hasUndo('A',operationId),false);await assert.rejects(call('B','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:1,undoOf:operationId}),e=>e.code==='not_found');await call('A','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:5,undoOf:operationId});assert.equal(await store.hasUndo('A',operationId),true);assert.equal(await store.hasUndo('B',operationId),false);assert.equal((await store.readSnapshot('A')).actions[0].title,'correction');await assert.rejects(call('A','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:6,undoOf:operationId}),e=>e.code==='undo_conflict');});
  await t.test('project and action-tag ABA markers survive snapshots and protect Undo',async()=>{
-  const write=async(owner,kind,payload)=>{const current=await call(owner,'list_actions');return call(owner,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:current.revision,kind,payload});};
+  const write=async(user,kind,payload)=>{const current=await call(user,'list_actions');return call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:current.revision,kind,payload});};
   const created=await write('ABA','project_get_or_create',{name:'Reserved'}),projectId=created.result.resolved.project.id;
   const removed=await write('ABA','project_remove',{id:projectId});
   const current=await call('ABA','list_actions');await call('ABA','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:current.revision,undoOf:removed.result.operationId});
@@ -41,7 +41,7 @@ for(const kind of ['memory','SQLite D1'])test(kind+' commit derives coherent del
  const before=await store.readSnapshot('A'),id=crypto.randomUUID(),operationId=crypto.randomUUID();
  const {change}=await import('../../lib/domain/core.ts');
  const after=change(before,{kind:'add',payload:{id,title:'atomic'}},now);
- const request={owner:'A',operationId,payload:'canonical input',before,after,now,undoOf:null};
+ const request={user:'A',operationId,payload:'canonical input',before,after,now,undoOf:null};
  assert.deepEqual(await store.commit(request),{operationId,revision:1,changedIds:[id]});
  const receipt=await store.readReceipt('A',operationId),stored=await store.readSnapshot('A');
  assert.deepEqual(JSON.parse(receipt.delta).actions,[{before:null,after:after.actions[0]}]);
@@ -51,10 +51,10 @@ for(const kind of ['memory','SQLite D1'])test(kind+' commit derives coherent del
  assert.deepEqual(await store.commit(request),JSON.parse(receipt.result));
  await assert.rejects(store.commit({...request,payload:'different input'}),e=>e.code==='idempotency_conflict');
 });
-for(const kind of ['memory','SQLite D1'])test(kind+' catalog entities stay owner isolated in one store',async t=>{
+for(const kind of ['memory','SQLite D1'])test(kind+' catalog entities stay user isolated in one store',async t=>{
  const fixture=kind==='memory'?null:sqliteFixture();if(fixture)t.after(()=>fixture.sql.close());
  const store=fixture?createD1ActionStore(fixture.db):memoryActionStore();
- const call=(owner,name,args={})=>actionCall({store,clock:()=>now,newId:()=>crypto.randomUUID()},owner,name,args);
+ const call=(user,name,args={})=>actionCall({store,clock:()=>now,newId:()=>crypto.randomUUID()},user,name,args);
  const project=await call('A','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'project_get_or_create',payload:{name:'P'}}),pid=project.result.resolved.project.id;
  const tagResult=await call('A','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:1,kind:'tag_get_or_create',payload:{name:'T'}}),tag=tagResult.result.resolved.tag.id;
  const action=await call('A','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:2,kind:'add',payload:{title:'A action'}}),tid=action.result.resolved.actions[0].id;

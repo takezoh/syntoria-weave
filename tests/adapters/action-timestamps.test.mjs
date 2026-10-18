@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createD1ActionStore,actionCallForOwner} from '../helpers/owner-composition.mjs';
+import {createD1ActionStore,actionCallForUser} from '../helpers/user-composition.mjs';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 
 test('production SQL stores immutable Action creation instants and current mutation instants across recovery',async t=>{
- const fixture=sqliteFixture();t.after(()=>fixture.sql.close());let now='2026-10-01T12:00:00.000Z';let store=createD1ActionStore(fixture.db);const ports={store,clock:()=>now,newId:()=>crypto.randomUUID()},owner='timestamps';
- const call=(name,args={})=>actionCallForOwner(ports,owner,name,args);
+ const fixture=sqliteFixture();t.after(()=>fixture.sql.close());let now='2026-10-01T12:00:00.000Z';let store=createD1ActionStore(fixture.db);const ports={store,clock:()=>now,newId:()=>crypto.randomUUID()},user='timestamps';
+ const call=(name,args={})=>actionCallForUser(ports,user,name,args);
  async function write(kind,payload){const before=await call('list_actions'),operationId=crypto.randomUUID();const reply=await call('apply_change',{schemaVersion:2,operationId,expectedRevision:before.revision,kind,payload});return {before,reply,operationId};}
  const check=(snapshot,id,updatedAt,createdAt='2026-10-01T12:00:00.000Z')=>{const row=snapshot.actions.find(action=>action.id===id);assert(row,`action ${id} is persisted`);assert.equal(row.created_at,createdAt);assert.equal(row.updated_at,updatedAt);return row;};
 
@@ -32,8 +32,8 @@ test('production SQL stores immutable Action creation instants and current mutat
  now='2026-10-12T12:00:00.000Z';await write('edit',{id:parent,title:'Later correction'});const later=await call('list_actions');check(later,parent,now);
  now='2026-10-13T12:00:00.000Z';const replay=await call('apply_change',request);assert.equal(replay.actions.find(action=>action.id===parent).title,'Later correction');check(replay,parent,'2026-10-12T12:00:00.000Z');
 
- const beforeRead=await store.readSnapshot(owner);now='2026-10-14T12:00:00.000Z';const read=await call('list_actions');assert.equal(read.actions.find(action=>action.id===parent).created_at,'2026-10-01T12:00:00.000Z');assert.equal(read.actions.find(action=>action.id===parent).updated_at,'2026-10-12T12:00:00.000Z');await call('preview_change',{expectedRevision:read.revision,kind:'edit',payload:{id:parent,title:'Preview only'}});assert.deepEqual(await store.readSnapshot(owner),beforeRead);
+ const beforeRead=await store.readSnapshot(user);now='2026-10-14T12:00:00.000Z';const read=await call('list_actions');assert.equal(read.actions.find(action=>action.id===parent).created_at,'2026-10-01T12:00:00.000Z');assert.equal(read.actions.find(action=>action.id===parent).updated_at,'2026-10-12T12:00:00.000Z');await call('preview_change',{expectedRevision:read.revision,kind:'edit',payload:{id:parent,title:'Preview only'}});assert.deepEqual(await store.readSnapshot(user),beforeRead);
  now='2026-10-15T12:00:00.000Z';await write('status',{id:parent,status:'active'});check(await call('list_actions'),parent,now);
  now='2026-10-16T12:00:00.000Z';const beforeNoMove=await call('list_actions');await write('action_move',{ids:[sibling],placement:'before',anchor_id:otherSibling});snapshot=await call('list_actions');assert(snapshot.revision>beforeNoMove.revision,'the accepted no-change operation still receives its ordinary operation revision');check(snapshot,sibling,'2026-10-05T12:00:00.000Z');
- store=createD1ActionStore(fixture.db);const reloaded=await store.readSnapshot(owner);check(reloaded,parent,'2026-10-15T12:00:00.000Z');check(reloaded,child,'2026-10-10T12:00:00.000Z');check(reloaded,sibling,'2026-10-05T12:00:00.000Z');
+ store=createD1ActionStore(fixture.db);const reloaded=await store.readSnapshot(user);check(reloaded,parent,'2026-10-15T12:00:00.000Z');check(reloaded,child,'2026-10-10T12:00:00.000Z');check(reloaded,sibling,'2026-10-05T12:00:00.000Z');
 });

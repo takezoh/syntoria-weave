@@ -2,8 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
-import {createD1ActionStore} from '../helpers/owner-composition.mjs';
-import {actionCallForOwner as actionCall} from '../helpers/owner-composition.mjs';
+import {createD1ActionStore} from '../helpers/user-composition.mjs';
+import {actionCallForUser as actionCall} from '../helpers/user-composition.mjs';
 import {change} from '../../lib/domain/core.ts';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 
@@ -45,7 +45,7 @@ test('a relationship failure rolls back earlier actions, Inbox action, receipt a
 
 test('same operation racing at adapter commit replays once, changed payload rejects',async t=>{
  const {store}=setup(t),before=await store.readSnapshot('A'),operationId=crypto.randomUUID(),id=crypto.randomUUID(),after=change(before,{kind:'add',payload:{id,title:'concurrent'}},now);
- const request={owner:'A',operationId,payload:'same original',before,after,now,undoOf:null};
+ const request={user:'A',operationId,payload:'same original',before,after,now,undoOf:null};
  const results=await Promise.all([store.commit(request),store.commit(request)]);assert.deepEqual(results[0],results[1]);assert.equal((await store.readSnapshot('A')).revision,1);assert.equal((await store.readSnapshot('A')).actions.length,1);
  await assert.rejects(store.commit({...request,payload:'different'}),e=>e.code==='idempotency_conflict');
 });
@@ -54,8 +54,8 @@ test('revision guard raises its generic marker and a stale commit is a conflict'
  const {store,sql}=setup(t),before=await store.readSnapshot('A');
  assert.match(sql.prepare("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='operations_revision_guard'").get().sql,/RAISE\(ABORT, 'revision_conflict'\)/);
  const first=change(before,{kind:'add',payload:{id:crypto.randomUUID(),title:'first'}},now),stale=change(before,{kind:'add',payload:{id:crypto.randomUUID(),title:'stale'}},now);
- await store.commit({owner:'A',operationId:crypto.randomUUID(),payload:'first',before,after:first,now,undoOf:null});
- await assert.rejects(store.commit({owner:'A',operationId:crypto.randomUUID(),payload:'stale',before,after:stale,now,undoOf:null}),e=>e.code==='conflict');
+ await store.commit({user:'A',operationId:crypto.randomUUID(),payload:'first',before,after:first,now,undoOf:null});
+ await assert.rejects(store.commit({user:'A',operationId:crypto.randomUUID(),payload:'stale',before,after:stale,now,undoOf:null}),e=>e.code==='conflict');
  assert.equal((await store.readSnapshot('A')).revision,1);assert.equal((await store.readSnapshot('A')).actions.length,1);
 });
 

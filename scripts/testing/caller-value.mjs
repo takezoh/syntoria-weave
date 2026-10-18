@@ -134,9 +134,9 @@ async function prepareFixture(manifest, bridge, record) {
   try { await access(target); throw new HarnessError('prepared.json already exists; use the recorded fixture instead of creating duplicate writes.'); }
   catch (error) { if (error instanceof HarnessError) throw error; if (error?.code !== 'ENOENT') throw error; }
 
-  const initial = requireSuccess(await invokeFixtureTool(bridge, 'list_actions', {}, 'check-empty-owner'), 'Initial list_actions');
+  const initial = requireSuccess(await invokeFixtureTool(bridge, 'list_actions', {}, 'check-empty-user'), 'Initial list_actions');
   if (initial.revision !== 0 || initial.actions?.length || initial.projects?.length || initial.tags?.length || initial.perspectives?.length) {
-    throw new HarnessError('Fixture preparation requires a new empty synthetic owner at revision 0.');
+    throw new HarnessError('Fixture preparation requires a new empty synthetic user at revision 0.');
   }
 
   const root = requireSuccess(await invokeFixtureTool(bridge, 'apply_change', {
@@ -177,7 +177,7 @@ async function prepareFixture(manifest, bridge, record) {
     environment: 'built local Worker env.DB through Wrangler local D1; synthetic trusted headers',
     source: sourceIdentity(),
     builtWorkerSha256: await fileSha256(resolve(REPOSITORY_ROOT, 'dist/server/index.js')),
-    ownerId: manifest.ownerId,
+    userId: manifest.userId,
     fixtures,
     revision: baseline.revision,
     snapshot: baseline,

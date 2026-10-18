@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { actionCallForOwner } from '../helpers/owner-composition.mjs';
+import { actionCallForUser } from '../helpers/user-composition.mjs';
 import { memoryActionStore } from '../helpers/memory-action-store.mjs';
 import { decodeChangeCursor } from '../../lib/data/model/change-cursor.ts';
 
@@ -8,8 +8,8 @@ const now = '2026-10-14T09:00:00.000Z';
 function setup() {
   const store = memoryActionStore();
   const ports = { store, clock: () => now, newId: () => crypto.randomUUID() };
-  const call = (owner, name, args = {}) => actionCallForOwner(ports, owner, name, args);
-  const write = async (owner, kind, payload) => call(owner, 'apply_change', { schemaVersion: 2, operationId: crypto.randomUUID(), expectedRevision: (await store.readSnapshot(owner)).revision, kind, payload });
+  const call = (user, name, args = {}) => actionCallForUser(ports, user, name, args);
+  const write = async (user, kind, payload) => call(user, 'apply_change', { schemaVersion: 2, operationId: crypto.randomUUID(), expectedRevision: (await store.readSnapshot(user)).revision, kind, payload });
   return { store, call, write };
 }
 
@@ -62,9 +62,9 @@ test('consumer cursors are independent, retries are stable and fenced pages excl
   assert.equal(decodeChangeCursor(third.next_cursor).through_revision, null);
   const nextWindow = await call('A', 'get_changes', { cursor: third.next_cursor });
   assert.deepEqual(nextWindow.changes.map(row => row.revision_after), [4]);
-  const ownerB = await call('B', 'get_changes', { cursor: baselineB.cursor });
-  assert.deepEqual(ownerB.changes, []);
-  assert.equal(ownerB.through_revision, 0);
+  const userB = await call('B', 'get_changes', { cursor: baselineB.cursor });
+  assert.deepEqual(userB.changes, []);
+  assert.equal(userB.through_revision, 0);
 });
 
 test('feeds carry all persisted entity and association deltas without changing state or fabricating deletions', async () => {

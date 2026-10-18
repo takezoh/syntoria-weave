@@ -5,12 +5,12 @@ import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 import {canonical} from '../../lib/domain/core.ts';
 const now='2026-10-03T00:00:00.000Z';
 
-test('active migration preserves both owners, non-status fields, relationships and original receipts',async t=>{
+test('active migration preserves both users, non-status fields, relationships and original receipts',async t=>{
  const {sql}=sqliteFixture({beforeActiveMigration:true});t.after(()=>sql.close());
  const id=crypto.randomUUID(),op=crypto.randomUUID(),other=crypto.randomUUID();
  const row={id,title:'open',revision:2,parent_id:null,project_id:null,status:'open',due_at:null,defer_until:'2026-12-01T00:00:00.000Z',notes:'open',created_at:now,updated_at:now};
  const insert=sql.prepare('INSERT INTO tasks(owner,id,title,revision,created_at,updated_at,status,defer_until,notes) VALUES(?,?,?,?,?,?,?,?,?)');
- for(const owner of ['A','B'])for(const status of ['open','waiting','done','cancelled'])insert.run(owner,status==='open'?id:crypto.randomUUID(),'open',2,now,now,status,row.defer_until,'open');
+ for(const user of ['A','B'])for(const status of ['open','waiting','done','cancelled'])insert.run(user,status==='open'?id:crypto.randomUUID(),'open',2,now,now,status,row.defer_until,'open');
  insert.run('A',other,'child',3,now,now,'waiting',null,'keep');
  sql.prepare('UPDATE tasks SET parent_id=? WHERE owner=? AND id=?').run(id,'A',other);
  sql.prepare('INSERT INTO dependencies VALUES(?,?,?,1)').run('A',other,id);

@@ -70,11 +70,11 @@ compatibility_policies:
 
 **Keep less in your head. Your AI keeps track of the rest.**
 
-Syntoria Weave is a shared state store through which AI/LLM consumers share state with humans and other authorized AI consumers. Everyday work and personal actions are its current concrete use: actions, original notes, containment, projects, tags, dates and perspectives remain available when the user changes a plan, switches conversations or uses another authorized workflow. Interpretation, recommendations and decisions belong to the consuming LLM; Weave persists, retrieves and validates the shared state within the authenticated owner's boundary.
+Syntoria Weave is a shared state store through which AI/LLM consumers share state with humans and other authorized AI consumers. Everyday work and personal actions are its current concrete use: actions, original notes, containment, projects, tags, dates and perspectives remain available when the user changes a plan, switches conversations or uses another authorized workflow. Interpretation, recommendations and decisions belong to the consuming LLM; Weave persists, retrieves and validates the shared state within the authenticated user's boundary.
 
 The intended outcome is less effort remembering, collecting, organizing, reviewing and updating everyday work and personal tasks, with more attention available for action, decisions and rest. Direct human corrections and another AI's saved results can inform the next interaction through the same state. Reliable writes and retained original input support delegation, while the management method remains in prompts. The user and their AI create the useful experience through these data capabilities.
 
-Weave provides API/MCP tools and a dedicated UI over that shared state. The user's prompts, AI or caller-side scheduler determine how and when to use them. ChatGPT is the current delivery environment. Connecting another assistant requires a supported authenticated route. The product name is Syntoria Weave, shortened to Weave after first mention. Source code and published identifiers are generic and contain no product name, so the name lives only in documentation and host listings.
+Weave provides API/MCP tools and a dedicated UI over that shared state. The user's prompts, AI or caller-side scheduler determine how and when to use them. The service exposes HTTP API, Remote MCP and a Web UI; each client requires a supported authenticated route and its own acceptance evidence. The product name is Syntoria Weave, shortened to Weave after first mention. Source code and published identifiers are generic and contain no product name, so the name lives only in documentation and host listings.
 
 ### Place in Syntoria
 
@@ -101,8 +101,8 @@ People already settled in an established task app can use that app's AI connecti
 | Get it out of your head (entry) | Hand things over without deciding everything first | Exact original notes; no required deadline, classification or commitment; Defer preserves content and Due; Inbox keeps project-unassigned unfinished actions |
 | Design a workflow that fits you (differentiator) | Design any workflow with the AI, such as GTD, a simple daily list or an own system, and change it without rebuilding the list | No backend management method; containment, projects, tags, order, flags, dates and perspectives are composable data capabilities |
 | Let your AI do the upkeep (core experience) | The AI captures, clarifies, organizes and reviews inside the user's system | Composable reads, previews and changes through API/MCP; authorized caller workflows can write collected inputs |
-| Continue from shared state | Human corrections and saved AI results are available to the next authorized consumer | Conversation and UI read the same owner-scoped state; callers retrieve current snapshots and reconcile their own context |
-| Stay in control—without watching every change (primary differentiator) | AI changes do not silently break the saved list, and the user can inspect and correct directly | Latest-revision validation rejects stale writes; the UI retains unsaved proposals; identical replay uses the receipt; unknown outcomes keep exact IDs and arguments for lookup or resend; Undo rejects later target corrections; owner isolation; conversation and UI share one action path and saved state |
+| Continue from shared state | Human corrections and saved AI results are available to the next authorized consumer | Conversation and UI read the same user-scoped state; callers retrieve current snapshots and reconcile their own context |
+| Stay in control—without watching every change (primary differentiator) | AI changes do not silently break the saved list, and the user can inspect and correct directly | Latest-revision validation rejects stale writes; the UI retains unsaved proposals; identical replay uses the receipt; unknown outcomes keep exact IDs and arguments for lookup or resend; Undo rejects later target corrections; user isolation; conversation and UI share one action path and saved state |
 
 Lead with relief from remembering, then the appeal of designing a workflow with the AI. Use safe delegation and direct correction as reasons to believe. A pillar must not promise more than its supporting contract. New user-facing benefit text requires a matching row in the [Product](../../PRODUCT.md) `Value and approach` table naming the behavior that supports it; text without one is not published. Take impact from concrete scenes and specifics rather than from stronger claims.
 
@@ -112,7 +112,7 @@ Lead with relief from remembering, then the appeal of designing a workflow with 
 - Repository description: "Share the current state of your work between you, your AI and other authorized AI workflows. Keep less in your head and stay in control." Lead it with the verb and the shared state; the State Store role name lives in README/PRODUCT and the repository topics.
 - Present GTD as one example among several workflows, never as a built-in or default method.
 - Write benefit-, outcome- and appeal-first. The user and their AI are the subjects of user-facing text; describe the combined experience rather than the data layer. Data-layer responsibilities and limits follow in a "How it works" section and technical documentation.
-- Explain Weave as the shared state store for the user and their AI, with everyday actions as its current use. Show the value through a human correction, another conversation's saved result and continuing from current state. Sharing stored state does not imply automatically synchronized AI context or access across owners.
+- Explain Weave as the shared state store for the user and their AI, with everyday actions as its current use. Show the value through a human correction, another conversation's saved result and continuing from current state. Sharing stored state does not imply automatically synchronized AI context or access across users.
 - User-facing text says "AI" and "tasks". "LLM" and "caller" belong to technical and API documentation. Because the dedicated UI labels items "Action", user-facing text may introduce an action as the saved form of a task and keeps the GTD term "next action".
 - Tone is calm, plain and honest. Avoid productivity hype; more tasks or completions are not success, and rest is a legitimate outcome.
 
@@ -148,7 +148,7 @@ These are intended outcomes, not measured long-term effects. More tasks, complet
 
 | Weave provides | The user and caller determine |
 | --- | --- |
-| Shared, durable structured actions, projects, tags and perspectives within one authenticated owner | Meaning, classification conventions, each consumer's context and management method |
+| Shared, durable structured actions, projects, tags and perspectives within one authenticated user | Meaning, classification conventions, each consumer's context and management method |
 | Composable reads, previews and changes through API/MCP | Capture, organization, review and recommendation workflows |
 | Validation, deterministic transitions and ownership | What matters, what to delegate and when to ask |
 | Revision, atomicity, receipts, replay and Undo | Execution opportunities, external-source access and notifications |
@@ -182,7 +182,7 @@ The value is in human and AI collaboration: a human's correction becomes an inpu
 
 The returned cursor identifies a retrieval position. It does not prove correct understanding, mark a human's reading progress or complete an Action. Reading changes does not itself mutate those business states. A cursor alone cannot reconstruct past conversational context: the caller must retain or recover that context and know the position it was based on.
 
-Begin with consumers storing their own cursors; Weave-side per-consumer checkpoint storage is not a prerequisite. Shared storage and change retrieval retain the current owner and authorization boundaries. They do not add assistant messaging, execution ownership, orchestration, push delivery or a Weave decision engine.
+Begin with consumers storing their own cursors; Weave-side per-consumer checkpoint storage is not a prerequisite. Shared storage and change retrieval retain the current user and authorization boundaries. They do not add assistant messaging, execution ownership, orchestration, push delivery or a Weave decision engine.
 
 ### Questions at proposal time
 
@@ -200,14 +200,14 @@ The source is the registered [Draft item 266668064](https://api.github.com/users
 
 | Design question | Current decision |
 | --- | --- |
-| Position source and cursor scope | Reuse owner-wide `operations.revision_after`; encode a canonical versioned opaque cursor with a domain-separated fingerprint of the live trusted owner. The token never selects a SQL owner and stores no consumer identity. |
-| Bootstrap | Every complete snapshot returns `change_cursor` at the same D1 snapshot revision and raw `action_tags`; filtered query results are not bootstrap snapshots. |
+| Position source and cursor scope | Reuse user-wide `operations.revision_after`; encode a canonical versioned opaque cursor with a domain-separated fingerprint of the live trusted user. The token never selects a SQL user and stores no consumer identity. |
+| Bootstrap | Every complete snapshot returns `change_cursor` at the same consistent PostgreSQL snapshot revision and raw `action_tags`; filtered query results are not bootstrap snapshots. |
 | Record shape | Return each retained operation with before/after persisted DTOs for Actions, Projects, Tags, Perspectives and Action/Tag associations. Include create/edit/remove/Undo changes. Withdrawal remains a `dropped` Action status; it does not physically delete Actions. |
 | Pagination | Default 20, maximum 100 whole operations and a 1 MiB UTF-8 JSON limit on the logical ChangePage. MCP returns the page in both `structuredContent` and `content[0].text`, so the full JSON-RPC HTTP response body may be larger; there is no total wire-body limit. Split pages carry the observed head fence. Empty and terminal pages reset to a live cursor at the observed head, so later operations remain visible. |
-| Retention and invalid history | Reuse the existing latest-100 operation window. Expired positions return `cursor_expired`; malformed, future, wrong-owner and discontinuous history fail explicitly. Resynchronize with a fresh complete snapshot and its cursor. |
+| Retention and invalid history | Reuse the existing latest-100 operation window. Expired positions return `cursor_expired`; malformed, future, wrong-user and discontinuous history fail explicitly. Resynchronize with a fresh complete snapshot and its cursor. |
 | Consumer responsibility | Each caller stores its own cursor and advances only after applying a page. Reads do not mutate state or acknowledge that a human read, understood or acted on changes. |
 
-Snapshot bootstrap and feed reconstruction use the shared explicit persisted DTO projection. Derived display values, owner values and internal identity markers stay outside the canonical persisted cache and feed. No new revision counter, checkpoint table, migration, event-sourcing contract, or owner-wide state replacement is introduced. See the current [data model](../technical/data-model.md#atomic-writes-replay-and-undo) and [MCP/API](../technical/mcp-api.md#current-reads-and-incremental-changes).
+Snapshot bootstrap and feed reconstruction use the shared explicit persisted DTO projection. Derived display values, user values and internal identity markers stay outside the canonical persisted cache and feed. No new revision counter, checkpoint table, migration, event-sourcing contract, or user-wide state replacement is introduced. See the current [data model](../technical/data-model.md#atomic-writes-replay-and-undo) and [MCP/API](../technical/mcp-api.md#current-reads-and-incremental-changes).
 
 ## Management methods and data structure
 

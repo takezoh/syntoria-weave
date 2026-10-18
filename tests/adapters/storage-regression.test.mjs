@@ -6,7 +6,7 @@ import {actionCall} from '../helpers/d1-actions.mjs';
 import {dateDefer} from '../../lib/domain/core.ts';
 import {sqliteFixture} from '../helpers/sqlite-d1.mjs';
 function scenario(t){
- const f=sqliteFixture(),owner='fictional-A';t.after(()=>f.sql.close());let now='2026-10-01T00:00:00.000Z';
+ const f=sqliteFixture(),user='fictional-A';t.after(()=>f.sql.close());let now='2026-10-01T00:00:00.000Z';
  const aliases=new Map(),reverseAliases=new Map();
  const actual=value=>aliases.get(value)??value;
  const logical=value=>reverseAliases.get(value)??value;
@@ -41,26 +41,26 @@ function scenario(t){
  }
  const call=async(name,args={})=>{
   if(name==='capture_intent'){
-   const result=await actionCall(f.db,owner,name,args,()=>now),captureId=result.result.resolved.actions[0].id;
+   const result=await actionCall(f.db,user,name,args,()=>now),captureId=result.result.resolved.actions[0].id;
    aliases.set(args.operationId,captureId);reverseAliases.set(captureId,args.operationId);return mapResponse(result);
   }
   if(name==='apply_change'){
    const translated=publicChange(args.kind,args.payload),request={...args,kind:translated.kind,payload:translated.payload};
-   const result=await actionCall(f.db,owner,name,request,()=>now);
+   const result=await actionCall(f.db,user,name,request,()=>now);
    if(translated.alias){const entityId=result.result.resolved[translated.kind==='project_get_or_create'?'project':translated.kind==='tag_get_or_create'?'tag':'actions']?.id??result.result.resolved.actions?.[0]?.id;aliases.set(translated.alias,entityId);reverseAliases.set(entityId,translated.alias);}
    if(translated.aliasActions)for(const [ref,alias] of translated.aliasActions){const entityId=result.result.resolved.actions.find(action=>action.ref===ref).id;aliases.set(alias,entityId);reverseAliases.set(entityId,alias);}
    return mapResponse(result);
   }
   if(name==='preview_change'){
-   const translated=publicChange(args.kind,args.payload),result=await actionCall(f.db,owner,name,{...args,kind:translated.kind,payload:translated.payload},()=>now);
+   const translated=publicChange(args.kind,args.payload),result=await actionCall(f.db,user,name,{...args,kind:translated.kind,payload:translated.payload},()=>now);
    if(translated.aliasActions&&result.resolved?.actions)for(const item of result.resolved.actions){const alias=translated.aliasActions.get(item.ref);if(alias){aliases.set(alias,item.id);reverseAliases.set(item.id,alias);}}
    return mapResponse(result);
   }
   if(name==='query_actions'){
    const mapped={...args,...(args.project_id?{project_id:actual(args.project_id)}:{}),...(args.tag_id?{tag_id:actual(args.tag_id)}:{})};
-   return mapResponse(await actionCall(f.db,owner,name,mapped,()=>now));
+   return mapResponse(await actionCall(f.db,user,name,mapped,()=>now));
   }
-  return mapResponse(await actionCall(f.db,owner,name,args,()=>now));
+  return mapResponse(await actionCall(f.db,user,name,args,()=>now));
  },list=()=>call('list_actions');
  const apply=async(kind,payload,operationId=crypto.randomUUID())=>call('apply_change',{schemaVersion:2,operationId,expectedRevision:(await list()).revision,kind,payload});
  const p=crypto.randomUUID(),a=crypto.randomUUID(),b=crypto.randomUUID(),d=crypto.randomUUID();
@@ -92,33 +92,33 @@ test('withdrawal retains graph relations without forcing pre-cleanup',async cont
 test('project/tag catalog migration is additive over legacy rows',async context=>{scenario(context);const x=new DatabaseSync(':memory:');x.exec(readFileSync('drizzle/0000_worthless_pyro.sql','utf8'));x.prepare('INSERT INTO tasks VALUES(?,?,?,?,?,?,?,?)').run('A',crypto.randomUUID(),'既存','初期',3,'old','2026-01-01','2026-01-01');x.exec(readFileSync('drizzle/0001_structured_todo.sql','utf8'));x.exec(readFileSync('drizzle/0002_worthless_lorna_dane.sql','utf8'));x.exec(readFileSync('drizzle/0003_absent_landau.sql','utf8'));assert.equal(x.prepare('SELECT count(*) n FROM tasks').get().n,1);assert.equal(x.prepare('SELECT project_id FROM tasks').get().project_id,null);assert.equal(x.prepare('SELECT catalog_revision FROM owner_state').get().catalog_revision,0);for(const name of ['projects','tags','task_tags'])assert.equal(x.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name).name,name);x.close();});
 test('0004 backfills latest catalog identity revisions and tolerates old receipts without catalog arrays',async context=>{
  scenario(context);const x=new DatabaseSync(':memory:');for(const file of ['0000_worthless_pyro','0001_structured_todo','0002_worthless_lorna_dane','0003_absent_landau'])x.exec(readFileSync(`drizzle/${file}.sql`,'utf8'));
- const owner='legacy',project=crypto.randomUUID(),deleted=crypto.randomUUID(),tag=crypto.randomUUID(),action=crypto.randomUUID(),fallback=crypto.randomUUID();
- x.prepare('INSERT INTO owner_state(owner,revision) VALUES(?,9)').run(owner);
- x.prepare('INSERT INTO projects(owner,id,name,parent_id,revision,created_at,updated_at) VALUES(?,?,?,NULL,1,?,?)').run(owner,project,'Project','old','old');
- x.prepare('INSERT INTO projects(owner,id,name,parent_id,revision,created_at,updated_at) VALUES(?,?,?,NULL,1,?,?)').run(owner,fallback,'Legacy without history','old','old');
- x.prepare('INSERT INTO tags(owner,id,name,parent_id,revision,created_at,updated_at) VALUES(?,?,?,NULL,1,?,?)').run(owner,tag,'Tag','old','old');
- x.prepare('INSERT INTO task_tags(owner,task_id,tag_id,revision) VALUES(?,?,?,1)').run(owner,action,tag);
+ const user='legacy',project=crypto.randomUUID(),deleted=crypto.randomUUID(),tag=crypto.randomUUID(),action=crypto.randomUUID(),fallback=crypto.randomUUID();
+ x.prepare('INSERT INTO owner_state(owner,revision) VALUES(?,9)').run(user);
+ x.prepare('INSERT INTO projects(owner,id,name,parent_id,revision,created_at,updated_at) VALUES(?,?,?,NULL,1,?,?)').run(user,project,'Project','old','old');
+ x.prepare('INSERT INTO projects(owner,id,name,parent_id,revision,created_at,updated_at) VALUES(?,?,?,NULL,1,?,?)').run(user,fallback,'Legacy without history','old','old');
+ x.prepare('INSERT INTO tags(owner,id,name,parent_id,revision,created_at,updated_at) VALUES(?,?,?,NULL,1,?,?)').run(user,tag,'Tag','old','old');
+ x.prepare('INSERT INTO task_tags(owner,task_id,tag_id,revision) VALUES(?,?,?,1)').run(user,action,tag);
  const insert=x.prepare('INSERT INTO operations(owner,operation_id,canonical_payload,result,delta,revision_before,revision_after,undo_of,created_at) VALUES(?,?,?,?,?,?,?,?,?)');
- const record=(op,revision,delta)=>insert.run(owner,op,'{}','{}',JSON.stringify(delta),revision-1,revision,null,'old');
+ const record=(op,revision,delta)=>insert.run(user,op,'{}','{}',JSON.stringify(delta),revision-1,revision,null,'old');
  record(crypto.randomUUID(),2,{projects:[{before:null,after:{id:project}}],tags:[],task_tags:[]});
  record(crypto.randomUUID(),4,{projects:[{before:{id:project},after:{id:project}}],tags:[{before:null,after:{id:tag}}],task_tags:[{before:null,after:{task_id:action,tag_id:tag}}]});
  record(crypto.randomUUID(),6,{projects:[{before:{id:deleted},after:null}],tags:[],task_tags:[{before:{task_id:action,tag_id:tag},after:null}]});
  record(crypto.randomUUID(),9,{tasks:[]});
  x.exec(readFileSync('drizzle/0004_material_silhouette.sql','utf8'));
- const revision=(kind,identity)=>x.prepare('SELECT revision FROM catalog_identity_ledger WHERE owner=? AND kind=? AND identity=?').get(owner,kind,identity)?.revision;
+ const revision=(kind,identity)=>x.prepare('SELECT revision FROM catalog_identity_ledger WHERE owner=? AND kind=? AND identity=?').get(user,kind,identity)?.revision;
  assert.equal(revision('project',project),4);assert.equal(revision('project',deleted),6);assert.equal(revision('project',fallback),9);assert.equal(revision('tag',tag),4);assert.equal(revision('task_tag',`${action}:${tag}`),6);
  x.close();
 });
 test('0004 refuses duplicate natural keys without merging existing catalog rows',async context=>{
  scenario(context);const x=new DatabaseSync(':memory:');for(const file of ['0000_worthless_pyro','0001_structured_todo','0002_worthless_lorna_dane','0003_absent_landau'])x.exec(readFileSync(`drizzle/${file}.sql`,'utf8'));
- const owner='duplicate',insert=x.prepare('INSERT INTO projects(owner,id,name,parent_id,revision,created_at,updated_at) VALUES(?,?,?,NULL,1,?,?)');
- insert.run(owner,crypto.randomUUID(),'same','old','old');insert.run(owner,crypto.randomUUID(),'same','old','old');
- assert.throws(()=>x.exec(readFileSync('drizzle/0004_material_silhouette.sql','utf8')),/UNIQUE constraint failed/);assert.equal(x.prepare('SELECT count(*) n FROM projects WHERE owner=? AND name=?').get(owner,'same').n,2);x.close();
+ const user='duplicate',insert=x.prepare('INSERT INTO projects(owner,id,name,parent_id,revision,created_at,updated_at) VALUES(?,?,?,NULL,1,?,?)');
+ insert.run(user,crypto.randomUUID(),'same','old','old');insert.run(user,crypto.randomUUID(),'same','old','old');
+ assert.throws(()=>x.exec(readFileSync('drizzle/0004_material_silhouette.sql','utf8')),/UNIQUE constraint failed/);assert.equal(x.prepare('SELECT count(*) n FROM projects WHERE owner=? AND name=?').get(user,'same').n,2);x.close();
 });
 test('project/tag catalog persists, derives paths and queries descendants',async context=>{const {call,list,apply}=scenario(context);const p=crypto.randomUUID(),c=crypto.randomUUID(),t1=crypto.randomUUID(),t2=crypto.randomUUID(),action=crypto.randomUUID();await apply('project_add',{id:p,name:'仕事'});await apply('project_add',{id:c,name:'資料',parent_id:p});await apply('tag_add',{id:t1,name:'重要'});await apply('tag_add',{id:t2,name:'今週',parent_id:t1});await apply('add',{id:action,title:'作業'});await apply('action_project',{id:action,project_id:c});await apply('action_tag',{id:action,tag_id:t2,enabled:true});const r=await list();assert.equal(r.projects.find(x=>x.id===c).path,'仕事/資料');assert.equal(r.tags.find(x=>x.id===t2).path,'重要/今週');const q=await call('query_actions',{project_id:p,include_descendants:true});assert.equal(q.actions.length,1);assert.equal(q.actions[0].id,action);assert.equal(q.actions[0].project_path,'仕事/資料');assert.deepEqual(q.actions[0].tags.map(x=>x.id),[t2]);assert.equal((await call('query_actions',{tag_id:t1,include_descendants:true})).actions[0].id,action);assert.equal((await call('query_actions',{project_id:p})).actions.length,0);});
 test('project cycle and dangling reference rejected atomically',async context=>{const {list,apply}=scenario(context);const a=crypto.randomUUID(),b=crypto.randomUUID();await apply('project_add',{id:a,name:'A'});await apply('project_add',{id:b,name:'B',parent_id:a});const before=await list();await assert.rejects(apply('project_move',{id:a,parent_id:b}),e=>e.code==='cycle');await assert.rejects(apply('action_project',{id:crypto.randomUUID(),project_id:a}),e=>e.code==='not_found');await assert.rejects(apply('tag_add',{id:crypto.randomUUID(),name:'x',parent_id:crypto.randomUUID()}),e=>e.code==='not_found');assert.equal((await list()).revision,before.revision);});
 test('project/tag deletion refuses references and Undo restores the node',async context=>{const {call,list,apply}=scenario(context);const p=crypto.randomUUID(),action=crypto.randomUUID();await apply('project_add',{id:p,name:'P'});await apply('add',{id:action,title:'t'});await apply('action_project',{id:action,project_id:p});await assert.rejects(apply('project_remove',{id:p}),e=>e.code==='related_actions');await apply('action_project',{id:action,project_id:null});const del=await apply('project_remove',{id:p});assert.equal((await list()).projects.length,0);const s=await list();await call('undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:s.revision,undoOf:del.result.operationId});assert.equal((await list()).projects.length,1);assert.equal((await list()).projects[0].name,'P');});
-test('catalog changes stay owner isolated in one database and support identical resend',async context=>{const {f,call,list,apply}=scenario(context);const p=crypto.randomUUID(),op=crypto.randomUUID();await apply('project_add',{id:p,name:'P'});const s=await list(),args={schemaVersion:2,operationId:op,expectedRevision:s.revision,kind:'tag_add',payload:{id:crypto.randomUUID(),name:'T'}};await call('apply_change',args);assert.equal((await call('apply_change',args)).tags.length,1);const bClock=()=> '2026-10-01T00:00:00.000Z';const foreign=await actionCall(f.db,'fictional-B','list_actions',{},bClock);assert.equal(foreign.projects.length,0);assert.equal(foreign.tags.length,0);assert.equal(foreign.actions.length,0);await assert.rejects(actionCall(f.db,'fictional-B','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'action_project',payload:{id:crypto.randomUUID(),project_id:p}},bClock),e=>e.code==='not_found');});
+test('catalog changes stay user isolated in one database and support identical resend',async context=>{const {f,call,list,apply}=scenario(context);const p=crypto.randomUUID(),op=crypto.randomUUID();await apply('project_add',{id:p,name:'P'});const s=await list(),args={schemaVersion:2,operationId:op,expectedRevision:s.revision,kind:'tag_add',payload:{id:crypto.randomUUID(),name:'T'}};await call('apply_change',args);assert.equal((await call('apply_change',args)).tags.length,1);const bClock=()=> '2026-10-01T00:00:00.000Z';const foreign=await actionCall(f.db,'fictional-B','list_actions',{},bClock);assert.equal(foreign.projects.length,0);assert.equal(foreign.tags.length,0);assert.equal(foreign.actions.length,0);await assert.rejects(actionCall(f.db,'fictional-B','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'action_project',payload:{id:crypto.randomUUID(),project_id:p}},bClock),e=>e.code==='not_found');});
 
 test('Undo persists successfully after the detached tag was deleted and replays',async context=>{
  const {call,list,apply}=scenario(context),action=crypto.randomUUID(),tag=crypto.randomUUID();

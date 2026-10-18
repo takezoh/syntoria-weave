@@ -1,23 +1,12 @@
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
-import { readExecutionProfile } from "./execution-profile.mjs";
-
-const [command, ...args] = process.argv.slice(2);
-if (!["dev", "build"].includes(command)) throw new Error("Expected dev or build.");
-const managedLinux = readExecutionProfile() === "managed-linux";
-
-if (managedLinux && command === "build") {
-  const result = spawnSync("bash", [
-    fileURLToPath(new URL("./build-verified.sh", import.meta.url)), ...args,
-  ], { stdio: "inherit" });
-  if (result.error) throw result.error;
-  process.exit(result.status ?? 1);
+import {spawn} from 'node:child_process';
+import {readExecutionProfile} from './execution-profile.mjs';
+// Validate checkout-local profile syntax; every profile now builds the same Node service.
+readExecutionProfile();
+const [command,...args]=process.argv.slice(2);
+if(!['dev','build'].includes(command)||args.length)throw new Error('Expected dev or build without extra arguments.');
+await import('./build-node.mjs');
+if(command==='dev'){
+ const child=spawn(process.execPath,['dist/server/index.mjs'],{stdio:'inherit',env:{...process.env,PORT:process.env.PORT??'5173'}});
+ for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>child.kill(signal));
+ child.once('exit',code=>{process.exitCode=code??1;});
 }
-
-// Import in this process so the preview owner retains its PID and signals.
-const cli = new URL(managedLinux
-  ? "../node_modules/vite/bin/vite.js"
-  : "../node_modules/vinext/dist/cli.js", import.meta.url);
-process.argv = [process.execPath, fileURLToPath(cli), command,
-  ...(!managedLinux && command === "dev" ? ["--port", "5173"] : []), ...args];
-await import(cli.href);

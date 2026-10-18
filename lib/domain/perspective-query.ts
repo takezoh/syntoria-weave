@@ -434,7 +434,7 @@ export function evaluatePerspectiveQuery<T extends ProjectedPerspectiveAction>(
   return evaluateNormalizedPerspectiveQuery(snapshot, actions, query);
 }
 
-/** Evaluates a saved query against a fresh owner snapshot and its explicit read time. */
+/** Evaluates a saved query against a fresh user snapshot and its explicit read time. */
 export function evaluatePerspective(snapshot: Snapshot, now: string, value: unknown): readonly PerspectiveProjection[] {
   const query = validatePerspectiveQueryReferences(snapshot, value);
   return evaluateNormalizedPerspectiveQuery(snapshot, project(snapshot, now), query);

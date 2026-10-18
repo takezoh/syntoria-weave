@@ -1,0 +1,117 @@
+{
+  "observed_at": "2026-10-18T05:27:19.878870+00:00",
+  "status": "migration_and_backup_deployed_api_auth_configuration_pending",
+  "project": "syntoria",
+  "region": "asia-southeast1",
+  "repository": "action-store",
+  "image": "asia-southeast1-docker.pkg.dev/syntoria/action-store/service@sha256:0499662f39689387c071ff1697220042813f3ef4ffc8934b1d84a1bcc8ab5e79",
+  "source_base_commit": "a3ee34831fd1d4fa225ae734b8aadc3c0c1bd7fc",
+  "source_has_uncommitted_changes": true,
+  "completed": [
+    "Confirmed access and billing for existing syntoria project",
+    "Created dedicated Artifact Registry repository",
+    "Pushed previously verified production container",
+    "Read back exact image digest from registry",
+    "Read user-provided 1Password PostgreSQL reference through a private temporary file",
+    "Verified pooled and direct TLS connectivity to the supplied Neon endpoint",
+    "Created independent action_store database and dedicated migration/runtime/backup roles",
+    "Applied schema; runtime least-privilege and backup all-row RLS policy checks passed",
+    "Actual hosted PostgreSQL 18 application-adapter smoke passed and synthetic rows removed",
+    "Rebuilt and published pg_dump 18 compatible image; pnpm check passed 553 tests",
+    "Persisted generated dedicated migration/runtime credentials after explicit user permission; all three secret versions confirmed enabled",
+    "Deployed isolated migration/backup service accounts and resource-scoped secret/object-create permissions",
+    "Deployed Cloud Run migration and backup jobs using the final image",
+    "Reproduced pg_dump TLS failure caused by missing system CA; installed CA without disabling certificate verification; added CI certificate assertion",
+    "Final migration job action-store-migrator-8x66b succeeded",
+    "Final empty-database backup job action-store-backup-ndg6b succeeded",
+    "Downloaded GCS dump and verified byte count and SHA-256 against manifest",
+    "Restored the GCS dump into a network-isolated PostgreSQL 18 container; verified 12 tables, 7 forced-RLS tables, 1 schema journal entry and 0 actions",
+    "Removed transient credential files and the restore container; pnpm check passed 553 tests"
+  ],
+  "pending": [
+    "Auth0 issuer and Web/API client configuration",
+    "Environment Terraform state and reviewed apply with bootstrap resource imports",
+    "API Cloud Run deployment, subject-owner mapping and authenticated hosted acceptance",
+    "Disposable D1 conversion, fenced cutover and decoded equality verification",
+    "Neon compute/autosuspend/PITR confirmation without modifying other services",
+    "Backup Scheduler, monitoring, environment Terraform state and adoption of bootstrap resources remain unconfigured"
+  ],
+  "preserved": [
+    "Existing D1 data and service",
+    "Existing Thymesis resources"
+  ],
+  "gateway_neon_account_aliases": [],
+  "database": {
+    "name": "action_store",
+    "server_version": "18.6",
+    "direct_tls_verified": true,
+    "region": "ap-southeast-1",
+    "schema_applied": true,
+    "runtime_check_passed": true,
+    "backup_rls_policy_active": true,
+    "hosted_adapter_smoke": {
+      "unicode": true,
+      "replay": true,
+      "owner_isolation": true,
+      "concurrent_cas": true,
+      "undo": true,
+      "synthetic_rows_removed": true
+    },
+    "shared_neon_project_existing_databases_unchanged": true,
+    "compute_and_pitr_settings_verified": false
+  },
+  "secrets": {
+    "action-store-backup-database": {
+      "version": "1",
+      "status": "created"
+    },
+    "action-store-admin-database": {
+      "version": "1",
+      "status": "created_after_explicit_user_approval"
+    },
+    "action-store-runtime-database": {
+      "version": "1",
+      "status": "created_after_explicit_user_approval"
+    }
+  },
+  "cloud_run_jobs": {
+    "migrator": {
+      "name": "action-store-migrator",
+      "successful_execution": "action-store-migrator-8x66b"
+    },
+    "backup": {
+      "name": "action-store-backup",
+      "failed_execution": "action-store-backup-bv9sp",
+      "failure_cause": "missing_system_ca_for_libpq_tls",
+      "successful_execution": "action-store-backup-ndg6b"
+    }
+  },
+  "backup": {
+    "bucket": "syntoria-action-store-backups",
+    "public_access_prevention": "enforced",
+    "uniform_bucket_level_access": true,
+    "lifecycle_delete_days": 30,
+    "backup_identity_role": "roles/storage.objectCreator",
+    "object": "2026-10-18T05-24-38.642Z-127652d3-b94d-46b9-8ab7-bfc97f5368b3.dump",
+    "sha256": "49e3dd70a05ba6bb282a5dae801ac415d66d8f5c35bce22005842b184032980f",
+    "bytes": 32131,
+    "manifest_verified": true,
+    "empty_database_restore_passed": true,
+    "populated_restore_not_verified": true,
+    "scheduler_configured": false
+  },
+  "bootstrap_resources_to_adopt_before_full_terraform_apply": {
+    "google_artifact_registry_repository.images": "projects/syntoria/locations/asia-southeast1/repositories/action-store",
+    "google_storage_bucket.backup": "syntoria-action-store-backups",
+    "google_storage_bucket_iam_member.backup_writer": "b/syntoria-action-store-backups roles/storage.objectCreator serviceAccount:action-store-backup@syntoria.iam.gserviceaccount.com",
+    "google_secret_manager_secret.secret[\"runtime-database\"]": "projects/syntoria/secrets/action-store-runtime-database",
+    "google_secret_manager_secret.secret[\"admin-database\"]": "projects/syntoria/secrets/action-store-admin-database",
+    "google_secret_manager_secret.secret[\"backup-database\"]": "projects/syntoria/secrets/action-store-backup-database",
+    "google_service_account.identity[\"migrator\"]": "projects/syntoria/serviceAccounts/action-store-migrator@syntoria.iam.gserviceaccount.com",
+    "google_cloud_run_v2_job.job[\"migrator\"]": "projects/syntoria/locations/asia-southeast1/jobs/action-store-migrator",
+    "google_secret_manager_secret_iam_member.job[\"migrator\"]": "projects/syntoria/secrets/action-store-admin-database roles/secretmanager.secretAccessor serviceAccount:action-store-migrator@syntoria.iam.gserviceaccount.com",
+    "google_service_account.identity[\"backup\"]": "projects/syntoria/serviceAccounts/action-store-backup@syntoria.iam.gserviceaccount.com",
+    "google_cloud_run_v2_job.job[\"backup\"]": "projects/syntoria/locations/asia-southeast1/jobs/action-store-backup",
+    "google_secret_manager_secret_iam_member.job[\"backup\"]": "projects/syntoria/secrets/action-store-backup-database roles/secretmanager.secretAccessor serviceAccount:action-store-backup@syntoria.iam.gserviceaccount.com"
+  }
+}
