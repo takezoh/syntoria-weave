@@ -17,11 +17,11 @@ Read tool descriptions alongside schemas: `apply_change` and `preview_change` sp
 
 ## Connect and authorize access
 
-The README directs users to ask ChatGPT Work to install this repository as a plugin for personal use. This conversation-based route does not require Weave to be listed in the public plugin directory. Work can prepare the app and skills as part of creating the plugin; the absence of a prebuilt plugin manifest is not itself a reason to require the user to package it manually. The [ChatGPT plugin help](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt) describes conversational plugin creation, automatic installation of local plugins and Sites-hosted MCP apps. App deployment follows the [deployment workflow](../technical/deployment.md), preserving the existing Site, DB binding and private scope when updating an existing installation.
+Connect to the deployed HTTPS Remote MCP through the client's supported OAuth flow, or install the distributed local MCP plugin using the [installation guide](../technical/plugin-installation.md). The local server supplies the shared UI resource and forwards business operations to that same service through a private public-client OAuth connection. Backend deployment follows the [deployment workflow](../technical/deployment.md).
 
-The current delivery is a ChatGPT plugin with Sites-managed authentication. Use that environment's authorized connection. A direct MCP client needs a supported authenticated transport to the deployed `POST /mcp` endpoint; this repository does not establish such access for Codex, Claude Code or other clients. Do not invent a public URL, bearer-token setup or owner argument. Public discovery and UI metadata do not grant access to saved actions.
+The service derives user identity from Gate-verified credentials. Tool discovery and UI metadata do not grant access to saved actions. A skill supplies guidance; it does not configure a connection. Keep endpoints, client configuration and private token state outside shared source and distributable templates.
 
-`POST /api/actions` is the Web preview relay, not an independently authenticated public integration API. Local mock authentication is for development and does not prove hosted access. See the [entry-point contract](../technical/mcp-api.md#entry-points-and-ownership) and [deployment boundary](../technical/deployment.md).
+`POST /api/actions` is the authenticated HTTP operation endpoint used by the SPA. Browser requests use the configured shared session, exact allowed origin and CSRF protection. MCP uses its own bearer authorization. Local synthetic authentication does not prove hosted login or actual client UI support. See the [entry-point contract](../technical/mcp-api.md#entry-points-and-ownership).
 
 ## Compose a workflow
 
@@ -31,13 +31,13 @@ For example, a caller with authorized email access can collect requested commitm
 
 For a review, query saved actions or a perspective, then present relevant candidates and reasons. A recommendation does not itself complete, defer or flag an action. A recurring extraction can be saved as a filter-only perspective; a temporary query need not create a saved view.
 
-For writes, read the current owner-wide revision and keep the exact tool name, operation ID and full arguments. A timeout means the result is unknown: look up the receipt or resend the identical request. An explicit revision conflict requires rereading and reconciling the proposal. Undo may refuse later target corrections, and receipt history is limited to the latest 100 operations per owner. See [recovery](../technical/mcp-api.md#responses-and-recovery) before automating retries.
+For writes, read the current user-wide revision and keep the exact tool name, operation ID and full arguments. A timeout means the result is unknown: look up the receipt or resend the identical request. An explicit revision conflict requires rereading and reconciling the proposal. Undo may refuse later target corrections, and receipt history is limited to the latest 100 operations per user. See [recovery](../technical/mcp-api.md#responses-and-recovery) before automating retries.
 
 These examples are workflow designs, not installed schedules or evidence that a particular host has external access.
 
 ## Continue from shared state
 
-If the user corrects an action in the UI or another authorized conversation saves a result, read the current state before continuing. `list_actions` and `get_relevant_context` return the complete owner snapshot and revision. Compare that state with the current request and any retained context, use original notes or authorized source tools where needed, and revise the proposal before saving. A shared store makes the saved correction available without requiring the user to repeat it in every conversation; it does not update an AI's conversational context automatically.
+If the user corrects an action in the UI or another authorized conversation saves a result, read the current state before continuing. `list_actions` and `get_relevant_context` return the complete user snapshot and revision. Compare that state with the current request and any retained context, use original notes or authorized source tools where needed, and revise the proposal before saving. A shared store makes the saved correction available without requiring the user to repeat it in every conversation; it does not update an AI's conversational context automatically.
 
 Each conversation or workflow may have read a different version. Use the current revision for writes and the existing conflict/recovery contract. Recover any context that was not saved through the caller's own environment. Completing a read does not complete an Action or mark information as read by the human.
 

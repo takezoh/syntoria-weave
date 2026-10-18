@@ -19,13 +19,13 @@ relations:
 - {type: references, target: note-20261002-gtd-benefits-and-llm-research}
 - {type: references, target: note-20261003-llm-delegated-task-management-and-plugin}
 source_paths:
-- app/mcp/route.ts
 - skills/action-tools/SKILL.md
+- lib/mcp/dispatcher.ts
 scope_type: policy
 responsibilities:
 - id: RESP-001
-  statement: Separate a consumer's decision policy for delivering benefits from the operation
-    contract guaranteed by Weave.
+  statement: Separate a consumer's decision policy for delivering benefits from the
+    operation contract guaranteed by Weave.
 invariants:
 - id: INV-001
   statement: Prompts cannot make persistence or external execution succeed; claims
@@ -43,13 +43,13 @@ boundaries:
   consumes:
   - Product benefits
   - versioned Weave operation contract
-  - capabilities actually available in the ChatGPT host
+  - capabilities actually available in the consuming client
   forbidden:
   - Implicitly adding an independent backend LLM
   - treating unread context or unavailable notifications as available
 variability:
   fixed:
-  - D1 as source of truth
+  - The authenticated PostgreSQL service as source of truth
   - reports grounded in operation results
   - priority for explicit user corrections
   free:
@@ -79,7 +79,7 @@ Weave is a shared state store accessed through API/MCP tools and a shared UI. Th
 ```text
 User prompts / consumer LLM / caller-side scheduler
                      ↕ API/MCP operations
-           Weave validation and persistence ↔ D1
+           Weave validation and persistence ↔ PostgreSQL
                      ↕ same operation contract
                   Shared UI ↔ User
 ```

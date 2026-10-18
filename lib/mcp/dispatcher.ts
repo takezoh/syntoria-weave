@@ -1,5 +1,5 @@
 import {ActionError} from '../domain/core';
-import {privateDefinitions,privateResources} from './private-registry';
+import {privateDefinitions,privateResources} from './tool-definitions';
 import {UI_URI,widgetHtml} from '../widget';
 import {assistanceInstructions} from '../assistance';
 export type Invoke=(name:string,args:unknown)=>Promise<unknown>;

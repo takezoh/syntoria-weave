@@ -111,6 +111,7 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
 
  await t.test('MCP retains bearer authorization-code resource semantics and rejects cookies',async()=>{
   assert.equal((await server.inject({method:'POST',url:'/mcp',headers:{...base,authorization:'Bearer '+bearer,cookie},payload:{jsonrpc:'2.0',id:1,method:'tools/list'}})).statusCode,401);
+  assert.equal((await server.inject({method:'POST',url:'/mcp',headers:{...base,'oai-authenticated-user-id':'user','oai-authenticated-user-email':'person@example.invalid'},payload:{jsonrpc:'2.0',id:1,method:'tools/list'}})).statusCode,401);
   assert.equal((await rpc('initialize',{protocolVersion:'2025-11-25'})).json().result.protocolVersion,'2025-11-25');
   assert.equal((await rpc('tools/list')).json().result.tools.some(value=>value.name==='apply_change'),true);
   const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'MCP remains independent'}};

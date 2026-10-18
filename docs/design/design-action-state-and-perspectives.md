@@ -18,8 +18,8 @@ capabilities: []
 failure_responsibilities: []
 trust_boundaries: []
 compatibility_policies:
-- The action model resets disposable test data and receipts; no old task or dependency
-  fallback is provided.
+- The schemaVersion 2 action contract has no task/dependency aliases or runtime data
+  fallback. Preserve deployed data and applied migrations.
 tags: []
 owners: []
 relations:
@@ -35,11 +35,11 @@ summary: Actions use containment and sibling rank without execution constraints;
 
 ## Purpose and responsibilities
 
-Keep durable user intent, deterministic projection, and host recommendations separate. Weave owns validated persistence and mechanical state transitions; The user and caller-side LLM own meaning, management method and candidate selection. ChatGPT is the current delivery environment; prompts, caller-side LLMs and schedulers use the same data tools. Conversation and UI share one action store rather than copying actions per perspective.
+Keep durable user intent, deterministic projection, and host recommendations separate. Weave owns validated persistence and mechanical state transitions; The user and caller-side LLM own meaning, management method and candidate selection. Prompts, caller-side LLMs and schedulers use the same authenticated API/MCP data tools. Conversation and UI share one action store rather than copying actions per perspective.
 
 ## Boundaries
 
-Domain consumes an explicit snapshot, operation and timestamp and provides pure validation/transitions/projections. Application consumes store/clock/ID ports and provides user-scoped operations. D1 provides atomic revision CAS, delta writes, receipts and pruning. UI consumes the same API and preserves proposals and unknown requests. No layer introduces independent prerequisite dependencies, execution modes or a recommendation LLM.
+Domain consumes an explicit snapshot, operation and timestamp and provides pure validation/transitions/projections. Application consumes store/clock/ID ports and provides user-scoped operations. PostgreSQL provides atomic revision CAS, delta writes, receipts and pruning. UI consumes the same API and preserves proposals and unknown requests. No layer introduces independent prerequisite dependencies, execution modes or a recommendation LLM.
 
 Project/tag classification is separate from action containment. A project hierarchy organizes classification; it does not inherit completion, Defer, membership, or flags. IDs identify records; names and paths are display/input forms.
 
@@ -66,7 +66,7 @@ Ordering permits gaps and equal ranks. Omitted order appends after the maximum r
 
 Only trusted server authentication determines user. All changes use the shared API and atomic store path. Preview reveals effects without reserving state. Unknown results preserve exact operation ID/input for receipt lookup or replay. Dirty UI title/notes/order/flag proposals survive refresh and host notifications. Undo rejects later changes to the affected action and protects unrelated records.
 
-Hosted D1 and ChatGPT resources are distinct acceptance boundaries. Local mocks cannot prove host caching, authentication injection or actual conversation behavior.
+Hosted PostgreSQL, verified Gate authentication and client UI resources are distinct acceptance boundaries. Local mocks cannot prove hosted transactions, client resource caching or actual conversation behavior.
 
 ## Variability and compatibility
 

@@ -193,7 +193,7 @@ function resolvedTarget(cwd, filename, source) {
 
 function canonicalModuleTarget(cwd,filename,source){
   const raw=source.startsWith('@/')?source.slice(2):source.startsWith('.')?relative(cwd,resolve(dirname(filename),source)).replaceAll('\\','/'):source;
-  if(!raw.startsWith('lib/')&&!raw.startsWith('app/')&&!raw.startsWith('build/'))return raw;
+  if(!raw.startsWith('lib/')&&!raw.startsWith('build/'))return raw;
   const absolute=resolve(cwd,raw),extension=/\.(?:ts|tsx|mts|js|jsx|mjs)$/.exec(raw)?.[0];
   const candidates=extension?[absolute,...(extension==='.js'||extension==='.mjs'?[absolute.slice(0,-extension.length)+'.ts']:[])]:['.ts','.tsx','.mts','.js','.jsx','.mjs'].map(ext=>absolute+ext).concat(['index.ts','index.tsx','index.js'].map(name=>resolve(absolute,name)));
   const found=candidates.find(existsSync);
@@ -203,10 +203,13 @@ function canonicalModuleTarget(cwd,filename,source){
 /** Private resources that public/local surfaces must never reach. */
 const privateTargets = [
   /^lib\/server\//, /^lib\/adapters\//, /^lib\/application\//,
-  /^lib\/actions\.ts$/, /^lib\/database\.ts$/, /^lib\/mcp\/private-registry\.ts$/,
-  /^app\/mcp\/route\.ts$/, /^cloudflare:workers$/, /^drizzle-orm/,
+  /^drizzle-orm/,
 ];
-const publicSurfaces = path => path.startsWith('app/mcp/public/') || ['lib/mcp/public-registry.ts','lib/mcp/local-server.mjs','build/local-mcp-vite.config.mjs'].includes(path);
+const publicSurfaces = path => path === 'lib/mcp/local-server.mjs' || path.startsWith('lib/mcp/local/') || path === 'build/local-mcp-vite.config.mjs';
+function allowedLocalTarget(target) {
+  return target?.startsWith('node:') || target?.startsWith('lib/mcp/local/') ||
+    ['lib/mcp/tool-definitions.ts','lib/widget.ts','openid-client','vite'].includes(target);
+}
 
 const privateComposition = {
   meta: { type: 'problem', schema: [], messages: { private: 'Public/local surface {{from}} cannot reach the private module {{target}}; use the authorized composition.' } },
@@ -216,7 +219,7 @@ const privateComposition = {
     if (!publicSurfaces(from)) return {};
     function check(node, source) {
       const target = resolvedTarget(cwd, filename, source);
-      if (target && (privateTargets.some(pattern => pattern.test(target)) || !['lib/mcp/public-registry.ts','node:readline','node:path','vite'].includes(target))) context.report({ node, messageId: 'private', data: { from, target: source } });
+      if (target && (privateTargets.some(pattern => pattern.test(target)) || !allowedLocalTarget(target))) context.report({ node, messageId: 'private', data: { from, target: source } });
     }
     return {
       ImportDeclaration(node) { check(node, node.source.value); },
@@ -224,20 +227,26 @@ const privateComposition = {
       ExportAllDeclaration(node) { check(node, node.source.value); },
       ImportExpression(node) { check(node, node.source.value); },
       CallExpression(node) { if (node.callee.type === 'Identifier' && node.callee.name === 'require') check(node, node.arguments[0]?.value); },
-      MemberExpression(node) {if(node.object.type==='Identifier'&&node.object.name==='process'&&['env','getBuiltinModule'].includes(node.property.name??node.property.value))context.report({node,messageId:'private',data:{from,target:'inherited environment / capabilities'}});},
+      MemberExpression(node) {
+        if (node.object.type !== 'Identifier' || node.object.name !== 'process' || !['env','getBuiltinModule'].includes(node.property.name ?? node.property.value)) return;
+        const safePluginData = from === 'lib/mcp/local-server.mjs' && node.property.name === 'env'
+          && node.parent.type === 'MemberExpression' && node.parent.object === node
+          && (node.parent.property.name ?? node.parent.property.value) === 'PLUGIN_DATA';
+        if (!safePluginData) context.report({node,messageId:'private',data:{from,target:'inherited environment / capabilities'}});
+      },
     };
   },
 };
 
 /** Exact reviewed location for native SQL; every other module must use named domain operations. */
-const sqlAllowlist = new Set(['lib/adapters/d1-action-store.ts','lib/adapters/postgres/action-store.ts','lib/adapters/postgres/identity-store.ts','lib/adapters/postgres/migrations.ts','lib/adapters/postgres/transfer.ts']);
+const sqlAllowlist = new Set(['lib/adapters/d1-action-store.ts','lib/adapters/postgres/action-store.ts','lib/adapters/postgres/identity-store.ts','lib/adapters/postgres/migrations.ts','lib/adapters/postgres/transfer.ts','lib/mcp/local/state-store.mjs']);
 
 const rawSqlLocation = {
   meta: { type: 'problem', schema: [], messages: { sql: 'Raw SQL ({{what}}) is confined to the approved adapter; use a closed descriptor or a reviewed named operation.' } },
   create(context) {
     const cwd = context.cwd, filename = context.filename;
     const from = relative(cwd, filename).replaceAll('\\', '/');
-    if(!/^(lib|app|build)\//.test(from))return {};
+    if(!/^(lib|build)\//.test(from))return {};
     const nativeAllowed=sqlAllowlist.has(from);
     const report = (node, what) => context.report({ node, messageId: 'sql', data: { what } });
     return {
@@ -256,20 +265,10 @@ const rawSqlLocation = {
 const capabilityEdges = new Map([
  ['lib/adapters/postgres/transfer.ts',new Set(['lib/adapters/postgres/action-store'])],
  ['lib/adapters/postgres/action-store.ts',new Set(['lib/server/node/principal'])],
- ['lib/mcp/dispatcher.ts',new Set(['lib/mcp/private-registry'])],
+ ['lib/mcp/dispatcher.ts',new Set(['lib/mcp/tool-definitions'])],
  ['lib/server/node/authentication.ts',new Set(['lib/server/node/principal','lib/server/node/config','lib/server/node/gate-verifier','lib/adapters/postgres/identity-store'])],
  ['lib/server/node/server.ts',new Set(['lib/server/node/principal','lib/server/node/authentication','lib/server/node/config'])],
  ['lib/server/node/main.ts',new Set(['lib/server/node/config','lib/server/node/authentication','lib/server/node/server','lib/adapters/postgres/pool','lib/adapters/postgres/migrations','lib/adapters/postgres/identity-store','lib/adapters/postgres/action-store'])],
- ['app/mcp/route.ts',new Set(['lib/server/mcp'])],
- ['app/api/actions/route.ts',new Set(['lib/server/actions'])],
- ['lib/server/mcp.ts',new Set(['lib/server/auth','lib/mcp/private-dispatcher'])],
- ['lib/mcp/private-dispatcher.ts',new Set(['lib/server/actions','lib/server/auth','lib/mcp/private-registry'])],
- ['lib/server/actions.ts',new Set(['lib/adapters/worker-database','lib/adapters/d1-action-store','lib/server/auth','lib/server/change-cursor-scope'])],
- ['lib/server/change-cursor-scope.ts',new Set(['lib/server/auth'])],
- ['lib/adapters/d1-action-store.ts',new Set(['lib/server/auth'])],
- ['lib/database.ts',new Set(['lib/adapters/worker-database'])],
- ['lib/adapters/worker-database.ts',new Set(['cloudflare:workers'])],
- ['build/connector-preview-worker.mjs',new Set(['cloudflare:workers'])],
 ]);
 const capabilityDirection = {
  meta:{type:'problem',schema:[],messages:{capability:'Private capability {{target}} is restricted to its exact trusted composition edge.'}},
@@ -277,60 +276,9 @@ const capabilityDirection = {
   const file=relative(context.cwd,context.filename).replaceAll('\\','/');
   function check(node,source){
    const target=resolvedTarget(context.cwd,context.filename,source)?.replace(/\.(ts|js|mjs|mts)$/,'');
-   if(target&&/^(lib\/adapters\/|lib\/server\/|lib\/database$|lib\/mcp\/private-(registry|dispatcher)$|cloudflare:workers$)/.test(target)&&!capabilityEdges.get(file)?.has(target))context.report({node,messageId:'capability',data:{target:source}});
+   if(target&&/^(lib\/adapters\/|lib\/server\/|cloudflare:workers$)/.test(target)&&!capabilityEdges.get(file)?.has(target))context.report({node,messageId:'capability',data:{target:source}});
   }
   return {ImportDeclaration(n){check(n,n.source.value);},ExportNamedDeclaration(n){if(n.source)check(n,n.source.value);},ExportAllDeclaration(n){check(n,n.source.value);},ImportExpression(n){check(n,n.source.value);},CallExpression(n){if(n.callee.type==='Identifier'&&n.callee.name==='require')check(n,n.arguments[0]?.value);}};
- }
-};
-function namedCall(node,name){return node?.type==='CallExpression'&&node.callee.type==='Identifier'&&node.callee.name===name;}
-function identifier(node,name){return node?.type==='Identifier'&&node.name===name;}
-function exportedFunction(program,name){return program.body.find(n=>n.type==='ExportNamedDeclaration'&&n.declaration?.type==='FunctionDeclaration'&&n.declaration.id?.name===name)?.declaration;}
-function isUserGuard(node){
- const declaration=node?.type==='VariableDeclaration'&&node.kind==='const'&&node.declarations.length===1?node.declarations[0]:null;
- const call=declaration?.init,headers=call?.arguments?.[0];
- return identifier(declaration?.id,'user')&&namedCall(call,'requireUser')&&call.arguments.length===1&&headers?.type==='MemberExpression'&&!headers.computed&&identifier(headers.object,'req')&&identifier(headers.property,'headers');
-}
-const privateAuth = {
- meta:{type:'problem',schema:[],messages:{auth:'Private HTTP entry must only export the authenticated facade. The facade must obtain request identity before its sole private dispatch, and the dispatcher must validate that identity before any private method.'}},
- create(context){
-  const file=relative(context.cwd,context.filename).replaceAll('\\','/');
-  if(!['app/mcp/route.ts','lib/server/mcp.ts','lib/mcp/private-dispatcher.ts'].includes(file))return {};
-  let dispatchCall=null,guardCall=null,validationCall=null;
-  const report=node=>context.report({node,messageId:'auth'});
-  return {
-   Program(program){
-    if(file==='app/mcp/route.ts'){
-     // A declarative entry cannot add a pre-auth branch, alternate handler or private import.
-     const valid=program.body.length===2&&program.body.every(node=>{
-      if(node.type!=='ExportNamedDeclaration')return false;
-      if(node.source)return resolvedTarget(context.cwd,context.filename,node.source.value)?.replace(/\.ts$/,'')==='lib/server/mcp'&&node.specifiers.length===2&&node.specifiers.every(s=>s.type==='ExportSpecifier'&&['POST','GET'].includes(s.local.name)&&s.exported.name===s.local.name)&&new Set(node.specifiers.map(s=>s.local.name)).size===2;
-      const d=node.declaration;return d?.type==='VariableDeclaration'&&d.kind==='const'&&d.declarations.length===1&&identifier(d.declarations[0].id,'dynamic')&&d.declarations[0].init?.value==='force-dynamic';
-     });
-     if(!valid)report(program);return;
-    }
-    if(file==='lib/server/mcp.ts'){
-     const post=exportedFunction(program,'POST'),body=post?.body?.body,attempt=body?.[0];
-     const guard=attempt?.block?.body[0],ret=attempt?.block?.body[1];
-     dispatchCall=ret?.type==='ReturnStatement'&&ret.argument?.type==='AwaitExpression'?ret.argument.argument:null;
-     const parsed=dispatchCall?.arguments[1],reader=parsed?.type==='AwaitExpression'?parsed.argument:null;
-     guardCall=guard?.declarations?.[0]?.init;
-     if(!post?.async||post.params.length!==1||!identifier(post.params[0],'req')||body.length!==1||attempt.type!=='TryStatement'||attempt.block.body.length!==2||!isUserGuard(guard)||!namedCall(dispatchCall,'dispatchPrivateMcp')||dispatchCall.arguments.length!==2||!identifier(dispatchCall.arguments[0],'user')||!namedCall(reader,'readGuardedJson')||reader.arguments.length!==1||!identifier(reader.arguments[0],'req'))report(program);
-    }else{
-     const dispatch=exportedFunction(program,'dispatchPrivateMcp'),first=dispatch?.body.body[0];
-     validationCall=first?.type==='ExpressionStatement'?first.expression:null;
-     if(!dispatch?.async||!identifier(dispatch.params[0],'user')||!namedCall(validationCall,'verifiedUser')||validationCall.arguments.length!==1||!identifier(validationCall.arguments[0],'user'))report(program);
-    }
-   },
-   Identifier(node){
-    // No aliases, module-time capabilities, catch-path dispatch, or guard lookalikes.
-    const protectedNames=file==='lib/server/mcp.ts'?['requireUser','dispatchPrivateMcp']:file==='lib/mcp/private-dispatcher.ts'?['verifiedUser','actionCall']:[];
-    if(!protectedNames.includes(node.name))return;
-    if(node.parent.type==='ImportSpecifier')return;
-    if(node.name==='actionCall'){if(!namedCall(node.parent,'actionCall')||node.parent.callee!==node||!identifier(node.parent.arguments[0],'user'))report(node);return;}
-    const expected=node.name==='requireUser'?guardCall:node.name==='dispatchPrivateMcp'?dispatchCall:validationCall;
-    if(node.parent!==expected||expected?.callee!==node)report(node);
-   }
-  };
  }
 };
 function staticMemberName(node){
@@ -439,6 +387,6 @@ const readonlyUiState = {
   };
  }
 };
-const boundaries = { rules: { 'pure-effects': pureEffects, 'data-type-only':dataTypeOnly, 'ui-model-capability':uiModelCapability, 'dependency-direction': dependencyDirection, 'private-composition': privateComposition, 'raw-sql-location': rawSqlLocation, 'capability-direction':capabilityDirection, 'private-auth':privateAuth, 'user-sql':userSql,'readonly-ui-state':readonlyUiState } };
+const boundaries = { rules: { 'pure-effects': pureEffects, 'data-type-only':dataTypeOnly, 'ui-model-capability':uiModelCapability, 'dependency-direction': dependencyDirection, 'private-composition': privateComposition, 'raw-sql-location': rawSqlLocation, 'capability-direction':capabilityDirection, 'user-sql':userSql,'readonly-ui-state':readonlyUiState } };
 
 export default boundaries;

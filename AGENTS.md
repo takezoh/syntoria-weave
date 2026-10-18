@@ -44,13 +44,14 @@ TypeScript/Node.js runs on Cloud Run with Neon PostgreSQL. HTTP API, Remote MCP 
 | --- | --- |
 | lib/domain/ | Pure action transitions, containment, dates, order, flags, delta, preview and Undo |
 | lib/application/, lib/adapters/, lib/server/ | ActionStore ports, operation progress, PostgreSQL/Node effects and production composition |
-| lib/mcp/dispatcher.ts, lib/server/node/server.ts | JSON-RPC, tool discovery, UI resources and authenticated HTTP entry |
+| lib/mcp/dispatcher.ts, lib/server/node/server.ts | Remote JSON-RPC, tool discovery, UI resources and authenticated HTTP entry |
+| lib/mcp/local/, plugins/action-tools/ | Public-client OAuth consumer, private local authorization state, shared resources and portable plugin sources |
 | lib/server/node/authentication.ts, principal.ts | Verified OAuth/session identity, CSRF and request capability |
 | lib/ui/, lib/widget.ts | Pure model, typed controller, DOM/communication adapters and HTML composition |
 | lib/assistance.ts | Assistance-policy delivery; check initialize and snapshot assistance_policy |
 | web/ | Shared-UI shell, session recovery and HTTP relay |
 | lib/adapters/postgres/, db/schema.ts, db/postgres/migrations/ | PostgreSQL pool, transactions, identity and schema |
-| scripts/, build/ | Build, execution-profile and verification helpers; build contains source |
+| scripts/, build/ | Node, SPA/plugin build and verification helpers; build contains source |
 | skills/action-tools/SKILL.md | Assistance documentation, not proof of host installation |
 
 Source code, tests, scripts, configuration, MCP tool names, UI resource URIs and the Skill use generic identifiers such as action-tools and list_actions and never contain the product name. The product name Syntoria Weave appears only in documentation and host listings. Applied SQL migrations keep their recorded identifiers.
@@ -90,12 +91,13 @@ Use Node.js 24 LTS and package.json's pnpm version. Install with pnpm install --
 | pnpm test:ui | Pure models, mock ports, host communication and generated HTML DOM |
 | pnpm test:node:built | Built Node process, real PostgreSQL, HTTP, sessions, replay and UI resource |
 | pnpm typecheck / lint | TypeScript / ESLint |
-| pnpm build | Build; confirm the implemented runtime and artifact |
+| pnpm build | Build the Node service, static SPA, local MCP bundle and generic plugin |
+| pnpm build:plugin | Package built local MCP/UI/skill resources; explicit --config selects rendered operator settings |
 | pnpm db:generate | Generate migrations; inspect SQL |
 | pnpm db:migrate:local | Migrate explicit ADMIN_DATABASE_URL; build first |
 | pnpm start | Start the built service; confirm the actual runtime |
 
-Without .sites-runtime/execution-profile.json a checkout is portable. Use scripts/execution-profile.mjs and run-framework.mjs rather than bypassing wrappers.
+The checkout builds the Node service, static SPA and local MCP plugin directly. Use the package scripts and their declared configuration; there is no managed-host execution profile or alternate production database selection. Local MCP is an OAuth consumer of the Remote MCP service and has no database or resource-client credentials.
 
 Code changes require pnpm check and pnpm build. Store changes must verify competition, identical replay, missing responses, Undo and user isolation. UI changes must verify proposal retention and unknown-result recovery. Documentation-only changes require content/reference checks; do not claim app acceptance.
 

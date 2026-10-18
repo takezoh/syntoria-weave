@@ -88,9 +88,7 @@ test('query_actions reads the shared snapshot without writing and permits all ac
  assert.equal(result.schemaVersion,2);assert.deepEqual(result.actions,[]);assert.equal((await store.readSnapshot('A')).revision,1);
 });
 
-test('missing identity and unknown arguments do not access storage',async()=>{
- const {requireUser}=await import('../../lib/server/auth.ts');
- assert.throws(()=>requireUser(new Headers()),e=>e.code==='unauthenticated');
+test('unknown arguments do not access storage',async()=>{
  let reads=0;const p={store:{readSnapshot(){reads++;throw new Error('unexpected');}},clock,newId:()=>uuid(1)};
  await assert.rejects(actionCall(p,'A','list_actions',{user:'B'}),e=>e.code==='invalid_input');assert.equal(reads,0);
 });

@@ -2,7 +2,7 @@
 
 ## Service boundary
 
-HTTP API and Remote MCP expose the same independent Cloud Run application core. Browser API calls use Gate-verified shared sessions; Remote MCP and bearer API clients use independently verified OAuth credentials. Both resolve identity through an explicit local owner grant; business arguments and public identity headers cannot select users. Client-specific resources and instructions belong to the corresponding transport adapter. See [infrastructure](infrastructure.md).
+HTTP API and Remote MCP expose the same independent Cloud Run application core. Browser API calls use Gate-verified shared sessions; Remote MCP and bearer API clients use independently verified OAuth credentials. Both resolve identity through an explicit local user grant; business arguments and public identity headers cannot select users. Client-specific resources and instructions belong to the corresponding transport adapter. See [infrastructure](infrastructure.md).
 
 ## Caller composition and guidance
 
@@ -20,7 +20,7 @@ Business reads and writes obtain user from a verified OAuth subject or current G
 
 ## Tool and schema discovery
 
-Use the connected host's tool discovery, or a direct MCP client's `initialize` followed by `tools/list` against `POST /mcp`. The response contains `result.tools`, including each tool's name, description, `inputSchema`, annotations and any UI metadata. The definitions are served by [definitions](../../app/mcp/route.ts) from the running deployment; this checkout may describe a different source version.
+Use the connected host's tool discovery, or a direct MCP client's `initialize` followed by `tools/list` against `POST /mcp`. The response contains `result.tools`, including each tool's name, description, `inputSchema`, annotations and any UI metadata. The definitions are served by [definitions](../../lib/mcp/tool-definitions.ts) from the running deployment; this checkout may describe a different source version.
 
 For example, send this read-only JSON-RPC request through the configured MCP transport after initialization:
 
@@ -100,7 +100,7 @@ Project/tag names are local, trimmed and case-sensitive within a user and parent
 
 ## Responses and recovery
 
-Full snapshots contain schemaVersion, revision, change_cursor, actions, perspectives, projects, tags, action_tags, result, retrieved_at, storage, proof_stage, assistance_policy and list_scopes. Actions contain saved order and flagged plus view, is_deferred, defer_reasons, project_path and tags. Individual actions do not contain waiting or prerequisites. Results follow tree/sibling order. Scope keys are inbox, waiting, flagged, normal, deferred, completed and cancelled. Flagged scope includes direct flags in the normal view; query_actions can retrieve flags in any lifecycle/view.
+Full snapshots contain schemaVersion, revision, change_cursor, actions, perspectives, projects, tags, action_tags, result, retrieved_at, assistance_policy and list_scopes. Actions contain saved order and flagged plus view, is_deferred, defer_reasons, project_path and tags. Individual actions do not contain waiting or prerequisites. Results follow tree/sibling order. Scope keys are inbox, waiting, flagged, normal, deferred, completed and cancelled. Flagged scope includes direct flags in the normal view; query_actions can retrieve flags in any lifecycle/view.
 
 Write results identify operationId, its revision, changedIds and optional resolved.actions/project/tag/perspective. Replay returns the saved result alongside a freshly read snapshot; their revisions may differ. A read result is null. Query results contain query, projects, tags, actions and retrieved_at.
 

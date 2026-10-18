@@ -6,7 +6,7 @@ Projects, tags and perspectives accept optional `description` context. Creation 
 
 These tools provide structured task data and a shared UI. The API entity is action. The user and caller-side LLM choose GTD or another management method; user prompts, caller-side LLMs and schedulers determine when and how to use the tools. The assistance suggestions here do not prescribe a single workflow. The server enforces data integrity, ownership and operation safety.
 
-Use open_actions for the dedicated UI. Conversation and UI share one D1 state.
+Use open_actions for the dedicated UI. Conversation and UI share the authenticated user’s state through the same service operations.
 
 ## Incremental reads
 
