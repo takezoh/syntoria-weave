@@ -69,7 +69,7 @@ Actions store a nonnegative integer sibling rank named order. Roots are ordered 
 - C3: date-only Defer resolves 09:00 in the explicit request timezone to a saved UTC instant.
 - C4: explicit on-hold remains unfinished and in normal view unless deferred.
 
-Lifecycle is active/on-hold/completed/dropped. Read-time projection evaluates Defer without saving or reopening actions. Dropped records remain editable. Inbox projects all unfinished project-unassigned actions, including deferred ones. Order and Flag do not manufacture deadlines or commitments.
+Lifecycle is active/on-hold/completed/dropped. Read-time projection evaluates Defer without saving or reopening actions. Dropped records remain editable. Inbox projects all unfinished project-unassigned actions, including deferred ones. Order and Flag do not manufacture deadlines or commitments. Lifecycle records the person's decision about their work; a delegated process's run state is a separate record and does not drive it.
 
 ## Persistence and recovery
 
