@@ -1,0 +1,67 @@
+{
+  "observed_at": "2026-10-18T08:44:53.490163+00:00",
+  "deleted": {
+    "service": [
+      "action-store"
+    ],
+    "jobs": [
+      "action-store-migrator",
+      "action-store-backup"
+    ],
+    "secrets": [
+      "action-store-runtime-database",
+      "action-store-admin-database",
+      "action-store-backup-database",
+      "action-store-gate-client-secret",
+      "action-store-login-key",
+      "action-store-csrf-key"
+    ],
+    "service_accounts": [
+      "action-store-runtime",
+      "action-store-migrator",
+      "action-store-backup"
+    ],
+    "artifact_repository": "action-store",
+    "backup_bucket": "syntoria-action-store-backups"
+  },
+  "preservation": {
+    "image_digests": {
+      "matched": 15,
+      "digests": [
+        "sha256:00d40455d54f3fed90118811930abc3b566643e4a0d84b537fa71c9e7eae7a86",
+        "sha256:0368dbc3e227406e16f57328d66e145986271916d1acc9d365d319fdceedf71e",
+        "sha256:0499662f39689387c071ff1697220042813f3ef4ffc8934b1d84a1bcc8ab5e79",
+        "sha256:05dff851898da2abd9c6808405fc6e2b69e8129b18bf20b60492e132517d4eec",
+        "sha256:182cf982801aef8050368e9bcc2e65a1c0cc8fe4a0c462d8bef4984d8165bc69",
+        "sha256:2501d0f7a4be4af143ceaa70afd94f361024354de1f6f76e99d956d728232d17",
+        "sha256:309329897773f4fc1fe10ece1c416daed51ec7cf52071dcdc171aaba1277be0f",
+        "sha256:3db8290ff0367177f2bda5db8a065cb9dd7920cc47838a0830cb12f9eae252d8",
+        "sha256:4519c59fd61412111c0c07c900c80aef456341ad1f62011de312109dfdb05b85",
+        "sha256:4c0d7b8b9c10f21d02333e3a18a2936fe761c83e5ff547e4bd3b62b89852bcd6",
+        "sha256:516d2fc372f54af8ee653fbfe6cc3070b70825dc14ce919f6122c0e94344d7a9",
+        "sha256:63666dd2baae66b3c68c6eb9789e6052e6cdb54bfec2073e61dd215cca28884a",
+        "sha256:821d0d2060002b65a9fecfeb7a4c492a6560e1b3dbd3b149187acab26f28b82c",
+        "sha256:d9b4ca0e2b2ee20371e4b06fd22c842c25c44f39e9d442a56ded4d260b24414d",
+        "sha256:efae1d42fb09b8dc18c4679303e0a9adb3fad150bb01c05ee54ba9ee55db463f"
+      ]
+    },
+    "backup_objects": {
+      "matched": 12,
+      "md5": true,
+      "crc32c": true,
+      "size": true
+    },
+    "secret_values": {
+      "matched": 6
+    },
+    "destination_registry": "weave",
+    "destination_backup_bucket": "weave-backups-syntoria"
+  },
+  "remaining": {},
+  "unchanged": [
+    "Existing Sites data and access scope",
+    "Cloud Run invocation remains private",
+    "PostgreSQL business data"
+  ],
+  "neon_rename_evidence": "neon-resource-rename.json"
+}

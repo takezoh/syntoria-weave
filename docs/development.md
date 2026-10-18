@@ -56,7 +56,7 @@ pnpm test:postgres
 pnpm test:node:built
 ```
 
-Set the validated environment contract in [deployment](technical/deployment.md) before `pnpm start` or `pnpm dev`. Administrative commands require an explicit `ADMIN_DATABASE_URL`; `LOCAL_DATABASE=true` permits nonproduction loopback PostgreSQL without TLS. Browser sessions require an HTTPS canonical origin and a registered identity provider.
+`pnpm dev` builds and serves the independent static SPA on loopback; it does not proxy requests to the API. Without rendered runtime settings, the shell reports that configuration is unavailable. A functional browser session needs HTTPS API, Gate and SPA origins under one configured cookie parent, an exact registered Gate browser return URI, and a separately running API. Keep those settings in ignored local inputs. `pnpm start` runs the API and requires the validated environment contract in [deployment](technical/deployment.md). Administrative commands require an explicit `ADMIN_DATABASE_URL`; `LOCAL_DATABASE=true` permits nonproduction loopback PostgreSQL without TLS.
 
 Confirm actual runtime and command behavior in package.json and source before verification. build/ contains source and must not be deleted as generated output. Container artifacts, dependencies and local/auth settings must not enter source changes.
 

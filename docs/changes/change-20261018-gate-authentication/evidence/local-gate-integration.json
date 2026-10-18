@@ -1,0 +1,48 @@
+{
+  "recorded_at": "2026-10-18T08:32:08.630516+00:00",
+  "command": "FIRESTORE_EMULATOR_HOST=127.0.0.1:55435 node --import ./scripts/testing/register-loader.mjs scripts/testing/verify-gate-integration.mjs",
+  "result": "passed",
+  "source_sha256": {
+    "scripts/testing/verify-gate-integration.mjs": "694a37967813e3e7af260cafc4f9ecc6525e35a37e80b864240b31c4d90cfe08",
+    "lib/server/node/authentication.ts": "5aa2c0facedb92b18fde51818d0ac5b94ec22742e25cfaee7edd884b97bcd988",
+    "lib/server/node/gate-verifier.ts": "727f18e789ab5f86751b00539d97f18e96ec86753afac6510ca0557d74b726ec",
+    "lib/adapters/postgres/identity-store.ts": "660b608a5a84c164fd268d39ccb94b2b8513b46a9092c071200a12894c0190d6",
+    "db/postgres/migrations/0003_gate_sessions.sql": "e1bec729c57e5e5f5d80e04e6dca346cf63cffba87c9b41216994e9c0dac5208",
+    "../syntoria-gate/dist/service.js": "0ca4cc7b3a6e1971217ec10210ab0e9febae5cc0f9b8cca027c3eb33d6a68e01",
+    "../syntoria-gate/dist/storage.js": "d2e51c5eb49f573020d0e03c7510b5f43dd96f290a2ff6748849ab9950fab34e"
+  },
+  "environment": {
+    "identity_provider": "actual Gate oidc-provider with external GitHub exchange injected only at test port",
+    "transport": "real HTTPS with isolated trusted certificate",
+    "gate_storage": "Firestore Emulator project demo-gate-test database (default), unique collection namespace",
+    "state_storage": "real isolated PostgreSQL 17",
+    "runtime": "Node.js 24"
+  },
+  "assertions": [
+    "authorization code and S256 PKCE",
+    "real ID token validation",
+    "explicit per-connection approval",
+    "encrypted Web session credentials",
+    "three concurrent real refresh-backed requests",
+    "one SQL action and receipt after identical replay",
+    "revoked connection Web cookie returns 401",
+    "independent MCP connection remains authorized"
+  ],
+  "not_verified": [
+    "external GitHub login",
+    "hosted Cloud Run/Firestore/Neon",
+    "external MCP host UI"
+  ],
+  "result_output": {
+    "gate_firestore_weave_postgres": "passed",
+    "https": true,
+    "public_pkce_code": true,
+    "web_cookie": true,
+    "encrypted_refresh": true,
+    "serialized_refresh": true,
+    "replay": true,
+    "connection_revocation": true,
+    "independent_mcp_connection": true,
+    "external_github_login": false
+  }
+}

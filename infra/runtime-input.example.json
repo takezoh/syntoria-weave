@@ -1,0 +1,11 @@
+{
+  "apiOrigin": "https://api.example.com",
+  "gateOrigin": "https://gate.example.com",
+  "sharedCookieDomain": "example.com",
+  "spaOrigins": ["https://app.example.com"],
+  "appId": "weave-spa",
+  "loginRedirectUri": "https://app.example.com/auth-return.html",
+  "browserClientId": "weave-web",
+  "gateResourceClientId": "weave-api",
+  "gateAllowedClientIds": ["weave-web", "weave-mcp"]
+}

@@ -10,11 +10,11 @@ variable "region" {
 variable "name" {
 
   type    = string
-  default = "action-store"
+  default = "weave"
   validation {
 
     condition     = can(regex("^[a-z][a-z0-9-]{1,25}$", var.name))
-    error_message = "Use a short generic resource prefix."
+    error_message = "Use a short product resource prefix."
 
   }
 
@@ -52,7 +52,23 @@ variable "oauth_issuer" {
   type = string
 }
 
-variable "web_client_id" {
+variable "shared_cookie_domain" {
+  type = string
+  validation {
+    condition     = can(regex("^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$", var.shared_cookie_domain))
+    error_message = "Use a normalized multi-label DNS parent without a port, path, wildcard or trailing dot."
+  }
+}
+
+variable "spa_origins" {
+  type = list(string)
+  validation {
+    condition     = length(var.spa_origins) > 0 && length(distinct(var.spa_origins)) == length(var.spa_origins) && alltrue([for origin in var.spa_origins : can(regex("^https://[A-Za-z0-9.-]+$", origin))])
+    error_message = "Use a nonempty list of unique HTTPS SPA origins."
+  }
+}
+
+variable "gate_browser_client_id" {
   type = string
 }
 
@@ -103,4 +119,12 @@ variable "billing_account" {
 
 variable "monthly_budget_usd" {
   type = number
+}
+
+variable "gate_resource_client_id" {
+  type = string
+}
+
+variable "gate_allowed_client_ids" {
+  type = list(string)
 }

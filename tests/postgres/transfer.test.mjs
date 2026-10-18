@@ -8,7 +8,7 @@ import {issuePrincipal} from '../../lib/server/node/principal.ts';
 import {actionCall} from '../../lib/application/action-service.ts';
 test('real PostgreSQL transfer preserves data and rejects partial or conflicting imports',async t=>{
  const source=await postgresFixture(),target=await postgresFixture();t.after(async()=>{await source.close();await target.close();});
- const principal=issuePrincipal({user:'opaque-user',issuer:'test',subject:'person',clientId:'test',scopes:['state:read','state:write']});
+ const principal=issuePrincipal({user:'opaque-user',issuer:'test',subject:'person',connectionId:'test:opaque-user',clientId:'test',scopes:['state:read','state:write']});
  const invoke=(pool,name,args={})=>actionCall({store:createPostgresActionStore(pool,principal),clock:()=>new Date().toISOString(),newId:()=>crypto.randomUUID().toUpperCase(),changeCursorScope:async()=>cursorScope(principal.user,'epoch')},name,args);
  const request={schemaVersion:2,expectedRevision:0,operationId:crypto.randomUUID(),kind:'add',payload:{title:'Mixed case ID',notes:'日本語\0\ud800😀'}};
  const created=await invoke(source.pool,'apply_change',request);

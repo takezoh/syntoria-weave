@@ -1,94 +1,183 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {generateKeyPair,exportJWK,createLocalJWKSet,SignJWT} from 'jose';
+import net from 'node:net';
+import {gateFixture} from '../helpers/gate.mjs';
 import {postgresFixture} from '../helpers/postgres.mjs';
-import {createAuthentication,createTokenVerifier,hash,csrfToken,sessionCookie,cookieValue} from '../../lib/server/node/authentication.ts';
+import {createAuthentication,createGateVerification,sessionCookie,cookieValue} from '../../lib/server/node/authentication.ts';
 import {createIdentityStore} from '../../lib/adapters/postgres/identity-store.ts';
 import {createServer} from '../../lib/server/node/server.ts';
 import {createPostgresActionStore,cursorScope,userLockKey} from '../../lib/adapters/postgres/action-store.ts';
 import {actionCall} from '../../lib/application/action-service.ts';
-import {authorize,verifyPrincipal} from '../../lib/server/node/principal.ts';
+import {verifyPrincipal} from '../../lib/server/node/principal.ts';
 import {readConfig} from '../../lib/server/node/config.ts';
-test('Node HTTP/MCP uses verified JWT/session identity and real PostgreSQL',async t=>{
- const f=await postgresFixture();t.after(()=>f.close());
- const config={origin:'https://service.test',issuer:'https://issuer.test/',resource:'https://service.test/mcp',webClientId:'web',webClientSecret:'not-a-real-secret',databaseUrl:f.url,cursorEpoch:crypto.randomUUID(),writeMode:'enabled',port:8080,localDatabase:true,loginKey:Buffer.alloc(32,1),csrfKey:Buffer.alloc(32,2)};
- const keys=await generateKeyPair('RS256'),jwk={...await exportJWK(keys.publicKey),kid:'test'};
- const verify=createTokenVerifier(config,createLocalJWKSet({keys:[jwk]}));
- const identityStore=createIdentityStore(f.pool),auth=createAuthentication(config,identityStore,verify);
- const token=async({subject='person',scope='state:read state:write',audience=config.resource,expiry='15m',client='test-client'}={})=>new SignJWT({scope,azp:client}).setProtectedHeader({alg:'RS256',kid:'test'}).setIssuer(config.issuer).setSubject(subject).setAudience(audience).setIssuedAt().setExpirationTime(expiry).sign(keys.privateKey);
- await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'person','user']);
- for(const client of ['test-client','web'])await f.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)',[config.issuer,'person',client,['state:read','state:write']]);
- const logs=[];const server=createServer({config,authentication:auth,webHtml:'<html>Actions</html>',log:value=>logs.push(value),invoke:(principal,name,args,signal)=>actionCall({store:createPostgresActionStore(f.pool,principal,{revalidate:client=>auth.revalidate(principal,client),signal}),clock:()=>new Date().toISOString(),newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope(principal.user,config.cursorEpoch)},name,args)});
- t.after(()=>server.close());
- const headers={host:'service.test','content-type':'application/json'};
- const bearer=await token();
- const rpc=(method,params={},extra={})=>server.inject({method:'POST',url:'/mcp',headers:{...headers,authorization:'Bearer '+bearer,...extra},payload:{jsonrpc:'2.0',id:1,method,params}});
- await t.test('public metadata, bad hosts, missing/forged/wrong-audience/expired tokens',async()=>{
-  const meta=await server.inject({url:'/.well-known/oauth-protected-resource/mcp',headers});assert.equal(meta.statusCode,200);assert.equal(meta.json().resource,config.resource);
-  assert.equal((await server.inject({url:'/',headers:{host:'attacker.test'}})).statusCode,403);
-  const missing=await server.inject({method:'POST',url:'/mcp',headers,payload:{}});assert.equal(missing.statusCode,401);assert.match(missing.headers['www-authenticate'],/resource_metadata/);
-  for(const bad of ['fake',await token({audience:'https://other.test'}),await token({expiry:Math.floor(Date.now()/1000)-120})])assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+bad})).statusCode,401);
+
+function rawHttp(port,request){
+ return new Promise((resolve,reject)=>{
+  const socket=net.connect(port,'127.0.0.1');let response='';
+  socket.setTimeout(3000,()=>socket.destroy(new Error('Raw HTTP timeout.')));
+  socket.on('connect',()=>socket.write(request));
+  socket.on('data',chunk=>{response+=chunk.toString('latin1');});
+  socket.on('error',reject);
+  socket.on('end',()=>resolve(Number(response.match(/^HTTP\/1\.[01] (\d{3})/m)?.[1])));
  });
- await t.test('authenticated discovery and write/read/replay run through the shared adapter',async()=>{
+}
+
+test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth for MCP',async t=>{
+ const f=await postgresFixture();t.after(()=>f.close());
+ const gate=await gateFixture();t.after(()=>gate.close());
+ const config={origin:'https://api.example.com',issuer:gate.issuer,resource:'https://api.example.com/mcp',browserClientId:'web',spaOrigins:['https://app.example.com','https://other-app.example.com'],sharedCookieDomain:'example.com',gateClientId:'resource',gateClientSecret:'synthetic-secret',allowedClientIds:['web','mcp','unregistered'],databaseUrl:f.url,cursorEpoch:crypto.randomUUID(),writeMode:'enabled',port:8080,localDatabase:true};
+ const verification=createGateVerification(config,{fetch:gate.fetch});
+ const identityStore=createIdentityStore(f.pool),auth=createAuthentication(config,identityStore,verification);
+ const bearer=gate.token({client:'mcp'}),browser=gate.session({client:'web'}),cookie=sessionCookie+'='+browser;
+ await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'person','user']);
+ for(const client of ['mcp','web'])await f.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)',[config.issuer,'person',client,['state:read','state:write']]);
+ await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'other-person','other-user']);
+ await f.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)',[config.issuer,'other-person','web',['state:read','state:write']]);
+ const logs=[];const server=createServer({config,authentication:auth,log:value=>logs.push(value),invoke:(principal,name,args,signal)=>actionCall({store:createPostgresActionStore(f.pool,principal,{revalidate:client=>auth.revalidate(principal,client),signal}),clock:()=>new Date().toISOString(),newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope(principal.user,config.cursorEpoch)},name,args)});
+ t.after(()=>server.close());
+ const address=await server.listen({host:'127.0.0.1',port:0});const port=Number(new URL(address).port);
+ const base={host:'api.example.com','content-type':'application/json'};
+ const rpc=(method,params={},extra={})=>server.inject({method:'POST',url:'/mcp',headers:{...base,authorization:'Bearer '+bearer,...extra},payload:{jsonrpc:'2.0',id:1,method,params}});
+ const readSession=(session=browser,extra={})=>server.inject({url:'/api/session',headers:{host:'api.example.com',cookie:sessionCookie+'='+session,...extra}});
+ const browserWrite=(session,csrf,origin='https://app.example.com',args={name:'list_actions'})=>{
+  const headers={...base,cookie:sessionCookie+'='+session,'x-csrf-token':csrf};if(origin)headers.origin=origin;
+  return server.inject({method:'POST',url:'/api/actions',headers,payload:args});
+ };
+
+ await t.test('API host and route split retain protocol-owned MCP UI resources',async()=>{
+  const meta=await server.inject({url:'/.well-known/oauth-protected-resource/mcp',headers:base});assert.equal(meta.statusCode,200);assert.equal(meta.json().resource,config.resource);
+  assert.equal((await server.inject({url:'/health/live'})).statusCode,200);
+  assert.equal((await server.inject({url:'/',headers:base})).statusCode,404);
+  assert.equal((await server.inject({url:'/assets/app.js',headers:base})).statusCode,404);
+  assert.equal((await server.inject({url:'/auth/login',headers:base})).statusCode,404);
+  assert.equal((await server.inject({url:'/ui/widget',headers:base})).statusCode,404);
+  assert.equal((await server.inject({url:'/',headers:{host:'attacker.example.com'}})).statusCode,403);
+  assert.equal((await rpc('resources/list')).json().result.resources.some(resource=>resource.uri==='ui://action-tools/actions-v4.html'),true);
+  assert.equal((await rpc('resources/read',{uri:'ui://action-tools/actions-v4.html'})).json().result.contents[0].mimeType,'text/html;profile=mcp-app');
+ });
+
+ await t.test('exact credentialed CORS and bounded preflight reject other origins, methods, headers and routes',async()=>{
+  const preflight=await server.inject({method:'OPTIONS',url:'/api/actions',headers:{host:'api.example.com',origin:'https://app.example.com','access-control-request-method':'POST','access-control-request-headers':'content-type, x-csrf-token'}});
+  assert.equal(preflight.statusCode,204);assert.equal(preflight.headers['access-control-allow-origin'],'https://app.example.com');assert.equal(preflight.headers['access-control-allow-credentials'],'true');
+  assert.match(preflight.headers.vary,/Origin/);assert.match(preflight.headers.vary,/Access-Control-Request-Method/);assert.equal(preflight.headers['access-control-allow-headers'],'content-type, x-csrf-token');
+  const denied=await server.inject({method:'OPTIONS',url:'/api/actions',headers:{host:'api.example.com',origin:'https://attacker.example.com','access-control-request-method':'POST'}});assert.equal(denied.statusCode,403);assert.equal(denied.headers['access-control-allow-origin'],undefined);
+  assert.equal((await server.inject({method:'OPTIONS',url:'/api/actions',headers:{host:'api.example.com',origin:'https://app.example.com','access-control-request-method':'GET'}})).statusCode,403);
+  assert.equal((await server.inject({method:'OPTIONS',url:'/api/actions',headers:{host:'api.example.com',origin:'https://app.example.com','access-control-request-method':'POST','access-control-request-headers':'authorization'}})).statusCode,403);
+  assert.equal((await server.inject({method:'OPTIONS',url:'/api/unknown',headers:{host:'api.example.com',origin:'https://app.example.com','access-control-request-method':'GET'}})).statusCode,404);
+  assert.equal((await rpc('tools/list',{}, {origin:'https://attacker.example.com'})).statusCode,403);
+ });
+
+ await t.test('real HTTP ingress rejects duplicate security headers before Fastify normalization',async()=>{
+  const body=JSON.stringify({name:'list_actions'}),length=Buffer.byteLength(body),cookieLine='Cookie: '+sessionCookie+'='+browser+'\r\n';
+  const authorization=await rawHttp(port,'GET /api/session HTTP/1.1\r\nHost: api.example.com\r\n'+cookieLine+'Authorization: Bearer '+bearer+'\r\nAuthorization: Bearer '+bearer+'\r\nConnection: close\r\n\r\n');
+  assert.equal(authorization,401);
+  const origins=await rawHttp(port,'OPTIONS /api/actions HTTP/1.1\r\nHost: api.example.com\r\nOrigin: https://app.example.com\r\nOrigin: https://attacker.example.com\r\nAccess-Control-Request-Method: POST\r\nConnection: close\r\n\r\n');
+  assert.equal(origins,403);
+  const csrf=await rawHttp(port,'POST /api/actions HTTP/1.1\r\nHost: api.example.com\r\n'+cookieLine+'Origin: https://app.example.com\r\nContent-Type: application/json\r\nX-CSRF-Token: synthetic-csrf\r\nX-CSRF-Token: synthetic-csrf\r\nContent-Length: '+length+'\r\nConnection: close\r\n\r\n'+body);
+  assert.equal(csrf,403);
+  const contentType=await rawHttp(port,'POST /api/actions HTTP/1.1\r\nHost: api.example.com\r\n'+cookieLine+'Origin: https://app.example.com\r\nContent-Type: application/json\r\nContent-Type: text/plain\r\nX-CSRF-Token: synthetic-csrf\r\nContent-Length: '+length+'\r\nConnection: close\r\n\r\n'+body);
+  assert.equal(contentType,400);
+ });
+
+ await t.test('browser session is cookie-only, resource-bound, expiry checked and never persisted in Weave',async()=>{
+  const before=gate.sessionRequests;
+  const info=await readSession();assert.equal(info.statusCode,200,info.body);assert.equal(info.json().csrf_token,'synthetic-csrf');assert.match(info.json().account_scope,/^[0-9a-f]{64}$/);assert.equal(gate.sessionRequests,before+1);
+  assert.equal((await server.inject({url:'/api/session',headers:{...base,authorization:'Bearer '+bearer}})).statusCode,401);
+  assert.equal((await readSession(browser,{origin:'https://attacker.example.com'})).statusCode,403);
+  const malformed=Buffer.from('bad').toString('base64url');const calls=gate.sessionRequests;
+  assert.equal((await readSession(malformed)).statusCode,401);assert.equal(gate.sessionRequests,calls);
+  assert.equal((await readSession(browser,{authorization:'Bearer '+bearer})).statusCode,401);
+  assert.equal((await readSession(browser,{cookie:cookie+'; '+sessionCookie+'=other'})).statusCode,401);
+  assert.equal((await readSession(browser,{authorization:['Bearer '+bearer,'Bearer '+bearer]})).statusCode,401);
+  const wrongAudience=gate.session({audience:'https://other.example.com/mcp'});assert.equal((await readSession(wrongAudience)).statusCode,503);
+  const expired=gate.session({expiry:Math.floor(Date.now()/1000)-1});assert.equal((await readSession(expired)).statusCode,401);
+  gate.revokeSession(browser);assert.equal((await readSession()).statusCode,401);
+  assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM identity.sessions')).rows[0].count,0);
+ });
+
+ await t.test('browser writes require registered Origin and Gate CSRF; replay is exact and account scoped',async()=>{
+  const first=gate.session({subject:'person',client:'web'}),second=gate.session({subject:'other-person',client:'web'}),secondInfo=await readSession(second);assert.equal(secondInfo.statusCode,200);
+  const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'Browser direct API write'}};
+  const payload={name:'apply_change',arguments:args};
+  assert.equal((await browserWrite(second,'synthetic-csrf',null,payload)).statusCode,403);
+  assert.equal((await browserWrite(second,'wrong','https://app.example.com',payload)).statusCode,403);
+  assert.equal((await browserWrite(second,'synthetic-csrf','https://attacker.example.com',payload)).statusCode,403);
+  const saved=await browserWrite(second,'synthetic-csrf','https://app.example.com',payload);assert.equal(saved.statusCode,200,saved.body);assert.equal(saved.json().revision,1);
+  const replay=await browserWrite(second,'synthetic-csrf','https://app.example.com',payload);assert.equal(replay.statusCode,200,replay.body);assert.equal(replay.json().revision,1);
+  const accountOne=await readSession(first),accountTwo=await readSession(second);assert.notEqual(accountOne.json().account_scope,accountTwo.json().account_scope);
+  assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM state.actions WHERE user_id=$1',['user'])).rows[0].count,0);
+  assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM state.actions WHERE user_id=$1',['other-user'])).rows[0].count,1);
+ });
+
+ await t.test('MCP retains bearer authorization-code resource semantics and rejects cookies',async()=>{
+  assert.equal((await server.inject({method:'POST',url:'/mcp',headers:{...base,authorization:'Bearer '+bearer,cookie},payload:{jsonrpc:'2.0',id:1,method:'tools/list'}})).statusCode,401);
   assert.equal((await rpc('initialize',{protocolVersion:'2025-11-25'})).json().result.protocolVersion,'2025-11-25');
-  assert.equal((await rpc('tools/list')).json().result.tools.some(x=>x.name==='apply_change'),true);
-  const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'Only this user'}};
-  const saved=(await rpc('tools/call',{name:'apply_change',arguments:args})).json().result.structuredContent;assert.equal(saved.revision,1);
-  assert.equal((await rpc('tools/call',{name:'apply_change',arguments:args})).json().result.structuredContent.revision,1);
-  const read=await server.inject({method:'POST',url:'/api/actions',headers:{...headers,authorization:'Bearer '+bearer},payload:{name:'list_actions'}});assert.equal(read.json().actions[0].title,'Only this user');
+  assert.equal((await rpc('tools/list')).json().result.tools.some(value=>value.name==='apply_change'),true);
+  const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'MCP remains independent'}};
+  const call=()=>rpc('tools/call',{name:'apply_change',arguments:args});
+  assert.equal((await call()).json().result.structuredContent.revision,1);assert.equal((await call()).json().result.structuredContent.revision,1);
+  assert.equal((await server.inject({method:'POST',url:'/api/actions',headers:{...base,authorization:'Bearer '+bearer},payload:{name:'list_actions'}})).json().actions[0].title,'MCP remains independent');
   assert.equal((await rpc('notifications/initialized')).statusCode,202);
   assert.equal((await rpc('ping',{}, {'mcp-protocol-version':'future'})).statusCode,400);
+  assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+await gate.token({client:'unregistered'})})).statusCode,403);
  });
- await t.test('read scope cannot mutate, scope revocation and client binding are enforced',async()=>{
-  const readOnly=await token({scope:'state:read'});
-  assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+readOnly})).json().result.tools.some(x=>x.name==='apply_change'),false);
-  assert.equal((await rpc('tools/call',{name:'apply_change',arguments:{}},{authorization:'Bearer '+readOnly})).statusCode,403);
-  assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+await token({client:'unregistered'})})).statusCode,403);
-  await f.admin.query('UPDATE identity.client_grants SET enabled=false WHERE client_id=$1',['test-client']);
-  assert.equal((await rpc('tools/list')).statusCode,403);
-  await f.admin.query('UPDATE identity.client_grants SET enabled=true WHERE client_id=$1',['test-client']);
- });
- await t.test('grant revocation while waiting for user lock prevents the commit',async()=>{
-  const locked=await f.admin.connect();await locked.query('BEGIN');await locked.query('SELECT pg_advisory_xact_lock($1::bigint)',[userLockKey('user')]);
+
+ await t.test('Gate and local grants are rechecked online inside locked writes',async()=>{
+  await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'lock-person','lock-user']);
+  await f.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)',[config.issuer,'lock-person','web',['state:read','state:write']]);
+  const owner=gate.session({subject:'lock-person'});
+  const locked=await f.admin.connect();await locked.query('BEGIN');await locked.query('SELECT pg_advisory_xact_lock($1::bigint)',[userLockKey('lock-user')]);
   let pending;
   try{
-   pending=rpc('tools/call',{name:'apply_change',arguments:{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:1,kind:'add',payload:{title:'Revoked while waiting'}}});
-   // Fastify inject is lazy; start the request before observing the actual database lock wait.
-   pending=Promise.resolve(pending);
-   let waiting=false;for(let attempt=0;attempt<100;attempt++){waiting=!!(await f.admin.query("SELECT 1 FROM pg_stat_activity WHERE wait_event='advisory' AND pid<>pg_backend_pid()")).rowCount;if(waiting)break;await new Promise(resolve=>setTimeout(resolve,5));}assert(waiting,'write must wait for the user lock');
-   await f.admin.query('UPDATE identity.client_grants SET enabled=false WHERE client_id=$1',['test-client']);
-   await locked.query('COMMIT');const result=(await pending).json().result;assert.equal(result.structuredContent.error.code,'forbidden');
-   assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM state.operations')).rows[0].count,1);
-  }finally{await locked.query('ROLLBACK');locked.release();await pending;await f.admin.query('UPDATE identity.client_grants SET enabled=true WHERE client_id=$1',['test-client']);}
+   pending=browserWrite(owner,'synthetic-csrf','https://app.example.com',{name:'apply_change',arguments:{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'Revoked while waiting'}}});
+   let waiting=false;for(let attempt=0;attempt<100;attempt++){waiting=!!(await f.admin.query("SELECT 1 FROM pg_stat_activity WHERE wait_event='advisory' AND pid<>pg_backend_pid()")).rowCount;if(waiting)break;await new Promise(resolve=>setTimeout(resolve,5));}assert(waiting,'browser mutation must wait for its user lock');
+   gate.revokeSession(owner);await locked.query('COMMIT');
+   const result=(await pending).json();assert.equal(result.error,'unauthenticated');
+   assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM state.operations WHERE user_id=$1',['lock-user'])).rows[0].count,0);
+  }finally{await locked.query('ROLLBACK');locked.release();await pending;}
+
+  const grantLock=await f.admin.connect();await grantLock.query('BEGIN');await grantLock.query('SELECT pg_advisory_xact_lock($1::bigint)',[userLockKey('lock-user')]);
+  const grantSession=gate.session({subject:'lock-person'});let grantPending;
+  try{
+   grantPending=browserWrite(grantSession,'synthetic-csrf','https://app.example.com',{name:'apply_change',arguments:{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'Grant revoked while waiting'}}});
+   let waiting=false;for(let attempt=0;attempt<100;attempt++){waiting=!!(await f.admin.query("SELECT 1 FROM pg_stat_activity WHERE wait_event='advisory' AND pid<>pg_backend_pid()")).rowCount;if(waiting)break;await new Promise(resolve=>setTimeout(resolve,5));}assert(waiting);
+   await f.admin.query('UPDATE identity.client_grants SET enabled=false WHERE issuer=$1 AND subject=$2 AND client_id=$3',[config.issuer,'lock-person','web']);
+   await grantLock.query('COMMIT');assert.equal((await grantPending).json().error,'forbidden');
+  }finally{await grantLock.query('ROLLBACK');grantLock.release();await grantPending;await f.admin.query('UPDATE identity.client_grants SET enabled=true WHERE issuer=$1 AND subject=$2 AND client_id=$3',[config.issuer,'lock-person','web']);}
  });
- await t.test('Web session enforces CSRF, Origin, mixed-credential rejection and logout',async()=>{
-  const session=crypto.randomUUID(),cookie=sessionCookie+'='+session;await identityStore.saveSession(hash(session),{issuer:config.issuer,subject:'person',clientId:'web'});
-  const info=await server.inject({url:'/api/session',headers:{host:'service.test',cookie}});assert.equal(info.statusCode,200);assert.equal(info.json().csrf_token,csrfToken(config.csrfKey,session));
-  const payload={name:'list_actions'};
-  assert.equal((await server.inject({method:'POST',url:'/api/actions',headers:{...headers,cookie,origin:config.origin},payload})).statusCode,403);
-  const csrf={'x-csrf-token':info.json().csrf_token};
-  assert.equal((await server.inject({method:'POST',url:'/api/actions',headers:{...headers,...csrf,cookie,origin:'https://attacker.test'},payload})).statusCode,403);
-  assert.equal((await server.inject({method:'POST',url:'/api/actions',headers:{...headers,...csrf,cookie,origin:config.origin},payload})).statusCode,200);
-  assert.equal((await server.inject({method:'POST',url:'/api/actions',headers:{...headers,...csrf,cookie,authorization:'Bearer '+bearer},payload})).statusCode,401);
-  assert.equal((await server.inject({method:'POST',url:'/auth/logout',headers:{...headers,...csrf,cookie,origin:config.origin},payload:{}})).statusCode,200);
-  assert.equal((await server.inject({url:'/api/session',headers:{host:'service.test',cookie}})).statusCode,401);
+
+ await t.test('Gate outage fails closed and online verification is not cached',async()=>{
+  const active=gate.session(),before=gate.sessionRequests;
+  assert.equal((await readSession(active)).statusCode,200);assert.equal((await readSession(active)).statusCode,200);assert.equal(gate.sessionRequests,before+2);
+  const calls=gate.requests;assert.equal((await rpc('tools/list')).statusCode,200);assert.equal((await rpc('tools/list')).statusCode,200);assert.equal(gate.requests,calls+2);
+  gate.unavailable=true;
+  try{
+   assert.equal((await readSession(active)).statusCode,503);
+   assert.equal((await browserWrite(active,'synthetic-csrf')).statusCode,503);
+   assert.equal((await rpc('tools/list')).statusCode,503);
+  }finally{gate.unavailable=false;}
+  gate.revokeSession(active);assert.equal((await readSession(active)).statusCode,401);
  });
- await t.test('one-time login state is bound to browser; expired state never reaches provider',async()=>{
-  await identityStore.saveLogin({state_hash:hash('state'),binding_hash:hash('browser'),verifier:'encrypted',nonce:'nonce',return_to:'/',channel:'channel'});
-  assert.equal(await identityStore.consumeLogin(hash('state'),hash('wrong')),null);
-  assert.ok(await identityStore.consumeLogin(hash('state'),hash('browser')));
-  assert.equal(await identityStore.consumeLogin(hash('state'),hash('browser')),null);
-  await assert.rejects(auth.finishLogin(new URL(config.origin+'/auth/callback?state=missing'),'__Host-action_login=browser'),e=>e.code==='unauthenticated');
- });
- await t.test('no content, credentials or personal identifiers enter transport logs',()=>{
-  const text=JSON.stringify(logs);for(const secret of [bearer,'Only this user','test-client','person'])assert(!text.includes(secret));
-  assert.throws(()=>verifyPrincipal({user:'user'}),e=>e.code==='unauthenticated');
-  assert.throws(()=>cookieValue('__Host-action_session=a; __Host-action_session=b',sessionCookie),e=>e.code==='unauthenticated');
+
+ await t.test('logs and cookie parsing do not expose credentials or caller data',async()=>{
+  const text=JSON.stringify(logs);for(const secret of [bearer,browser,'synthetic-csrf','Browser direct API write','person'])assert(!text.includes(secret));
+  assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM identity.sessions')).rows[0].count,0);
+  assert.throws(()=>verifyPrincipal({user:'user'}),error=>error.code==='unauthenticated');
+  assert.throws(()=>cookieValue(sessionCookie+'=a; '+sessionCookie+'=b',sessionCookie),error=>error.code==='unauthenticated');
  });
 });
-test('configuration fails closed on TLS, resource mismatch, keys and unsafe local exceptions',()=>{
+
+test('configuration binds API, Gate issuer and SPA origins to an explicit shared cookie parent',()=>{
  assert.throws(()=>readConfig({}),/Missing configuration/);
- const env={PUBLIC_ORIGIN:'https://service.test',OAUTH_ISSUER:'https://issuer.test/',OAUTH_RESOURCE:'https://service.test/mcp',WEB_CLIENT_ID:'web',WEB_CLIENT_SECRET:'secret',DATABASE_URL:'postgresql://user:secret@db.test/db',CURSOR_EPOCH:crypto.randomUUID(),LOGIN_ENCRYPTION_KEY:Buffer.alloc(32).toString('base64url'),CSRF_KEY:Buffer.alloc(32).toString('base64url')};
- assert.equal(readConfig(env).writeMode,'blocked');assert.throws(()=>readConfig({...env,PUBLIC_ORIGIN:'http://service.test'}));assert.throws(()=>readConfig({...env,OAUTH_RESOURCE:'https://other.test/mcp'}));assert.throws(()=>readConfig({...env,LOCAL_DATABASE:'true',NODE_ENV:'production'}));
- assert.throws(()=>authorize({user:'forged'},'list_actions','enabled'),e=>e.code==='unauthenticated');
+ const env={PUBLIC_ORIGIN:'https://api.example.com',OAUTH_ISSUER:'https://gate.example.com',OAUTH_RESOURCE:'https://api.example.com/mcp',GATE_BROWSER_CLIENT_ID:'web',SPA_ORIGINS:'["https://app.example.com"]',SHARED_COOKIE_DOMAIN:'example.com',GATE_RESOURCE_CLIENT_ID:'resource',GATE_RESOURCE_CLIENT_SECRET:'secret',GATE_ALLOWED_CLIENT_IDS:'web,mcp',DATABASE_URL:'postgresql://user:secret@db.example.com/db',CURSOR_EPOCH:crypto.randomUUID()};
+ assert.equal(readConfig(env).writeMode,'blocked');
+ assert.throws(()=>readConfig({...env,PUBLIC_ORIGIN:'http://api.example.com'}));
+ assert.throws(()=>readConfig({...env,PUBLIC_ORIGIN:'https://api.example.com/path'}));
+ assert.throws(()=>readConfig({...env,OAUTH_ISSUER:'https://gate.other.test'}));
+ assert.throws(()=>readConfig({...env,OAUTH_RESOURCE:'https://other.example.com/mcp'}));
+ assert.throws(()=>readConfig({...env,SHARED_COOKIE_DOMAIN:'example.com/'}));
+ assert.throws(()=>readConfig({...env,SPA_ORIGINS:'["https://app.example.com","https://app.example.com"]'}));
+ assert.throws(()=>readConfig({...env,SPA_ORIGINS:'["http://app.example.com"]'}));
+ assert.throws(()=>readConfig({...env,GATE_BROWSER_CLIENT_ID:'not-allowed'}));
+ assert.throws(()=>readConfig({...env,LOCAL_DATABASE:'true',NODE_ENV:'production'}));
 });

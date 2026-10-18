@@ -41,12 +41,12 @@ summary: Node HTTP composition, verified identities, PostgreSQL transactions and
 
 ## Responsibilities
 
-The Node HTTP composition owns protocol/authentication and request-scoped capabilities. The application owns deterministic operation orchestration through store/clock/ID ports. The PostgreSQL adapter owns SQL, isolation, transaction locks and failure classification. Auth0 owns authorization-code/token issuance; identity/session adapters resolve subjects and grants. Infrastructure owns execution, secrets, deployment and restoration. The UI uses the same shared application through HTTP or MCP.
+The Node HTTP composition owns protocol/authentication and request-scoped capabilities. The application owns deterministic operation orchestration through store/clock/ID ports. The PostgreSQL adapter owns SQL, isolation, transaction locks and failure classification. Gate owns authorization-code/token issuance, connection approval and revocation; identity/session adapters resolve explicitly provisioned subjects and client admission. Infrastructure owns execution, secrets, deployment and restoration. The UI uses the same shared application through HTTP or MCP.
 
 ## Invariants
 
 - FR-INV-001: Every committed operation atomically changes user state, revision, receipt, delta, identity markers and retained history, or changes none of them.
-- FR-INV-002: User and scopes derive only from verified identity/grants. No business argument or public header can choose them.
+- FR-INV-002: User and full-access capabilities derive only from online-verified Gate connections and explicit identity/client mappings. No business argument or public header can choose them.
 - FR-INV-003: Different canonical input under a retained operation ID fails before graph validation/ID generation; identical replay returns the saved result and current state without reapplying it.
 - FR-INV-004: Read snapshots and change windows have one database snapshot and committed user revision. A read creates no business/identity records.
 - FR-INV-005: Unknown commit outcomes retain exact request identity. Rollback, timeout or reconnect cannot erase drafts or invent a replacement operation.
@@ -54,13 +54,13 @@ The Node HTTP composition owns protocol/authentication and request-scoped capabi
 
 ## Interfaces
 
-UserActionStore remains the application-facing port. A verified principal binds user, effective read/write scopes, issuer, subject and client; it is issued only by authentication/identity composition. PostgreSQL clients are adapter effects, never domain inputs. UI transport adapters do not store provider tokens or access PostgreSQL.
+UserActionStore remains the application-facing port. A verified principal binds user, full-access internal capabilities, issuer, subject and client; it is issued only by authentication/identity composition. PostgreSQL clients are adapter effects, never domain inputs. UI transport adapters do not store provider tokens or access PostgreSQL.
 
 ## Decisions and variability
 
-Use Node 24, Fastify 5, pg, Drizzle PostgreSQL and Vite; Auth0 is the authorization server. Use repeatable-read read-only transactions for snapshots and read-committed write transactions with transaction-scoped user advisory locks. Direct primary TLS connections and bounded pools avoid session-pool semantics. Terraform/IaC owns Cloud Run and related operations. Current numerical operating values, route/schema details and recovery procedures are normative in [infrastructure](../technical/infrastructure.md), [data model](../technical/data-model.md) and [deployment](../technical/deployment.md).
+Use Node 24, Fastify 5, pg, Drizzle PostgreSQL and Vite; Gate is the authorization server and shared browser-session owner. Each API validates the parent-domain browser cookie online for its own resource, then resolves the verified subject and browser client through explicit PostgreSQL grants. The static SPA calls Gate and the API directly with credentials and CSRF protection; Weave does not keep browser tokens, refresh credentials or sessions. MCP clients continue to use authorization-code PKCE and opaque bearer-token introspection. Device approval grants full access without OAuth feature scopes. Use repeatable-read read-only transactions for snapshots and read-committed write transactions with transaction-scoped user advisory locks. Direct primary TLS connections and bounded pools avoid session-pool semantics. Terraform/IaC owns Cloud Run and related operations. Current numerical operating values, route/schema details and recovery procedures are normative in [infrastructure](../technical/infrastructure.md), [data model](../technical/data-model.md) and [deployment](../technical/deployment.md).
 
-Resource identifiers, permitted OAuth clients, subject-to-user mappings and notification recipients are environment configuration. Changing provider, storage isolation, scope meaning, canonical resource URI or API revision/replay semantics requires an explicit design revision and corresponding acceptance. Resource tuning requires measurement and connection-budget validation.
+Resource identifiers, permitted OAuth clients, subject-to-user mappings and notification recipients are environment configuration. Changing provider, storage isolation, connection-approval semantics, canonical resource URI or API revision/replay semantics requires an explicit design revision and corresponding acceptance. Resource tuning requires measurement and connection-budget validation.
 
 ## Failure ownership
 

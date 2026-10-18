@@ -1,0 +1,146 @@
+{
+  "renamed": true,
+  "database": "weave",
+  "roles": [
+    "weave_migrator",
+    "weave_runtime",
+    "weave_backup"
+  ],
+  "database_oid_preserved": true,
+  "role_oids_preserved": true,
+  "before": {
+    "identity.client_grants": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "identity.login_attempts": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "identity.sessions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "identity.subjects": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "public.schema_migrations": {
+      "count": 3,
+      "digest": "82de8b77355ca44c6d123b361c8ae5c6"
+    },
+    "state.action_tags": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.actions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.catalog_identity_ledger": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.operations": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.perspectives": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.projects": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.tags": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  },
+  "after": {
+    "identity.client_grants": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "identity.login_attempts": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "identity.sessions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "identity.subjects": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "public.schema_migrations": {
+      "count": 3,
+      "digest": "82de8b77355ca44c6d123b361c8ae5c6"
+    },
+    "state.action_tags": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.actions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.catalog_identity_ledger": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.operations": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.perspectives": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.projects": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "state.tags": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  },
+  "all_table_hashes_equal": true,
+  "all_logins_verified": true,
+  "observed_at": "2026-10-18T09:03:08.322636+00:00",
+  "secret_versions": {
+    "weave-admin-database": 2,
+    "weave-runtime-database": 2,
+    "weave-backup-database": 2
+  },
+  "administrator_connection_source": "Secret Manager: lore-neon-migration-url (same Neon host, existing project administrator)",
+  "cloud_run_ready": true,
+  "migration_execution": "weave-migrator-smvgk",
+  "backup_execution": "weave-backup-44vll",
+  "cloud_run_status": {
+    "status": {
+      "conditions": [
+        {
+          "lastTransitionTime": "2026-10-18T09:01:53.721690Z",
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastTransitionTime": "2026-10-18T09:01:43.390096Z",
+          "status": "True",
+          "type": "ConfigurationsReady"
+        },
+        {
+          "lastTransitionTime": "2026-10-18T09:01:53.668187Z",
+          "status": "True",
+          "type": "RoutesReady"
+        }
+      ],
+      "latestReadyRevisionName": "weave-api-00002-zmg",
+      "url": "https://weave-api-v3sxddnzoq-as.a.run.app"
+    }
+  }
+}

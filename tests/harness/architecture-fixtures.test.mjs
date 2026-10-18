@@ -28,6 +28,13 @@ test('actual repository config rejects direct D1 imports in both HTTP entries',a
   }
  }
 });
+test('Gate verification has one trusted authentication edge and regex exec is not SQL',async()=>{
+ const code="import {createGateVerifier} from './gate-verifier';void createGateVerifier;";
+ assert(!reports(await actualLint(code,'lib/server/node/authentication.ts'),'capability-direction'));
+ assert(reports(await actualLint(code,'lib/server/node/server.ts'),'capability-direction'));
+ assert(!reports(lint("const token=/^Bearer (.+)$/.exec(header);void token;",'lib/server/node/gate-verifier.ts'),'raw-sql-location'));
+ assert(reports(lint("connection.exec('DELETE FROM state.actions');",'lib/server/node/gate-verifier.ts'),'raw-sql-location'));
+});
 test('user-scope hashing stays behind its exact trusted composition edges',async()=>{
  for(const path of ['lib/server/actions.ts','lib/server/change-cursor-scope.ts'])assert(!reports(await actualLint(readFileSync(path,'utf8'),path),'capability-direction'));
  assert(reports(await actualLint("import {changeCursorScope} from './change-cursor-scope';void changeCursorScope;",'lib/server/mcp.ts'),'capability-direction'));

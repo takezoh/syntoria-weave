@@ -1,0 +1,58 @@
+{
+  "apiVersion": "run.googleapis.com/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "weave-backup",
+    "namespace": "533289977919"
+  },
+  "spec": {
+    "template": {
+      "spec": {
+        "taskCount": 1,
+        "template": {
+          "spec": {
+            "serviceAccountName": "weave-backup@syntoria.iam.gserviceaccount.com",
+            "maxRetries": 1,
+            "timeoutSeconds": "900",
+            "containers": [
+              {
+                "image": "asia-southeast1-docker.pkg.dev/syntoria/weave/service@sha256:821d0d2060002b65a9fecfeb7a4c492a6560e1b3dbd3b149187acab26f28b82c",
+                "command": [
+                  "node"
+                ],
+                "args": [
+                  "dist/server/backup.mjs"
+                ],
+                "env": [
+                  {
+                    "name": "BACKUP_DATABASE_URL",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "weave-backup-database",
+                        "key": "2"
+                      }
+                    }
+                  },
+                  {
+                    "name": "NODE_ENV",
+                    "value": "production"
+                  },
+                  {
+                    "name": "BACKUP_BUCKET",
+                    "value": "weave-backups-syntoria"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

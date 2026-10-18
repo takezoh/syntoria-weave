@@ -1,0 +1,177 @@
+{
+  "observed_at": "2026-10-18T10:00:47.724813+00:00",
+  "status": "weave_writes_enabled_web_acceptance_pending",
+  "project": "syntoria",
+  "region": "asia-southeast1",
+  "resource_prefixes": [
+    "weave",
+    "gate"
+  ],
+  "weave": {
+    "service": "weave-api",
+    "origin": "https://weave-api-533289977919.asia-southeast1.run.app",
+    "status": {
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-10-18T09:59:15.090446Z",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-10-18T09:59:13.680878Z",
+            "status": "True",
+            "type": "ConfigurationsReady"
+          },
+          {
+            "lastTransitionTime": "2026-10-18T09:59:15.027830Z",
+            "status": "True",
+            "type": "RoutesReady"
+          }
+        ],
+        "latestReadyRevisionName": "weave-api-00003-vcb"
+      }
+    },
+    "image": "asia-southeast1-docker.pkg.dev/syntoria/weave/service@sha256:821d0d2060002b65a9fecfeb7a4c492a6560e1b3dbd3b149187acab26f28b82c",
+    "write_mode": "enabled",
+    "public_invocation": true,
+    "health_live": 200,
+    "health_ready": 200,
+    "resource_metadata": 200,
+    "jobs": {
+      "migration": "weave-migrator-smvgk",
+      "backup": "weave-backup-44vll",
+      "post_import_backup": "weave-backup-hfzpp"
+    },
+    "backup_bucket": "weave-backups-syntoria",
+    "unauthenticated_mcp_post": 401,
+    "public_health_ready": 200,
+    "public_resource_metadata": 200,
+    "nightly_backup": {
+      "name": "weave-nightly-backup",
+      "schedule": "0 18 * * *",
+      "timezone": "Etc/UTC",
+      "service_account": "weave-scheduler@syntoria.iam.gserviceaccount.com",
+      "enabled": true,
+      "scheduler_manual_dispatch_success": true,
+      "verification_execution": "weave-backup-cc5wq",
+      "verification_result": "succeeded"
+    }
+  },
+  "gate": {
+    "intended_service": "gate-api",
+    "intended_origin": "https://gate-api-533289977919.asia-southeast1.run.app",
+    "image": "asia-southeast1-docker.pkg.dev/syntoria/gate/service@sha256:22d6cc83a74998280e7b9d7196dbc380f37e1a1959bd334a5bdfcec5bef5de5d",
+    "firestore_database": "gate",
+    "firestore_region": "asia-southeast1",
+    "ttl": "entries.expiresAt ACTIVE",
+    "hosted_storage_job": "gate-storage-verify-f5glp",
+    "hosted_storage_results": [
+      {
+        "synthetic_cleanup": true
+      },
+      {
+        "checks": [
+          "hosted_firestore",
+          "atomic_consume",
+          "consumed_marker",
+          "revocation_race",
+          "sibling_isolation",
+          "expiry",
+          "login_state_once"
+        ],
+        "status": "passed"
+      }
+    ],
+    "service_deployed": true,
+    "github_credentials_reference": "op://local-dev/Syntoria/GitHub App/secret",
+    "github_credentials_read_status": "User supplied client ID and secret file; persisted as Secret Manager versions 1",
+    "revision": "gate-api-00002-fwv",
+    "public_invocation": true,
+    "health": 404,
+    "readiness": 200,
+    "oidc_metadata": 200,
+    "health_endpoint_note": "External /healthz returns Google frontend404; Cloud Run internal liveness and public /readyz succeeded"
+  },
+  "verification": {
+    "weave_check_passed": 557,
+    "gate_check_passed": 44,
+    "actual_gate_firestore_emulator_weave_postgres_integration": true,
+    "actual_github_login": true,
+    "hosted_end_to_end_authorization": false,
+    "hosted_weave_gate_github_redirect": true,
+    "github_client_id_and_callback_match": true,
+    "github_callback_http_status": 303,
+    "github_callback_timestamp": "2026-10-18T09:28:54.080637Z",
+    "user_reported_gate_login": true,
+    "connections_page_http_status": 200,
+    "connections_page_timestamp": "2026-10-18T09:28:55.195951Z",
+    "hosted_neon_runtime_adapter": true,
+    "hosted_neon_replay_competition_undo_isolation": true,
+    "temporary_loopback_mcp_acceptance": "not completed; optional operator diagnostic, not required for Web cutover",
+    "gate_consent_csp_browser_fix": "deployed; local actual browser callback and PKCE exchange passed, user browser pending"
+  },
+  "pending": [
+    "Actual user browser Weave Web login and migrated Action display acceptance",
+    "Actual MCP client acceptance when that client is connected"
+  ],
+  "source_cutover_preparation": {
+    "source_site_id": "appgprj_6ac1fd128b548191896c449c36165807",
+    "source_checkout": "/tmp/gate-release-sites-source",
+    "tools": "/tmp/gate-cutover",
+    "published": true,
+    "fenced": true,
+    "source_check": {
+      "tests_passed": 462,
+      "failures": 0,
+      "skipped": 0,
+      "todo": 0,
+      "lint": "passed",
+      "typecheck": "passed",
+      "build": "official Sites build-site.mjs passed",
+      "docker_exit_code": 0,
+      "log": "/tmp/weave-cutover-source-check.log",
+      "source_manifest": "/tmp/gate-cutover/source-manifest.json",
+      "real_postgresql_transfer_rehearsal": "passed",
+      "published": false,
+      "fenced": false
+    },
+    "source_commit": "d3549ddfebe9b48f2258dc35b1af217a1563fc5e",
+    "deployment_id": "appgdep_6ad491c2c2548191a629bad2076d59a3",
+    "deployment_status": "succeeded",
+    "env_set_revision": 1,
+    "target_state_and_identity_grants_empty": true,
+    "export_started": true,
+    "import_completed": true,
+    "source_sha256": "c45dbbbbac53f7dc0f36e4099ee89945b4969e6463efb03dd3578bc9bd981342",
+    "transfer_sha256": "97674ba933414e0d6c12a178314473a0cc15db40bfb241e264d7881f94fb3856",
+    "all_field_equality": true,
+    "total_state_rows": 635,
+    "source_identity_preserved": true,
+    "github_subject_explicitly_bound": true,
+    "clients": [
+      "weave-web",
+      "weave-mcp"
+    ],
+    "post_import_backup": "weave-backup-hfzpp",
+    "temporary_export_and_grant_files_removed": true
+  },
+  "credentials_in_evidence": false,
+  "prefix_cleanup_evidence": "resource-prefix-cleanup.json",
+  "neon_database": "weave",
+  "database_secret_versions": {
+    "weave-admin-database": 2,
+    "weave-runtime-database": 2,
+    "weave-backup-database": 2
+  },
+  "https_publication_authorization": {
+    "source": "User selected: Gate・Weave 両方の HTTPS 公開を許可する",
+    "weave_applied": true,
+    "gate_pending_service_creation": false,
+    "gate_applied": true
+  },
+  "cutover_authorization": {
+    "source": "User explicitly replied 承認 to source write fence, complete data transfer and Weave cutover question",
+    "accepted": true
+  }
+}

@@ -9,7 +9,7 @@ export default defineConfig([
   // next's preset treats build/ as output; this project keeps Worker source there.
   globalIgnores([
     '.next/**', '.vinext/**', 'out/**', 'dist/**', '.wrangler/**',
-    '.sites-runtime/**', 'coverage/**', 'next-env.d.ts',
+    '.sites-runtime/**', '.local/**', 'infra/.local/**', 'coverage/**', 'next-env.d.ts',
     '!build/', '!build/**',
     // Negative fixtures intentionally violate architecture rules and are linted by the harness.
     'tests/fixtures/**',

@@ -2,16 +2,19 @@
 
 ## Service and runtime
 
-Weave is Syntoria's independent shared-state service for people and authorized AI callers. TypeScript on Node.js 24 LTS runs in Fastify 5 on GCP Cloud Run; a dedicated Neon PostgreSQL 18 database stores durable state through pg and Drizzle migrations. HTTP API, Remote MCP and the Web UI share one application/domain/storage path. MCP clients connect through the same authenticated service contract.
+Weave is Syntoria's independent shared-state service for people and authorized AI callers. TypeScript on Node.js 24 LTS runs in Fastify 5 on GCP Cloud Run; a dedicated Neon PostgreSQL 18 database stores durable state through pg and Drizzle migrations. HTTP API and Remote MCP share one application/domain/storage path. A separately hosted static SPA calls the API directly and reuses the same UI application as MCP UI resources.
 
 Personal AI interprets intent, organizes work and decides what to do. Weave validates input and transitions, preserves original text, stores current state and protects revision, replay, Undo and authorization boundaries. Caller-side tools and schedulers own source collection, notifications and execution. Weave has no recommendation LLM or workflow engine. Thymesis is a separately deployed service with its own database, API, credentials, history and cursors; there are no shared business tables or distributed transactions.
 
 ```mermaid
 flowchart LR
   AI[Authorized AI clients] --> MCP[Remote MCP]
-  Web[Web UI] --> HTTP[HTTP API]
+  Browser[Browser] --> SPA[Static SPA]
+  SPA --> HTTP[HTTP API]
+  SPA --> Gate[Gate browser session]
   MCP --> Auth[Verified request identity]
   HTTP --> Auth
+  Auth --> Gate
   Auth --> App[Application / actionCall]
   App --> Domain[Pure domain and data models]
   App --> Port[UserActionStore port]
@@ -30,8 +33,9 @@ flowchart LR
 | lib/adapters/ | PostgreSQL SQL, transaction isolation, concurrency, receipts and failure recovery |
 | lib/server/ | Node HTTP composition, authentication, authorization and request capabilities |
 | lib/mcp/ and MCP entry | Tool discovery, JSON-RPC, resources and capability-checked dispatch |
-| HTTP entry | Web/API transport, session and Origin/content-type protection |
+| HTTP entry | API/MCP transport, session and Origin/content-type protection; it serves no SPA files |
 | lib/ui/ | Pure UI state, explicit controller ports, DOM and transport adapters |
+| web/ | Static SPA shell, runtime configuration loader, Gate login return and direct API relay |
 | db/ and migrations | PostgreSQL schema, constraints and versioned migrations |
 | build/ and scripts/ | Node/container build, execution, migration and verification |
 | Infrastructure configuration | Cloud Run, secrets, IAM, database configuration and monitoring |
@@ -63,7 +67,7 @@ Writes require schemaVersion 2, an operation ID and current expectedRevision. Id
 
 ## Authentication and authorization
 
-Use Auth0 OAuth/OIDC. Validate OAuth access tokens for AI/API callers and PostgreSQL-backed opaque sessions for Web users. Verify issuer, audience, expiry and access grants before issuing request-scoped identity capabilities. Map verified subjects to stable internal users. Business arguments and public identity headers cannot select a user. SQL, receipts and history are user-scoped. Web writes require CSRF/Origin protection. Privileged storage access exists only behind the authenticated composition boundary. Logs exclude action text, personal data and credentials.
+Gate owns shared browser sessions and OAuth/OIDC connections. Every API bearer token or browser session is validated online with Gate, with no positive authorization cache. Session validation checks issuer, resource, expiry, approved device connection, session type and configured browser client. Browser sessions are never stored in Weave. The SPA sends cookie-authenticated API requests directly with credentials, exact registered Origin and Gate-provided CSRF token; credentialed CORS is restricted to configured SPA origins. Gate login is opened separately and its static return page sends only a refresh hint. The original SPA retains its mounted proposals, reads `/api/session` again and blocks writes if the account scope changed. MCP continues to use opaque bearer tokens and its independent OAuth authorization-code PKCE flow. Map verified subjects to stable internal users through explicit local grants. Business arguments and public identity headers cannot select a user. SQL, receipts and history are user-scoped. Privileged storage access exists only behind the authenticated composition boundary. Logs exclude action text, personal data and credentials.
 
 ## Verification
 

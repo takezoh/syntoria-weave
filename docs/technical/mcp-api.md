@@ -2,7 +2,7 @@
 
 ## Service boundary
 
-HTTP API and Remote MCP expose the same independent Cloud Run application core. OAuth tokens or Web sessions establish verified identity; business arguments and public identity headers cannot select users. Client-specific resources and instructions belong to the corresponding transport adapter. See [infrastructure](infrastructure.md).
+HTTP API and Remote MCP expose the same independent Cloud Run application core. Browser API calls use Gate-verified shared sessions; Remote MCP and bearer API clients use independently verified OAuth credentials. Both resolve identity through an explicit local owner grant; business arguments and public identity headers cannot select users. Client-specific resources and instructions belong to the corresponding transport adapter. See [infrastructure](infrastructure.md).
 
 ## Caller composition and guidance
 
@@ -14,9 +14,9 @@ Initialize instructions and snapshot assistance_policy provide caller-facing gui
 
 POST /mcp uses JSON-RPC 2.0 with initialize, ping, tools/list, tools/call, resources/list, resources/read, resources/templates/list and notifications. GET and DELETE return 405; notifications receive 202. Supported MCP protocol values are 2025-03-26, 2025-06-18 and 2025-11-25; initialize uses 2025-11-25 as the supported default; unsupported MCP-Protocol-Version headers return 400. Persistent sessions and SSE are not implemented.
 
-POST /api/actions accepts application/json with `{name, arguments}` and invokes the same service for HTTP clients and the Web UI. Cookie-authenticated calls require same-origin CSRF validation; bearer calls use the API scope policy. Configured origin/host validation and mixed-credential rejection apply as defined in [infrastructure](infrastructure.md#http-boundaries).
+POST /api/actions accepts application/json with `{name, arguments}` and invokes the same service for HTTP clients and the Web UI. Browser-cookie writes require an exact registered SPA Origin and the Gate-verified CSRF token. Browser requests use credentialed CORS for the registered static SPA origins; mixed-cookie-and-bearer credentials are rejected. Configured origin/host validation applies as defined in [infrastructure](infrastructure.md#http-boundaries).
 
-Business reads and writes obtain user from a verified OAuth subject or authenticated Web session and an enabled client grant. Require state:read for read/preview/status and state:read plus state:write for mutations. Arguments cannot select user. SQL and receipts are user-scoped. Public initialization and UI resource metadata do not authorize business-data access.
+Business reads and writes obtain user from a verified OAuth subject or current Gate browser session and an enabled client grant. Approved connections receive full product access; the adapter applies its read/write capability checks to the request. Arguments cannot select user. SQL and receipts are user-scoped. Public initialization and UI resource metadata do not authorize business-data access.
 
 ## Tool and schema discovery
 
@@ -164,6 +164,6 @@ Forward migration `0016_tag_order.sql` adds the constrained column with SQL defa
 
 ## Authentication discovery and cursor epochs
 
-Public protected-resource metadata at /.well-known/oauth-protected-resource/mcp (with root fallback) identifies the canonical HTTPS /mcp resource, configured Auth0 issuer and supported scopes. Missing/invalid credentials receive 401 with resource_metadata in WWW-Authenticate; valid but insufficient scopes receive 403 insufficient_scope with the required scope challenge. Standard OAuth registration/authorization belongs to the issuer. All /mcp calls, including discovery, require a valid principal. Public metadata does not authorize data access.
+Public protected-resource metadata at /.well-known/oauth-protected-resource/mcp (with root fallback) identifies the canonical HTTPS /mcp resource, configured Gate issuer. Missing/invalid credentials receive 401 with resource_metadata in WWW-Authenticate; unregistered or disabled local identity/client mappings receive 403. Standard OAuth registration/authorization belongs to the issuer. All /mcp calls, including discovery, require a valid online-approved Gate connection and explicit local identity/client mapping. Approval grants full access; no OAuth feature scopes are required. Public metadata does not authorize data access.
 
 Cursor shape remains v1; its scope binds the stable user and CURSOR_EPOCH as specified in [data model](data-model.md#failure-replay-undo-and-feed). A scope invalidated by cutover or timeline restoration returns invalid_cursor and requires a full snapshot. A normal release preserves the epoch. Clients retain proposals and exact pending requests across resync and isolate them on account change.
