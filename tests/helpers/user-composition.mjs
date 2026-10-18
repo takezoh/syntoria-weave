@@ -1,10 +1,8 @@
 import {actionCall} from '../../lib/application/action-service.ts';
-import {createUserBoundActionStore} from '../../lib/adapters/d1-action-store.ts';
-import {requireUser} from '../../lib/server/auth.ts';
+import {createD1ActionStore as createScopedD1ActionStore} from '../../lib/adapters/d1-action-store.ts';
 import {createHash} from 'node:crypto';
-export const identity = user => requireUser(new Headers({'oai-authenticated-user-id':user,'oai-authenticated-user-email':'test@local.invalid'}));
 export function createD1ActionStore(db) {
- const bound=user=>createUserBoundActionStore(db,identity(user));
+ const bound=user=>createScopedD1ActionStore(db,{userId:user});
  return {readSnapshot:user=>bound(user).readSnapshot(),readOperationState:(user,op)=>bound(user).readOperationState(op),readChangeWindow:(user,after,through)=>bound(user).readChangeWindow(after,through),readReceipt:(user,op)=>bound(user).readReceipt(op),hasUndo:(user,op)=>bound(user).hasUndo(op),commit:({user,...command})=>bound(user).commit(command)};
 }
 export function actionCallForUser(ports,user,name,args) {

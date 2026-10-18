@@ -1,15 +1,32 @@
-# ChatGPT integration updates
+# Plugin updates
 
-Backend releases follow [deployment](deployment.md). Optional ChatGPT registration follows [plugin installation](plugin-installation.md). Neither operation owns the other.
+The plugin release contains a runnable local MCP server, the shared UI resource and the action-tools skill. Backend releases follow [deployment](deployment.md); distribute plugin artifacts independently of Cloud Run or SPA deployment.
 
-## Refresh the registered tools
+## Build and configure
 
-Identify the existing connection by its deployed MCP endpoint and registration identity. Use the host-supported refresh operation, preserving credentials and access scope. Retrieve current tool schemas and UI resources in a fresh supported host session. Do not claim refresh from a backend deployment alone or replace an existing registration silently.
+Use the pinned Node.js and package manager. Run the required checks, then build the plugin from the selected source version. Render only public endpoint/client settings and the explicit private data-directory path into an ignored operator-specific artifact. Never distribute token state, database settings, resource-client secrets or GitHub credentials.
 
-## Verify the update
+```sh
+pnpm check
+pnpm build
+node scripts/render-plugin.mjs \
+  --issuer https://identity.example.invalid \
+  --resource-endpoint https://actions.example.invalid/mcp \
+  --client-id action-tools-client \
+  --data-directory /absolute/private/action-tools
+node scripts/build-plugin.mjs --config .local/dist/action-tools/config.json
+```
 
-Compare advertised tools, schemas and resources with the released source. Check authenticated reads, open_actions, actual UI rendering, host communication, retained drafts and unknown-result recovery separately. Host navigation and sidebar exposure are integration-specific capabilities, not universal service requirements.
+The renderer accepts explicit issuer, resource endpoint, registered public client ID and optional private data-directory flags; it writes `.local/dist/action-tools/config.json`. Replace the reserved example values with authorized operator settings. The generic build does not implicitly load local deployment settings.
 
-## Report
+Copy the complete package, including licenses, resources and skill references. Preserve the existing connection data outside the install directory. An endpoint/client/issuer change requires a new OAuth connection; replacing program files alone must not erase private credentials or prompt for a new approval on every call.
 
-Record source, container digest, Cloud Run revision, MCP endpoint, connection identity, tool/resource refresh and actual host behavior. Distinguish transport success, authenticated business access and observed UI operation. Never publish tokens or action text in installation logs.
+## Refresh the client
+
+Update the existing local plugin using the client's supported installation mechanism. Restart its MCP process and request current tool discovery and resources in a supported fresh session. Keep the existing connection identity and access scope. Do not infer resource cache refresh from a successful build or API deployment.
+
+## Verify
+
+Check `get_connection_status`, authenticated `list_actions`, `open_actions` resource association, actual UI rendering and calls through the local server. Verify retained drafts and exact-request recovery separately from authentication. A direct Remote MCP connection has its own tool/resource refresh and acceptance.
+
+Record the source commit, artifact inventory/hash, endpoint configuration identity, client installation identity and observed results. Distinguish build validation, authenticated service access and actual client UI acceptance. Do not publish tokens or action text in logs.

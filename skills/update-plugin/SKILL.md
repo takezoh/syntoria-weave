@@ -1,12 +1,12 @@
 ---
 name: update-plugin
-description: Update an existing installation of this repository's Sites-hosted plugin, publish the selected source branch, refresh its registered MCP tools and verify the connected UI. Use when the user requests a plugin update or deployment of this application's changes.
+description: Build and update the local MCP plugin, refresh its shared UI resources and verify authenticated service access. Use when the user requests an update to this application's plugin.
 ---
 
 # Update the installed plugin
 
-Read and follow the [shared publication and update workflow](../../docs/technical/plugin-workflow.md) for an existing installation: select its Site and source, validate and publish, refresh the registered tools, verify the update and report the observed results.
+Follow the [plugin update workflow](../../docs/technical/plugin-workflow.md). Build and verify the selected source, render explicit operator settings outside tracked source, package the local MCP server and common UI, and use the client's supported update mechanism.
 
-Keep the user's selected branch, Site identity, database binding, audience and connection throughout the workflow. Use the Sites skill for source synchronization, packaging and publication.
+Preserve private OAuth state outside the install directory and preserve the authorized service/client configuration. Do not deploy backend infrastructure or reset business data as part of a plugin update. Missing write responses retain their exact original operation IDs and arguments.
 
-For initial setup, follow [INSTALL.md](../../INSTALL.md).
+Verify discovery, authenticated reads and actual resource/UI behavior separately. A build does not prove installation or client cache refresh. For initial setup follow [INSTALL.md](../../INSTALL.md).

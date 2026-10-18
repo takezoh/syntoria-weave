@@ -10,21 +10,22 @@ function lint(code,filename){
 }
 const reports=(messages,rule)=>messages.some(item=>item.ruleId==='architecture/'+rule);
 test('negative dependencies include extensionless aliases, re-exports and indirect capability shims',()=>{
- for(const source of ["import {x} from '@/lib/server/actions';x();","export * from '@/lib/adapters/d1-action-store';","export * from '@/lib/domain/shim';"]){assert(reports(lint(source,'lib/mcp/public-registry.ts'),'private-composition'));}
+ for(const source of ["import {x} from '@/lib/server/node/server';x();","export * from '@/lib/adapters/d1-action-store';","export * from '@/lib/domain/shim';"]){assert(reports(lint(source,'lib/mcp/local/server.mjs'),'private-composition'));}
  assert(reports(lint("export * from '@/lib/adapters/d1-action-store';",'lib/domain/shim.ts'),'capability-direction'));
  assert(reports(lint("import {x} from '../adapters/d1-action-store';x();",'lib/application/sample.ts'),'dependency-direction'));
 });
 test('negative native SQL aliases and computed calls fail outside exact adapter',()=>{
- for(const source of ["db.prepare('SELECT 1');","connection['prepare']('SELECT 1');","import {sql as q} from 'drizzle-orm';q.raw('x');","connection.exec('x');"]){assert(reports(lint(source,'app/sample.ts'),'raw-sql-location'),source);}
+ for(const source of ["db.prepare('SELECT 1');","connection['prepare']('SELECT 1');","import {sql as q} from 'drizzle-orm';q.raw('x');","connection.exec('x');"]){assert(reports(lint(source,'lib/server/node/sample.ts'),'raw-sql-location'),source);}
 });
 async function actualLint(code,filePath){const [result]=await new ESLint({cwd:process.cwd()}).lintText(code,{filePath});return result.messages;}
-test('actual repository config rejects direct D1 imports in both HTTP entries',async()=>{
- for(const path of ['app/mcp/route.ts','app/api/actions/route.ts']){
+test('actual repository config rejects private or D1 imports from public/local MCP',async()=>{
+ for(const path of ['lib/mcp/local-server.mjs','lib/mcp/local/server.mjs','build/local-mcp-vite.config.mjs']){
   const original=readFileSync(path,'utf8');
   assert(!reports(await actualLint(original,path),'capability-direction'));
-  for(const source of ["@/lib/adapters/worker-database","@/lib/adapters/d1-action-store.ts","@/lib/database"]){
+  assert(!reports(await actualLint(original,path),'private-composition'));
+  for(const source of ["@/lib/adapters/d1-action-store.ts","@/lib/server/node/server.ts","drizzle-orm"]){
    const mutant=`import * as direct from '${source}';\n${original}\nvoid direct;\n`;
-   assert(reports(await actualLint(mutant,path),'capability-direction'),path+': '+source);
+   assert(reports(await actualLint(mutant,path),'capability-direction')||reports(await actualLint(mutant,path),'private-composition'),path+': '+source);
   }
  }
 });
@@ -35,35 +36,13 @@ test('Gate verification has one trusted authentication edge and regex exec is no
  assert(!reports(lint("const token=/^Bearer (.+)$/.exec(header);void token;",'lib/server/node/gate-verifier.ts'),'raw-sql-location'));
  assert(reports(lint("connection.exec('DELETE FROM state.actions');",'lib/server/node/gate-verifier.ts'),'raw-sql-location'));
 });
-test('user-scope hashing stays behind its exact trusted composition edges',async()=>{
- for(const path of ['lib/server/actions.ts','lib/server/change-cursor-scope.ts'])assert(!reports(await actualLint(readFileSync(path,'utf8'),path),'capability-direction'));
- assert(reports(await actualLint("import {changeCursorScope} from './change-cursor-scope';void changeCursorScope;",'lib/server/mcp.ts'),'capability-direction'));
-});
-test('actual repository config rejects pre-auth private dispatch and alternate entry handlers',async()=>{
- const path='app/mcp/route.ts',original=readFileSync(path,'utf8');
- const legacyBypass=`import {privateDefinitions} from '@/lib/mcp/private-registry';
- export const dynamic='force-dynamic';
- export async function POST(req){let id=null;try{
-  if(req.headers.get('x-debug'))return Response.json({tools:privateDefinitions});
-  const user=requireUser(req.headers);const body={};
-  return actionCall(user,'list_actions',body);
- }catch{return Response.json({id});}}`;
- for(const mutant of [legacyBypass,original+"export function PUT(){return Response.json({});}",original.replace('POST,GET','POST')])assert(reports(await actualLint(mutant,path),'private-auth'));
- const boundary=readFileSync('lib/server/mcp.ts','utf8');
- assert(!reports(await actualLint(boundary,'lib/server/mcp.ts'),'private-auth'));
- for(const mutant of [
-  boundary.replace('const user=requireUser(req.headers);','const user="A";'),
-  boundary.replace('dispatchPrivateMcp(user,','dispatchPrivateMcp("A",'),
-  boundary.replace('const user=requireUser(req.headers);',"if(req.headers.get('x-debug'))return Response.json({tools:privateDefinitions});\n  const user=requireUser(req.headers);"),
-  boundary.replace('return await dispatchPrivateMcp(user,await readGuardedJson(req));',"return await dispatchPrivateMcp(user,await readGuardedJson(req));").replace('}catch(e){',"}catch(e){ return dispatchPrivateMcp(user,{});"),
- ])assert(reports(await actualLint(mutant,'lib/server/mcp.ts'),'private-auth'));
- const leaked=boundary.replace("import {requireUser}","import {privateDefinitions} from '../mcp/private-registry';\nimport {requireUser}");
- assert(reports(await actualLint(leaked,'lib/server/mcp.ts'),'capability-direction'));
-});
-test('actual repository config requires runtime capability validation before private dispatcher branches',async()=>{
- const path='lib/mcp/private-dispatcher.ts',source=readFileSync(path,'utf8');
- assert(!reports(await actualLint(source,path),'private-auth'));
- for(const mutant of [source.replace(' verifiedUser(user);',''),source.replace('actionCall(user,','actionCall("A",'),source.replace(' verifiedUser(user);'," if(raw)return Response.json({tools:privateDefinitions});\n verifiedUser(user);")])assert(reports(await actualLint(mutant,path),'private-auth'));
+test('D1 action adapter has no identity-issuer dependency',async()=>{
+ const path='lib/adapters/d1-action-store.ts',source=readFileSync(path,'utf8');
+ assert(!/VerifiedIdentity|verifiedUser|server\/auth|oai-authenticated-user/.test(source));
+ assert(!reports(await actualLint(source,path),'capability-direction'));
+ for(const dependency of ["import {requireUser} from '../server/auth';", "import {verifiedUser} from '../server/auth';"]){
+  assert(reports(await actualLint(dependency+'\n'+source,path),'capability-direction'));
+ }
 });
 test('user SQL checks execution forms and rejects D1 exec or extracted/computed prepare under actual config',async()=>{
  const source=readFileSync('lib/adapters/d1-action-store.ts','utf8');

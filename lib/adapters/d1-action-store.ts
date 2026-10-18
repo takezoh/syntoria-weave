@@ -2,7 +2,6 @@ import {fail} from '../domain/core';
 import {assertBoundJson,decodeSnapshotRows,planStorageCommit,type SnapshotRows,type StorageRowChange,type StorageTableKey} from '../data/model/storage';
 import type {ChangeWindow, UserCommitRequest, Receipt, Snapshot} from '../data/types';
 import type {UserActionStore, ReadOperationState} from '../application/ports';
-import {verifiedUser,type VerifiedIdentity} from '../server/auth';
 import {OPERATION_HISTORY_LIMIT} from '../application/ports';
 
 async function receipt(db:D1Database,user:string,operationId:string){return db.prepare('SELECT canonical_payload,result,delta,revision_after,undo_of FROM operations WHERE owner=? AND operation_id=?').bind(user,operationId).first<Receipt>();}
@@ -111,9 +110,12 @@ async function commit(db:D1Database,request:UserCommitRequest&{user:string}) {
  return result;
 }
 
-/** Request-scoped identity capability fixes the user for every SQL path. */
-export function createUserBoundActionStore(db:D1Database,identity:VerifiedIdentity):UserActionStore {
- const user=verifiedUser(identity);
+export type D1ActionStoreScope=Readonly<{userId:string}>;
+
+/** Bind one validated adapter scope to every SQL path. Authentication belongs to the caller. */
+export function createD1ActionStore(db:D1Database,scope:D1ActionStoreScope):UserActionStore {
+ const user=scope?.userId;
+ if(typeof user!=='string'||user.length===0||user.length>512||user.trim()!==user)fail('unauthenticated','A validated D1 user scope is required.',401);
  return Object.freeze({
  readSnapshot:()=>snapshot(db,user),
  readOperationState:(operationId:string)=>operationState(db,user,operationId),

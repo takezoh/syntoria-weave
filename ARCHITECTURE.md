@@ -9,6 +9,7 @@ Personal AI interprets intent, organizes work and decides what to do. Weave vali
 ```mermaid
 flowchart LR
   AI[Authorized AI clients] --> MCP[Remote MCP]
+  Plugin[Local MCP plugin and shared UI] -->|OAuth bearer calls| MCP
   Browser[Browser] --> SPA[Static SPA]
   SPA --> HTTP[HTTP API]
   SPA --> Gate[Gate browser session]
@@ -45,6 +46,14 @@ Pure code is deterministic and does not mutate inputs. DB, HTTP, DOM, host commu
 A consumer reads current state before reconciling its context. Saved changes do not automatically update a caller LLM's context. Complete reads return a user-wide revision; filtered selections are not bootstrap snapshots. Perspectives are extraction definitions, not an independent management engine.
 
 Operational topology, database guarantees and release requirements are defined in [infrastructure](docs/technical/infrastructure.md), [data model](docs/technical/data-model.md) and [deployment](docs/technical/deployment.md).
+
+## Local MCP and plugin resources
+
+The local stdio MCP server is an OAuth public client of the deployed Remote MCP service. It publishes the shared static business-tool definitions and serves the same generated UI HTML as `dist/spa/workspace.html`. MCP Apps UI calls reach this serving local server; it forwards the original business tool name and arguments to the configured HTTPS Remote MCP. It has no database connection, resource-client secret, browser-cookie fallback or alternate persistence path. Remote MCP remains independently usable.
+
+Explicit issuer, resource endpoint and public client configuration bind the local authorization state to one service. Gate authorization uses S256 PKCE and the exact registered loopback callback. OAuth state is stored outside the install directory in a private SQLite database; transactions serialize token updates across processes and generation checks prevent a cancelled callback or stale response from restoring or erasing later authorization. Missing write responses remain unknown outcomes and are never automatically retried.
+
+The plugin contains portable root manifests, a self-contained Node24 stdio bundle, the common UI resource, the action-tools skill/references and dependency licenses. Deployment settings are rendered only into ignored operator artifacts. The standalone D1 adapter and its tests have no production composition or database-selection path.
 
 ## Action contract
 
@@ -91,7 +100,7 @@ Action list movement uses one bounded `action_move` intent over a complete user 
 
 The responsive header shows the current function name/icon and a floating navigation menu, replacing sidebar and mobile view selectors. Checked contextual display choices and icon-only Refresh share that header. Refresh sits at the far right and also exposes global save state through an accessible live description and the pure save-status projection’s state icon. Saved, waiting and writing states remain visually distinct when reduced motion disables animation; the button retains its Refresh action and accessible name. Unsettled states also show the projection’s label beside Refresh, so unknown outcomes and failures are distinguishable without reaching offscreen recovery messages. Animation runs only during actual writes. Header Add Project/Tag opens the matching tree and a temporary catalog inspector; same-view selection supplies its catalog parent, while a different view creates at the root. Add Action uses the explicit visible object context. Searchable Project/Tag pickers use stable catalog UUIDs and inline get-or-create; creation and optional assignment remain separate serial writes. Action-to-catalog drops use one atomic multi-Action classification operation. Native mouse and pointer/touch gestures share frozen intent, preserve list geometry during dragging and reuse the existing receipt/Undo path.
 
-The shared widget applies complete, validated host safe-area insets on all four sides inside its assigned `100dvh` viewport. The flex workspace fills the resulting content area once, and the sticky header remains below the top inset while the document scrolls; a fixed backdrop protects that reserved band from scrolling content and input. Zero or absent insets preserve portable layout; malformed updates retain the last valid values. The local Chromium harness checks the built resource across desktop and mobile-sized viewports with a synthetic host; actual client-device overlap and safe-area behavior remain unverified.
+The shared widget applies complete, validated host safe-area insets on all four sides inside its assigned `100dvh` viewport. The flex workspace fills the resulting content area once, and the sticky header remains below the top inset while the document scrolls; a fixed backdrop protects that reserved band from scrolling content and input. Zero or absent insets preserve portable layout; malformed updates retain the last valid values. DOM and shared-model suites verify the resource contract; browser layout and actual client-device overlap require separate client acceptance.
 
 Tree row edges and horizontal movement choose containment depth without a separate root drop region. A pure hit-intent model consumes adapter-supplied geometry and full semantic ancestry. Project and Tag movement change durable sibling order or parent through one ordinary atomic operation. Both catalog ranks use required order/name/UUID comparison; missing order is invalid. Catalog gestures are single-object and preserve Action membership.
 

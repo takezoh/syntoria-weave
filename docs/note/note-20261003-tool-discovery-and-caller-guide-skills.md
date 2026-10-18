@@ -19,7 +19,7 @@ updated: '2026-10-03'
 
 The user requested access to tool/schema information, an assessment of the existing skill and a separate product guide skill or subagent. The user then clarified that README should address humans through plugin installation, LLM-based usage and a brief data-structure overview. Tool inventories and schemas belong in the guide and technical reference, reachable from the README workflow link. This is a documentation and reusable-guidance change. It does not change runtime tool definitions, delivered assistance policy, authentication, infrastructure or stored data.
 
-[MCP source](../../app/mcp/route.ts) publishes tool definitions through `tools/list`, including input schemas. Typed changes advertise a generic object payload and no output schema. [Application validation](../../lib/application/action-service.ts) and [domain transitions](../../lib/domain/core.ts) enforce a more detailed contract. A caller needs both connected definitions and the [API reference](../technical/mcp-api.md); this checkout alone does not prove the deployed version.
+[MCP source](https://github.com/takezoh/syntoria-weave/blob/0da9ab19b5c786eb466639fd5b0fb05598cdc86e/app/mcp/route.ts) publishes tool definitions through `tools/list`, including input schemas. Typed changes advertise a generic object payload and no output schema. [Application validation](../../lib/application/action-service.ts) and [domain transitions](../../lib/domain/core.ts) enforce a more detailed contract. A caller needs both connected definitions and the [API reference](../technical/mcp-api.md); this checkout alone does not prove the deployed version.
 
 ## Skill assessment and chosen structure
 

@@ -27,7 +27,7 @@ test('explicit time and deterministic operations are allowed', () => {
 });
 
 test('dependency directions reject SQL and environment coupling', () => {
-  for (const code of ['import x from "../adapters/d1-action-store";', 'export * from "@/lib/server/actions";', 'import "node:fs";', 'const db = import("cloudflare:workers");', 'export { x } from "../application/ports";']) {
+  for (const code of ['import x from "../adapters/d1-action-store";', 'export * from "@/lib/server/node/server";', 'import "node:fs";', 'const db = import("cloudflare:workers");', 'export { x } from "../application/ports";']) {
     assert(lint(code).some(item => item.ruleId === 'architecture/dependency-direction'), code);
   }
   assert.deepEqual(lint('export * from "./core";'), []);

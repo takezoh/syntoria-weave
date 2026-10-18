@@ -1,23 +1,20 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
-import nextVitals from 'eslint-config-next/core-web-vitals';
-import nextTs from 'eslint-config-next/typescript';
+import tseslint from 'typescript-eslint';
 import boundaries from './scripts/lint/boundaries.mjs';
 
 export default defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // next's preset treats build/ as output; this project keeps Worker source there.
+  ...tseslint.configs.recommended,
   globalIgnores([
-    '.next/**', '.vinext/**', 'out/**', 'dist/**', '.wrangler/**',
-    '.sites-runtime/**', '.local/**', 'infra/.local/**', 'coverage/**', 'next-env.d.ts',
+    'dist/**', '.local/**', 'infra/.local/**', 'coverage/**',
+    '.sites-runtime/**', '.wrangler/**', '.next/**', '.vinext/**',
     '!build/', '!build/**',
     // Negative fixtures intentionally violate architecture rules and are linted by the harness.
     'tests/fixtures/**',
   ]),
   {
-    files: ['lib/**/*.{ts,tsx,mts,js,jsx,mjs}', 'app/**/*.{ts,tsx}', 'build/**/*.{ts,mjs}'],
+    files: ['lib/**/*.{ts,tsx,mts,js,jsx,mjs}', 'build/**/*.{ts,mjs}'],
     plugins: { architecture: boundaries },
-    rules: { 'architecture/dependency-direction': 'error', 'architecture/data-type-only': 'error', 'architecture/raw-sql-location': 'error', 'architecture/capability-direction':'error', 'architecture/private-auth':'error','architecture/user-sql':'error' },
+    rules: { 'architecture/dependency-direction': 'error', 'architecture/data-type-only': 'error', 'architecture/raw-sql-location': 'error', 'architecture/capability-direction':'error', 'architecture/user-sql':'error' },
   },
   {
     files: ['lib/ui/effects/dom.js'],
@@ -25,8 +22,8 @@ export default defineConfig([
     rules: { 'architecture/readonly-ui-state': 'error' },
   },
   {
-    // Public/local MCP surfaces must not reach the private composition, adapters or D1.
-    files: ['app/mcp/**/*.{ts,mts,js,mjs}', 'lib/mcp/**/*.{ts,mts,js,mjs}', 'build/local-mcp-vite.config.mjs'],
+    // Public/local MCP surfaces must not reach the private composition or storage adapters.
+    files: ['lib/mcp/**/*.{ts,mts,js,mjs}', 'build/local-mcp-vite.config.mjs'],
     plugins: { architecture: boundaries },
     rules: { 'architecture/private-composition': 'error' },
   },
