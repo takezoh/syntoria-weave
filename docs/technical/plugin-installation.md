@@ -1,34 +1,27 @@
-# Syntoria Weave plugin installation
+# Install the ChatGPT plugin
 
-The plugin packages a local MCP server, the shared action UI and the action-tools skill. The local server connects to the deployed Remote MCP through Gate OAuth. The SPA and MCP resource use the same generated UI. Backend provisioning follows the [deployment guide](deployment.md).
+The ChatGPT plugin connects to the independent Cloud Run/PostgreSQL service through Gate OAuth. Use the ChatGPT desktop app with local Work execution for this stdio package. General Remote MCP and stdio client configuration are documented separately in [MCP setup](mcp-installation.md).
 
-Use Node.js 24 LTS on the machine running the local MCP server. Obtain the authorized service's issuer, MCP endpoint, public OAuth client ID and registered loopback callback from the operator. Keep deployment settings and the private connection-data directory outside source and the installed plugin directory.
+## Build from the repository
 
-Build from the selected checkout:
+Follow the [install-plugin skill](../../skills/install-plugin/SKILL.md) from [INSTALL.md](../../INSTALL.md), obtain the deployment-specific MCP URL, Gate issuer and registered public OAuth client ID, and build the [configured package](mcp-installation.md#build-a-configured-package). Reuse supplied local configuration when applicable; request missing connection settings instead of inventing endpoints or registrations.
 
-```sh
-pnpm install --frozen-lockfile
-pnpm check
-pnpm build
-```
+The repository supplies the server implementation, common UI and portable `plugin.json`/`mcp.json` templates. These shared inputs are not a completed deployment-specific installation. The skill receives the connection settings and constructs the configured package using the existing renderer and builder. It does not generate replacement business logic.
 
-Render explicit `issuer`, `resourceEndpoint` (the complete HTTPS MCP endpoint), `clientId`, and an absolute `dataDirectory` outside the plugin install directory. The following reserved example values must be replaced with authorized operator settings. Use the existing registered public client and exact callback `http://127.0.0.1:55437/callback`.
+`mcp.json` defines the local stdio launch command. The required Remote MCP URL is stored in the operator-rendered `config.json` alongside issuer and public client ID. Both pieces are needed: the generic launch definition is reusable across deployments, while the skill must include the actual connection settings when constructing the installation package. Preserve private OAuth state outside the installed package.
 
-```sh
-node scripts/render-plugin.mjs \
-  --issuer https://identity.example.invalid \
-  --resource-endpoint https://actions.example.invalid/mcp \
-  --client-id action-tools-client \
-  --data-directory /absolute/private/action-tools
-node scripts/build-plugin.mjs --config .local/dist/action-tools/config.json
-```
+## Install in ChatGPT
 
-Install the complete `dist/plugin/` directory with your client's supported local-plugin mechanism. It contains root `plugin.json` and `mcp.json`, the bundled server, UI and skill resources. The client must support local stdio MCP with Node.js 24. A host-provided `PLUGIN_DATA` may supply the private directory; otherwise the explicit `dataDirectory` is required. Do not place token state inside the package.
+1. Copy the complete configured `dist/plugin/` to a stable local plugin directory, retaining licenses, UI resources and skill references.
+2. Use the built-in `@plugin-creator` skill to register this existing folder in the user's personal local marketplace. Reuse a matching entry and preserve other plugins. Keep the supplied portable manifests and local MCP wiring intact.
+3. Restart the ChatGPT desktop app, open the Plugins Directory, select the local marketplace and install the plugin. Start a new Work conversation with it enabled. Updating an existing source folder still requires the host's install/refresh lifecycle; a build alone does not refresh its installed cache.
 
-In the connected MCP client, call `connect_action_service` with `{}` and open its returned authorization URL. Sign in and complete the requested connection approval. The local callback finishes the connection. Valid saved authorization is reused across calls and restarts. `get_connection_status` reports connection state; `disconnect_action_service` clears the local authorization. Follow the actual tool output for the scope of remote revocation.
+These steps follow the [official local-plugin packaging and installation guidance](https://developers.openai.com/plugins/build/plugins). Registration is local personal installation; this workflow does not publish a directory listing or provision backend resources.
 
-Call `list_actions` and `open_actions` to check authenticated data access and the UI. The resource's controls call this same local MCP server, which forwards exact business operations to the Remote MCP service. The service owns user isolation, revision, replay and Undo. Preserve exact IDs and arguments after a missing response; do not retry a write using a new operation ID.
+## Connect and accept
 
-A client may also connect directly to the service's HTTPS Remote MCP with supported OAuth and MCP Apps UI. The dedicated browser SPA uses its configured Gate session. Neither route depends on plugin installation.
+Call `connect_action_service` with `{}`. Open the returned authorization URL, sign in through Gate and approve the connection. The callback must reach the machine running the MCP process. Inspect `get_connection_status`, then call `list_actions` for an authenticated read. Call `open_actions` and verify rendered content and tool communication in ChatGPT.
 
-Record the package/source version, configuration identity, authentication result and observed resource/UI behavior separately. Successful local tests do not prove installation, UI rendering or resource cache refresh in a particular client.
+Verify retained drafts and exact-request recovery separately. Keep pending write IDs/arguments through authentication recovery. Status reporting local credentials is not proof of remote acceptance. Valid authorization is reused across calls and restarts; replacing package files must not delete private token state.
+
+Record source commit, package identity, local registration, authenticated read and observed UI/cache behavior without tokens or action text. Local test success does not establish actual ChatGPT installation or rendering. For subsequent updates follow the [update workflow](plugin-workflow.md).
