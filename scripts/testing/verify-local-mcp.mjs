@@ -82,7 +82,15 @@ try {
   assert.equal(replies[0].result.serverInfo.name, 'action-tools-local');
   assert(replies[1].result.tools.some(tool => tool.name === 'list_actions'));
   assert(replies[1].result.tools.some(tool => tool.name === 'connect_action_service'));
-  assert.equal(replies[2].result.contents[0].text, packagedUi.toString('utf8'));
+  const openActions = replies[1].result.tools.find(tool => tool.name === 'open_actions');
+  assert.equal(openActions.title, 'Syntoria Weave');
+  assert.deepEqual(openActions._meta['openai/ui'].entrypoints, [{type: 'global'}, {type: 'thread'}]);
+  assert.deepEqual(replies[1].result.tools.filter(tool => tool._meta?.['openai/ui']?.entrypoints?.some(entry => entry.type === 'global')).map(tool => tool.name), ['open_actions']);
+  assert.equal(openActions._meta['openai/outputTemplate'], 'ui://action-tools/actions-v4.html');
+  const uiResource = replies[2].result.contents[0];
+  assert.equal(uiResource.text, packagedUi.toString('utf8'));
+  assert.deepEqual(uiResource._meta['openai/ui'].availableDisplayModes, ['inline', 'fullscreen']);
+  assert.equal(uiResource._meta['openai/widgetDescription'], 'Structured actions: normal, deferred, completed, details and safe editing.');
   assert.equal(replies[3].result.structuredContent.configured, false);
   assert.equal(replies[3].result.structuredContent.configurationError.code, 'configuration_required');
   assert.equal(replies[4].result.isError, true);

@@ -1,6 +1,7 @@
 import {ActionError} from '../domain/core';
 import {privateDefinitions,privateResources} from './tool-definitions';
-import {UI_URI,widgetHtml} from '../widget';
+import {UI_URI} from '../widget';
+import {createActionUiResource} from './ui-resource';
 import {assistanceInstructions} from '../assistance';
 export type Invoke=(name:string,args:unknown)=>Promise<unknown>;
 /** Stateless protocol adapter; authentication and scope gates precede this entry. */
@@ -16,7 +17,7 @@ export async function dispatchMcp(raw:unknown,invoke:Invoke,canWrite:boolean){
   case 'tools/list':return reply({tools:privateDefinitions.filter(tool=>tool.name!=='open_verification'&&(canWrite||tool.annotations.readOnlyHint))});
   case 'resources/list':return reply({resources:privateResources.filter(resource=>resource.uri===UI_URI)});
   case 'resources/templates/list':return reply({resourceTemplates:[]});
-  case 'resources/read':if(p.uri===UI_URI)return reply({contents:[{uri:UI_URI,mimeType:'text/html;profile=mcp-app',text:widgetHtml,_meta:{ui:{prefersBorder:true,csp:{connectDomains:[],resourceDomains:[]}}}}]});break;
+  case 'resources/read':if(p.uri===UI_URI)return reply({contents:[createActionUiResource()]});break;
   case 'tools/call':{
    if(typeof p.name!=='string')return {status:400,body:{jsonrpc:'2.0',id,error:{code:-32602,message:'Tool name required'}}};
    try{const data=await invoke(p.name,p.arguments??{});return reply({content:[{type:'text',text:JSON.stringify(data)}],structuredContent:data});}

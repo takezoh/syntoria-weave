@@ -14,7 +14,7 @@ test('Node MCP exposes one shared UI launcher and the current action resource', 
   const list = tools.find(tool => tool.name === 'list_actions');
 
   assert.deepEqual(open._meta['openai/ui'].entrypoints, [{type: 'global'}, {type: 'thread'}]);
-  assert.equal(open.title, 'Action tools');
+  assert.equal(open.title, 'Syntoria Weave');
   assert.equal(list._meta['openai/ui'], undefined);
   assert.equal(list._meta.ui.resourceUri, open._meta.ui.resourceUri);
 
@@ -29,6 +29,8 @@ test('Node MCP resource retains HTML identity and bounded host metadata', async 
 
   assert.equal(content.uri, uri);
   assert.equal(content.mimeType, 'text/html;profile=mcp-app');
+  assert.deepEqual(content._meta['openai/ui'].availableDisplayModes, ['inline', 'fullscreen']);
+  assert.equal(content._meta['openai/widgetDescription'], 'Structured actions: normal, deferred, completed, details and safe editing.');
   assert.deepEqual(content._meta.ui.csp, {connectDomains: [], resourceDomains: []});
   assert.equal(content._meta.ui.prefersBorder, true);
   assert.match(content.text, /<!doctype html>/i);

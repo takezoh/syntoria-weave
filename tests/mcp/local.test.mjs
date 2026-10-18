@@ -10,6 +10,7 @@ import {AuthorizationStateStore} from '../../lib/mcp/local/state-store.mjs';
 import {CALLBACK_URL, configurationBinding, validateLocalConfiguration} from '../../lib/mcp/local/config.mjs';
 import {LocalOAuthClient} from '../../lib/mcp/local/oauth.mjs';
 import {forwardBusinessCall} from '../../lib/mcp/local/remote.mjs';
+import {LocalMcpServer} from '../../lib/mcp/local/server.mjs';
 import {gateFixture} from '../helpers/gate.mjs';
 
 const resourceEndpoint = 'https://api.example.com/mcp';
@@ -56,6 +57,20 @@ async function waitFor(predicate, message) {
   }
   assert.fail(message);
 }
+
+test('local stdio discovery restores the ChatGPT sidebar and widget metadata', async () => {
+  const server = new LocalMcpServer();
+  const tools = (await server.handle({jsonrpc: '2.0', id: 1, method: 'tools/list'})).result.tools;
+  const openActions = tools.find(tool => tool.name === 'open_actions');
+  assert.equal(openActions.title, 'Syntoria Weave');
+  assert.deepEqual(openActions._meta['openai/ui'].entrypoints, [{type: 'global'}, {type: 'thread'}]);
+  assert.equal(openActions._meta['openai/outputTemplate'], 'ui://action-tools/actions-v4.html');
+
+  const resource = (await server.handle({jsonrpc: '2.0', id: 2, method: 'resources/read', params: {uri: openActions._meta['openai/outputTemplate']}})).result.contents[0];
+  assert.equal(resource.mimeType, 'text/html;profile=mcp-app');
+  assert.deepEqual(resource._meta['openai/ui'].availableDisplayModes, ['inline', 'fullscreen']);
+  assert.equal(resource._meta['openai/widgetDescription'], 'Structured actions: normal, deferred, completed, details and safe editing.');
+});
 
 test('local authorization preserves exact root issuer, uses PKCE, and wrong-state callbacks do not consume the flow', async t => {
   const {gate, config, store, oauth} = await fixture(t);

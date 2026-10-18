@@ -52,8 +52,15 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   assert.equal((await server.inject({url:'/auth/login',headers:base})).statusCode,404);
   assert.equal((await server.inject({url:'/ui/widget',headers:base})).statusCode,404);
   assert.equal((await server.inject({url:'/',headers:{host:'attacker.example.com'}})).statusCode,403);
+  const openActions=(await rpc('tools/list')).json().result.tools.find(tool=>tool.name==='open_actions');
+  assert.equal(openActions.title,'Syntoria Weave');
+  assert.deepEqual(openActions._meta['openai/ui'].entrypoints,[{type:'global'},{type:'thread'}]);
+  assert.equal(openActions._meta['openai/outputTemplate'],'ui://action-tools/actions-v4.html');
   assert.equal((await rpc('resources/list')).json().result.resources.some(resource=>resource.uri==='ui://action-tools/actions-v4.html'),true);
-  assert.equal((await rpc('resources/read',{uri:'ui://action-tools/actions-v4.html'})).json().result.contents[0].mimeType,'text/html;profile=mcp-app');
+  const resource=(await rpc('resources/read',{uri:'ui://action-tools/actions-v4.html'})).json().result.contents[0];
+  assert.equal(resource.mimeType,'text/html;profile=mcp-app');
+  assert.deepEqual(resource._meta['openai/ui'].availableDisplayModes,['inline','fullscreen']);
+  assert.equal(resource._meta['openai/widgetDescription'],'Structured actions: normal, deferred, completed, details and safe editing.');
  });
 
  await t.test('exact credentialed CORS and bounded preflight reject other origins, methods, headers and routes',async()=>{
