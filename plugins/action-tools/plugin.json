@@ -1,11 +1,18 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "action-tools",
-  "version": "1.0.0",
+  "name": "syntoria-weave",
+  "version": "1.0.1",
   "description": "Use a shared action service through MCP and its local shared UI.",
   "extensions": {
     "com.openai": {
-      "requires_local_executor": true
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "Syntoria Weave",
+        "shortDescription": "Shared state for you and AI",
+        "longDescription": "Read and update your actions, projects, tags and perspectives through your configured service, with a shared list UI.",
+        "developerName": "Syntoria",
+        "category": "Productivity"
+      }
     }
   }
 }

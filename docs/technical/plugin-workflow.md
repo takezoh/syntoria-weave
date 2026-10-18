@@ -23,6 +23,8 @@ The renderer accepts explicit issuer, resource endpoint, registered public clien
 
 Copy the complete package, including licenses, resources and skill references. Preserve the existing connection data outside the install directory. An endpoint/client/issuer change requires a new OAuth connection; replacing program files alone must not erase private credentials or prompt for a new approval on every call.
 
+Retain plugin identity `syntoria-weave` and display name `Syntoria Weave` from the packaged manifest. If correcting an installation registered under a different name, update its local marketplace entry/source using the host-supported install/refresh flow and preserve the existing external credential directory. A source rebuild does not rename an already installed cached plugin.
+
 ## Refresh the client
 
 Update the existing local plugin using the client's supported installation mechanism. Restart its MCP process and request current tool discovery and resources in a supported fresh session. Keep the existing connection identity and access scope. Do not infer resource cache refresh from a successful build or API deployment.
