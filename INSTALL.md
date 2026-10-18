@@ -38,21 +38,21 @@ Verify the artifact-manifest.json hashes and that resources/actions-v4.html equa
 
 1. Copy the complete configured `dist/plugin/` to the selected stable local package directory. Preserve any existing private data directory. The installed copy does not require this checkout or node_modules.
 2. Add or update only the matching entry in the user's personal marketplace at `~/.agents/plugins/marketplace.json`. Preserve other entries. The host's built-in `@plugin-creator`, when available, can register the existing configured folder; retain the supplied portable manifests and stdio wiring.
-3. For manual registration, use the [official local-marketplace format](https://developers.openai.com/plugins/build/plugins#install-a-local-plugin-manually). Include marketplace name and the plugin entry's name, local source, installation/authentication policies and category. The plugin name is `action-tools`; use `Syntoria Weave` as the host display name. Resolve source.path relative to the marketplace root and point it at the stable configured folder, not the source templates. For example, a personal folder `~/.codex/plugins/action-tools-personal` uses `./.codex/plugins/action-tools-personal` under the home-rooted personal marketplace.
+3. For manual registration, use the [official local-marketplace format](https://developers.openai.com/plugins/build/plugins#install-a-local-plugin-manually). Include marketplace name and the plugin entry's name, local source, installation/authentication policies and category. The plugin name is `syntoria-weave` and its host display name is `Syntoria Weave`. Retain these values from the generated plugin.json, including extensions.com.openai.interface.displayName. Resolve source.path relative to the marketplace root and point it at the stable configured folder, not the source templates. For example, a personal folder `~/.codex/plugins/syntoria-weave` uses `./.codex/plugins/syntoria-weave` under the home-rooted personal marketplace.
 4. Restart the ChatGPT desktop app. Open the Plugins Directory, choose the local marketplace and install or refresh its entry. Record the actual registration returned/shown by the host; do not invent plugin IDs. Start a new Work conversation with the plugin enabled so it loads current tools/resources. Creating files alone does not complete installation or refresh the host's installed cache.
 
 For a new personal entry, the following is a concrete example for the package directory above. Merge the entry into an existing catalog rather than replacing that catalog. Reuse existing names when updating.
 
 ```json
 {
-  "name": "action-tools-personal-marketplace",
+  "name": "syntoria-weave-personal-marketplace",
   "interface": {"displayName": "Personal Plugins"},
   "plugins": [
     {
-      "name": "action-tools",
+      "name": "syntoria-weave",
       "source": {
         "source": "local",
-        "path": "./.codex/plugins/action-tools-personal"
+        "path": "./.codex/plugins/syntoria-weave"
       },
       "policy": {
         "installation": "AVAILABLE",

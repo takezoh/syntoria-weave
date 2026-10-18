@@ -42,3 +42,7 @@ README restores the ChatGPT Work installation request. INSTALL.md directly speci
 The repository provides shared implementation/UI and definition templates. A usable installation requires the deployment's Remote MCP URL, issuer and registered public client ID in generated config.json. The installer obtains those values and constructs the configured package using the existing renderer/builder. mcp.json defines local stdio startup; connect_action_service only authenticates the configured service and cannot set its URL. Later file-based configuration requires restarting the MCP process. No runtime code or credential handling changes are introduced by this documentation/skill correction.
 
 The README/INSTALL responsibility split was checked against source commit 5191cf0: README supplies the user request; INSTALL is the executor procedure. The unnecessary install-plugin helper was removed. Only action-tools is bundled for everyday use; source-side update instructions remain separate.
+
+## Plugin identity correction
+
+The installable ChatGPT plugin is named syntoria-weave and displayed as Syntoria Weave. Its portable manifest carries the product listing under extensions.com.openai.interface, and the package inventory carries the same identity. Package version 1.0.1 provides the corrected host metadata. Installation/update instructions preserve this identity and the external OAuth state when correcting a local registration; shared MCP tool/resource contracts are unchanged.

@@ -25,7 +25,10 @@ try {
   assert.equal((await stat(join(plugin, 'launcher.mjs'))).isFile(), true, 'build dist/plugin before running this verifier');
   const artifact = JSON.parse(await readFile(join(plugin, 'artifact-manifest.json'), 'utf8'));
   assert.equal(artifact.format, 1);
-  assert.equal(artifact.plugin, 'action-tools');
+  assert.equal(artifact.plugin, 'syntoria-weave');
+  const pluginManifest = JSON.parse(await readFile(join(plugin, 'plugin.json'), 'utf8'));
+  assert.equal(pluginManifest.name, 'syntoria-weave');
+  assert.equal(pluginManifest.extensions['com.openai'].interface.displayName, 'Syntoria Weave');
   for (const file of artifact.files) {
     const bytes = await readFile(join(plugin, file.path));
     assert.equal(bytes.byteLength, file.bytes, `artifact byte size: ${file.path}`);

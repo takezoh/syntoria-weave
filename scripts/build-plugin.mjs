@@ -66,8 +66,8 @@ async function listFiles(directory, base = directory) {
 async function validateManifest() {
   const plugin = JSON.parse(await readFile(join(source, 'plugin.json'), 'utf8'));
   const mcp = JSON.parse(await readFile(join(source, 'mcp.json'), 'utf8'));
-  if (plugin.$schema !== 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json' || plugin.name !== 'action-tools' || plugin.extensions?.['com.openai']?.requires_local_executor !== true) {
-    throw new Error('The portable plugin manifest is missing its Agent Plugins schema, generic identity, or local-executor metadata.');
+  if (plugin.$schema !== 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json' || plugin.name !== 'syntoria-weave' || plugin.extensions?.['com.openai']?.requires_local_executor !== true) {
+    throw new Error('The portable plugin manifest is missing its Agent Plugins schema, plugin identity, or local-executor metadata.');
   }
   const server = mcp.mcpServers?.['action-tools'];
   if (mcp.$schema !== 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json' || server?.type !== 'stdio' || server.command !== 'node' || server.args?.[0] !== '${PLUGIN_ROOT}/launcher.mjs') {

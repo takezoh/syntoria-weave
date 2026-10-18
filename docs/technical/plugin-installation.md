@@ -10,6 +10,8 @@ The repository supplies the server implementation, common UI and portable `plugi
 
 `mcp.json` defines the local stdio launch command. The required Remote MCP URL is stored in the operator-rendered `config.json` alongside issuer and public client ID. Both pieces are needed: the generic launch definition is reusable across deployments, while the installer must include the actual connection settings when constructing the installation package. Preserve private OAuth state outside the installed package.
 
+The package identity is `syntoria-weave`; ChatGPT displays `Syntoria Weave` through `extensions.com.openai.interface.displayName`. Preserve both when registering or updating the local entry.
+
 ## Install in ChatGPT
 
 1. Copy the complete configured `dist/plugin/` to a stable local plugin directory, retaining licenses, UI resources and skill references.

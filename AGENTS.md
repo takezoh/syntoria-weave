@@ -54,7 +54,7 @@ TypeScript/Node.js runs on Cloud Run with Neon PostgreSQL. HTTP API, Remote MCP 
 | scripts/, build/ | Node, SPA/plugin build and verification helpers; build contains source |
 | skills/action-tools/SKILL.md | Assistance documentation, not proof of host installation |
 
-Source code, tests, scripts, configuration, MCP tool names, UI resource URIs and the Skill use generic identifiers such as action-tools and list_actions and never contain the product name. The product name Syntoria Weave appears only in documentation and host listings. Applied SQL migrations keep their recorded identifiers.
+Source code, tests, scripts, configuration, MCP tool names, UI resource URIs and the Skill use generic identifiers such as action-tools and list_actions and never contain the product name. The ChatGPT plugin identity is syntoria-weave and its display name is Syntoria Weave; its package manifest is host-listing metadata. Other source identifiers remain generic. Applied SQL migrations keep their recorded identifiers.
 
 Conversation and Web preview share actionCall/core/store paths. Do not connect UI directly to the database or implement alternate transitions per entry. Follow existing naming/style and avoid unrelated formatting.
 
