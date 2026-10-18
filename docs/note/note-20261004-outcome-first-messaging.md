@@ -22,7 +22,7 @@ updated: '2026-10-04'
 
 Source: the user's direction in this repository conversation on 2026-10-04, while drafting the GitHub repository description.
 
-The user asked for benefit-, outcome- and appeal-first wording built around designing a workflow together with an AI, with GTD as a reference point. They stated that appeal matters more than literal precision, and that Ariadne is always used with an AI: the data-layer API alone has no value to the user. The user then adopted rewriting README from the selected repository description's perspective.
+The user asked for benefit-, outcome- and appeal-first wording built around designing a workflow together with an AI, with GTD as a reference point. They stated that appeal matters more than literal precision, and that Weave is always used with an AI: the data-layer API alone has no value to the user. The user then adopted rewriting README from the selected repository description's perspective.
 
 The first selected description said "Design a GTD-like workflow". The user observed that this reads as if a GTD workflow were built in, whereas any workflow can be designed and GTD is only an example. The adopted wording therefore makes the user's own workflow the subject and lists GTD among several examples:
 
@@ -48,6 +48,6 @@ Not changed: product name, audience, claim boundaries, runtime, API, schema, UI 
 - Document graph `lint` and `lint --conformance`: passed, 67 indexed documents, no warnings.
 - Local Markdown references in the four changed or new documents: no missing targets.
 - Stale wording: the previous headline and pillar names no longer appear in README, PRODUCT, the product design, the development guide or usage documents.
-- Claim review: new user-facing statements stay within the product design's claim boundaries; reminders, calendar planning, background execution and Ariadne-owned AI remain excluded.
+- Claim review: new user-facing statements stay within the product design's claim boundaries; reminders, calendar planning, background execution and Weave-owned AI remain excluded.
 
 This is documentation validation. App tests, build and actual-host acceptance were not run, and no deployed behavior is claimed.

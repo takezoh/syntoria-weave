@@ -35,7 +35,7 @@ summary: Actions use containment and sibling rank without execution constraints;
 
 ## Purpose and responsibilities
 
-Keep durable user intent, deterministic projection, and host recommendations separate. Ariadne owns validated persistence and mechanical state transitions; The user and caller-side LLM own meaning, management method and candidate selection. ChatGPT is the current delivery environment; prompts, dot and caller-side schedulers use the same data tools. Conversation and UI share one action store rather than copying actions per perspective.
+Keep durable user intent, deterministic projection, and host recommendations separate. Weave owns validated persistence and mechanical state transitions; The user and caller-side LLM own meaning, management method and candidate selection. ChatGPT is the current delivery environment; prompts, caller-side LLMs and schedulers use the same data tools. Conversation and UI share one action store rather than copying actions per perspective.
 
 ## Boundaries
 
@@ -70,7 +70,7 @@ Hosted D1 and ChatGPT resources are distinct acceptance boundaries. Local mocks 
 
 ## Variability and compatibility
 
-Current fixed choices are direct-only flags, containment, unconstrained sibling sequence and existing lifecycle/date semantics. Potential future flag inheritance needs a separate design decision. Planned and estimates are unsupported data fields. Notification, scheduling and external observation belong to caller workflows, not Ariadne services; callers can use the published operations without specialized integrations.
+Current fixed choices are direct-only flags, containment, unconstrained sibling sequence and existing lifecycle/date semantics. Potential future flag inheritance needs a separate design decision. Planned and estimates are unsupported data fields. Notification, scheduling and external observation belong to caller workflows, not Weave services; callers can use the published operations without specialized integrations.
 
 Migration 0009 intentionally resets authorized disposable test data, including prior operations/catalog reservations. There is no old task-name alias, dependency payload conversion, fallback or pre-reset replay/Undo. Preserve the existing Site, DB binding and private scope; hosted cutover requires a separate deployment operation.
 

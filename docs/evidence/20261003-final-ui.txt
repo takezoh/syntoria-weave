@@ -1,4 +1,4 @@
-Ariadne
+Weave
 Refresh
 Add
 Save original input · Set time zone
@@ -31,7 +31,7 @@ Due: 2026/10/3 18:00:00 Asia/Tokyo
 
 Details · Edit
 
-Original input: Add fictional test data to Ariadne. Parent: “Test 0301: Prepare the exhibit”; children: “Test 0301: Decide the layout” and “Test 0301: Set up the exhibit.” Setting up the exhibit depends on completion of deciding the layout. Do not set a due date or Defer. The reference https://example.com/exhibit belongs only in the parent’s notes. Separately, add “Test 0301: Check supplies.”
+Original input: Add fictional test data to Weave. Parent: “Test 0301: Prepare the exhibit”; children: “Test 0301: Decide the layout” and “Test 0301: Set up the exhibit.” Setting up the exhibit depends on completion of deciding the layout. Do not set a due date or Defer. The reference https://example.com/exhibit belongs only in the parent’s notes. Separately, add “Test 0301: Check supplies.”
 
 Save notes
 Parent task

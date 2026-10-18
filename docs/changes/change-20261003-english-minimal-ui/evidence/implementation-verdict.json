@@ -10,7 +10,7 @@
   "visual_verdict": "approved_for_inspected_local_browser_states",
   "findings": [],
   "evidence": {
-    "diff": "/tmp/ariadne-ui-english/review.diff",
+    "diff": "/tmp/syntoria-weave-ui-english/review.diff",
     "source_checked": [
       "lib/widget.ts",
       "lib/ui/model/presentation.ts",
@@ -41,8 +41,8 @@
       "unknown-390-dark.png",
       "unknown-1280-light.png"
     ],
-    "browser_results": "/tmp/ariadne-ui-english/visual-results.json",
-    "browser_states": "/tmp/ariadne-ui-english/browser-states.json"
+    "browser_results": "/tmp/syntoria-weave-ui-english/visual-results.json",
+    "browser_states": "/tmp/syntoria-weave-ui-english/browser-states.json"
   },
   "assessment": {
     "aesthetic": "The continuous neutral shell, quiet navigation, stronger heading hierarchy and reduced badges constitute a coherent, materially simpler treatment in inspected screenshots. Wide unused detail space is reclaimed; narrow editor has a clear Back to list. This is an independent visual assessment, not a claim of user aesthetic approval.",

@@ -11,7 +11,7 @@ $ node scripts/check.mjs
 ▶ memory ActionStore shared contract
   ✔ new owners start at isolated revision zero (1.193797ms)
   ✔ receipt and snapshot are atomically visible (2.702535ms)
-  ✔ owners remain isolated while Ariadne generates entity IDs (0.581749ms)
+  ✔ owners remain isolated while Weave generates entity IDs (0.581749ms)
   ✔ same request replays, different input is rejected (0.945035ms)
   ✔ stale revision does not create receipt (0.335435ms)
   ✔ simultaneous writes have one winner (0.827772ms)
@@ -22,7 +22,7 @@ $ node scripts/check.mjs
 ▶ SQLite D1 ActionStore shared contract
   ✔ new owners start at isolated revision zero (0.724019ms)
   ✔ receipt and snapshot are atomically visible (1.565301ms)
-  ✔ owners remain isolated while Ariadne generates entity IDs (1.462689ms)
+  ✔ owners remain isolated while Weave generates entity IDs (1.462689ms)
   ✔ same request replays, different input is rejected (0.540442ms)
   ✔ stale revision does not create receipt (0.588232ms)
   ✔ simultaneous writes have one winner (1.82614ms)

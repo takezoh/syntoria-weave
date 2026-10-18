@@ -1,6 +1,6 @@
 {
   "kind": "requirements_explore_revision",
-  "prior_candidate": "/tmp/ariadne-navigation-explore.json",
+  "prior_candidate": "/tmp/syntoria-weave-navigation-explore.json",
   "authority": "User rejects Open as redundant and requires On hold to be a visual state, not a default exclusion. OmniFocus is an information-architecture reference, not imported domain behavior.",
   "revision": [
     "Remove Open/Unfinished/Current as primary navigation.",

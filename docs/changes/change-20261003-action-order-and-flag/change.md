@@ -5,7 +5,7 @@ title: Replace tasks and dependencies with ordered actions and direct flags
 status: active
 created: '2026-10-03'
 profile: sdd@1
-intent: Simplify Ariadne to ordered actions with direct flags and parent-child containment
+intent: Simplify Weave to ordered actions with direct flags and parent-child containment
   only.
 outcomes:
 - Actions replace tasks across storage, APIs and UI.

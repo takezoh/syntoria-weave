@@ -1,6 +1,6 @@
 {
   "kind": "native_design_candidate",
-  "basis": "/tmp/ariadne-navigation-explore-v2.json",
+  "basis": "/tmp/syntoria-weave-navigation-explore-v2.json",
   "scope": "Browsing/navigation only; preserve prior English UI edits, action mutations and entire backend.",
   "contracts": [
     {

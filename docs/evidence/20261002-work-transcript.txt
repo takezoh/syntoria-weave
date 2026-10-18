@@ -3,18 +3,18 @@
 - main:
   - button "Show sidebar":
   - button "New chat":
-  - button "Confirm Ariadne save"
+  - button "Confirm Weave save"
   - button "Share":
     - text: Share
   - button "More":
   - button "Toggle summary":
   - heading "You said:" [level=4]
-  - generic: Save the following fictional task in Ariadne: “Test-only: Decide where to place the planter”. Would like to do this next week. reference https://example.com/garden . No due date has been set.
+  - generic: Save the following fictional task in Weave: “Test-only: Decide where to place the planter”. Would like to do this next week. reference https://example.com/garden . No due date has been set.
   - button "Copy message":
   - button "Worked for 37s":
     - generic: Worked for 37s
   - heading "ChatGPT said:" [level=4]
-  - paragraph: “Test-only: Decide where to place the planter” was saved in Ariadne.
+  - paragraph: “Test-only: Decide where to place the planter” was saved in Weave.
   - list:
     - listitem: Preserve the preference to do this next week (10/5–10/11) in the notes
     - listitem: Due date: Not set
@@ -65,18 +65,18 @@
   - button "Regenerate response":
   - button "More actions":
   - heading "You said:" [level=4]
-  - generic: Do not set up monitoring or notifications. Explain how to clear the wait when I report that it arrived, within what is actually possible. Also open Ariadne’s dedicated UI.
+  - generic: Do not set up monitoring or notifications. Explain how to clear the wait when I report that it arrived, within what is actually possible. Also open Weave’s dedicated UI.
   - button "Copy message":
   - button "Worked for 11s":
     - generic: Worked for 11s
-  - generic "Ariadne · Work verification"
-  - status: Opened Ariadne
+  - generic "Weave · Work verification"
+  - status: Opened Weave
   - button "Open app in tab":
   - button "CSP off. Open developer settings": CSP off
   - iframe:
     - iframe [id="root"]:
       - main:
-        - heading "Ariadne" [level=1]
+        - heading "Weave" [level=1]
         - button "Refresh"
         - textbox "New task"
         - button "Add"
@@ -383,7 +383,7 @@
         - option "Confirm reservation"
         - generic: Retrieved 2026/10/2 23:52:04 Asia/Tokyo · list revision 47 · Time zone Asia/Tokyo
   - heading "ChatGPT said:" [level=4]
-  - paragraph: Opened Ariadne’s dedicated UI. Monitoring and notifications are not configured.
+  - paragraph: Opened Weave’s dedicated UI. Monitoring and notifications are not configured.
   - paragraph: To clear the wait manually:
   - list:
     - listitem: Set the task’s waiting reason to “waiting for materials to arrive.”

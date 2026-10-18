@@ -11,14 +11,14 @@
     {
       "id": "M0-01",
       "status": "passed",
-      "observation": "Signed in by email and MFA; private Ariadne plugin installed and connected in ChatGPT.",
+      "observation": "Signed in by email and MFA; private Weave plugin installed and connected in ChatGPT.",
       "client": "cloud Chrome / desktop Web / Work"
     },
     {
       "id": "M0-02",
       "status": "passed",
       "at": "2026-10-01T12:17:11Z",
-      "observation": "ariadne_open embedded the custom UI within a Work conversation; initial list empty."
+      "observation": "weave_open embedded the custom UI within a Work conversation; initial list empty."
     },
     {
       "id": "M0-03",

@@ -23,4 +23,4 @@ role: requirements
 
 ## Source
 
-Captured request: `takezoh/ariadne#27`, request hash `1701ed683d32be59bbc39e270ffdb0fec941db60e32a258f01a4d16d3d40c572`.
+Captured request: `takezoh/syntoria-weave#27`, request hash `1701ed683d32be59bbc39e270ffdb0fec941db60e32a258f01a4d16d3d40c572`.

@@ -1,4 +1,4 @@
-# Ariadne development guidance
+# Syntoria Weave development guidance
 
 This file defines repository-specific responsibilities, workflow and validation requirements. Respond in Japanese unless requested otherwise. Write new or edited documentation and code comments in English.
 
@@ -14,13 +14,13 @@ Confirm implementation facts in code. The runtime is Sites-managed Cloudflare Wo
 
 ## Product and boundaries
 
-Ariadne is a shared state store through which caller-side AI/LLM consumers share state with the user and other authorized AI consumers. Its current model represents everyday work and personal actions, projects, tags and perspectives, accessible through ChatGPT conversation and the dedicated UI. Its purpose is to let users delegate upkeep, preserve corrections across interactions, reduce remembering and organizational burden, and make room for action, decisions and rest. Sharing remains within the authenticated owner's boundary; each consumer must read current state and interpret it in its own context.
+Weave is Syntoria's State Store, through which caller-side AI/LLM consumers share state with the user and other authorized AI consumers. Its current model represents everyday work and personal actions, projects, tags and perspectives, accessible through ChatGPT conversation and the dedicated UI. Its purpose is to let users delegate upkeep, preserve corrections across interactions, reduce remembering and organizational burden, and make room for action, decisions and rest. Sharing remains within the authenticated owner's boundary; each consumer must read current state and interpret it in its own context.
 
-Meaning, organization, recommendations and management method belong to the user and caller-side LLM. ChatGPT is the current delivery environment; dot is an example caller, not an Ariadne-owned component. User prompts and caller-side schedulers decide when and how to use the published shared-state API/MCP tools. GTD and other management methods are caller choices. Authorized callers may collect Slack/email inputs through their own tools and save them in Ariadne without dedicated plugin integrations. Do not add an independent recommendation LLM or GTD engine. Ariadne owns persistence, input validation, transitions, containment/date integrity, revision, replay, Undo and ownership boundaries. Preserve ambiguous input as original text without invented deadlines or commitments.
+Meaning, organization, recommendations and management method belong to the user and caller-side LLM. ChatGPT is the current delivery environment; a consumer AI is a caller, not a Weave-owned component. User prompts and caller-side schedulers decide when and how to use the published shared-state API/MCP tools. GTD and other management methods are caller choices. Authorized callers may collect Slack/email inputs through their own tools and save them in Weave without dedicated plugin integrations. Do not add an independent recommendation LLM or GTD engine. Weave owns persistence, input validation, transitions, containment/date integrity, revision, replay, Undo and ownership boundaries. Preserve ambiguous input as original text without invented deadlines or commitments.
 
 The entity is action, not task. Relationships are parent-child containment only. Action order expresses intended sequence without restricting execution or visibility. Do not add prerequisite edges or sequential/parallel modes. Flagged is direct boolean state only; inheritance is a possible future feature, not the current contract.
 
-Calendar sync, proactive notifications, background jobs and external-condition observation are caller responsibilities, not Ariadne services. Do not treat their absence in the plugin as a prohibition on caller workflows or require specialized Ariadne integrations for tool composition. Saved perspectives are supported filter-only data definitions; dedicated perspective UI controls remain outside current scope.
+Calendar sync, proactive notifications, background jobs and external-condition observation are caller responsibilities, not Weave services. Do not treat their absence in the plugin as a prohibition on caller workflows or require specialized Weave integrations for tool composition. Saved perspectives are supported filter-only data definitions; dedicated perspective UI controls remain outside current scope.
 
 ## Pure logic and effects
 
@@ -51,7 +51,7 @@ React 19/TypeScript use App Router APIs through vinext/Vite, running in a Sites-
 | scripts/, build/ | Build, execution-profile and verification helpers; build contains source |
 | skills/action-tools/SKILL.md | Assistance documentation, not proof of host installation |
 
-Source code, tests, scripts, configuration, MCP tool names, UI resource URIs and the Skill use generic identifiers such as action-tools and list_actions and never contain the product name. The product name Ariadne appears only in documentation and host listings. Applied SQL migrations keep their recorded identifiers.
+Source code, tests, scripts, configuration, MCP tool names, UI resource URIs and the Skill use generic identifiers such as action-tools and list_actions and never contain the product name. The product name Syntoria Weave appears only in documentation and host listings. Applied SQL migrations keep their recorded identifiers.
 
 Conversation and Web preview share actionCall/core/store paths. Do not connect UI directly to D1 or implement alternate transitions per entry. Follow existing naming/style and avoid unrelated formatting.
 

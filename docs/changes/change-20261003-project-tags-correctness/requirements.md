@@ -9,7 +9,7 @@ role: requirements
 
 This active correction package clarifies the safe identity, Undo, and compatibility contract for Projects/Tags. Keep the feature package (`change-20261003-projects-and-tags`) incomplete and do not treat this package as completed history.
 
-- Callers do not supply IDs for new tasks/projects/tags/captures; Ariadne generates UUIDs. Deleted project/tag UUIDs remain reserved per owner and are not reused by ordinary creation. Only Undo of the same receipt can restore the original UUID.
+- Callers do not supply IDs for new tasks/projects/tags/captures; Weave generates UUIDs. Deleted project/tag UUIDs remain reserved per owner and are not reused by ordinary creation. Only Undo of the same receipt can restore the original UUID.
 - `operationId`/`request_id` is an idempotency key separate from entity IDs, and resolved IDs are stored in the receipt. Retries of the same request and `operation_status` return the same entity ID; different input is rejected.
 - Project/Tag Get-or-Create uses owner, parent, and the trimmed, case-sensitive name as its natural key. Duplicate rename/move is rejected by the domain and database; migration fails rather than merging existing duplicates.
 - New tasks in `structure_create` use unique local refs; existing tasks use ID references. Validation completes before internal IDs are added to the caller payload.

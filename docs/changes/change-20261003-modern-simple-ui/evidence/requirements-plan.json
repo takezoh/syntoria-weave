@@ -1,35 +1,35 @@
 {
   "mode": "explore",
   "revision": "native-author-20261003-3",
-  "goal": "Make Ariadne visually modern, simple and intuitive in ChatGPT sidebar and full display without weakening action or recovery contracts.",
+  "goal": "Make Weave visually modern, simple and intuitive in ChatGPT sidebar and full display without weakening action or recovery contracts.",
   "target_users": [
-    "The existing personal Ariadne user in ChatGPT and the shared Web preview"
+    "The existing personal Weave user in ChatGPT and the shared Web preview"
   ],
   "user_goals": [
     {
       "id": "goal-focus",
-      "actor": "Ariadne user",
+      "actor": "Weave user",
       "context": "Reading current work",
       "desired_outcome": "Identify available actions and their actual lifecycle/date context without reading technical metadata",
       "success_observation": "A concise list exposes titles, deliberate flags, meaningful dates and a clearly selected view."
     },
     {
       "id": "goal-edit",
-      "actor": "Ariadne user",
+      "actor": "Weave user",
       "context": "Changing an action",
       "desired_outcome": "Reach secondary edits when needed and distinguish proposals from saved content",
       "success_observation": "A named editor retains original input and unsaved changes through refresh and mode transitions."
     },
     {
       "id": "goal-recover",
-      "actor": "Ariadne user",
+      "actor": "Weave user",
       "context": "Saving with failures or concurrent corrections",
       "desired_outcome": "Know whether a change saved and recover without duplicates or lost corrections",
       "success_observation": "Visible pending, conflict and unknown-result messages lead to receipt checking or identical retry."
     },
     {
       "id": "goal-display",
-      "actor": "Ariadne user",
+      "actor": "Weave user",
       "context": "Using narrow and broad host surfaces",
       "desired_outcome": "Keep context while switching between sidebar and full display",
       "success_observation": "The same view, editor, drafts and pending outcome remain available across supported mode changes."
@@ -492,7 +492,7 @@
         "source": "critic_proposal",
         "confidence": "confirmed",
         "evidence_refs": [
-          "/tmp/ariadne-ui-modern/requirements-verdict.json"
+          "/tmp/syntoria-weave-ui-modern/requirements-verdict.json"
         ],
         "rationale": "Explicitly discriminate modal clipping, inaccessible recovery, unsafe Escape and filtered-out dirty proposals."
       }
@@ -509,7 +509,7 @@
         "source": "critic_proposal",
         "confidence": "confirmed",
         "evidence_refs": [
-          "/tmp/ariadne-ui-modern/requirements-verdict.json"
+          "/tmp/syntoria-weave-ui-modern/requirements-verdict.json"
         ],
         "rationale": "Explicitly discriminate modal clipping, inaccessible recovery, unsafe Escape and filtered-out dirty proposals."
       }

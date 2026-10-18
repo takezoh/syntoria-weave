@@ -150,19 +150,19 @@
       "original_sha256": "519ba223c5ff49763adb6e2b45bb126cd6124a02d465a0ae9559b18df7e422e4"
     },
     {
-      "path": "./docs/changes/change-20261003-minimal-autosave-ui/evidence/ariadne-autosave-implementation-verdict.json",
+      "path": "./docs/changes/change-20261003-minimal-autosave-ui/evidence/syntoria-weave-autosave-implementation-verdict.json",
       "original_sha256": "dff14691cef4718bae54b2aa076dee6174474650c59364883c02a6a23a04bbdc"
     },
     {
-      "path": "./docs/changes/change-20261003-minimal-autosave-ui/evidence/ariadne-autosave-design-verdict.json",
+      "path": "./docs/changes/change-20261003-minimal-autosave-ui/evidence/syntoria-weave-autosave-design-verdict.json",
       "original_sha256": "82f225a5c785e64345bfc155b157936707ccd0f757b3bf0446651aa263556a87"
     },
     {
-      "path": "./docs/changes/change-20261003-minimal-autosave-ui/evidence/ariadne-autosave-acceptance.json",
+      "path": "./docs/changes/change-20261003-minimal-autosave-ui/evidence/syntoria-weave-autosave-acceptance.json",
       "original_sha256": "f5a19b1996735f6af9218a780021e5f2d55cbf2c85aabb4824c35549efcfb8c9"
     },
     {
-      "path": "./docs/changes/change-20261003-minimal-autosave-ui/evidence/ariadne-autosave-acceptance-verdict.json",
+      "path": "./docs/changes/change-20261003-minimal-autosave-ui/evidence/syntoria-weave-autosave-acceptance-verdict.json",
       "original_sha256": "d71d9c0caea7ea7f83714dcaba1b2524da95a3f4925c9377df172e4f42a5067f"
     },
     {
@@ -202,11 +202,11 @@
       "original_sha256": "f86f2664be1b07c65b5de91e24094ac0c4793ab7d4dd3f4f48f1b60c949c475b"
     },
     {
-      "path": "./docs/changes/change-20261003-contextual-empty-action/evidence/ariadne-empty-action-implementation-verdict.json",
+      "path": "./docs/changes/change-20261003-contextual-empty-action/evidence/syntoria-weave-empty-action-implementation-verdict.json",
       "original_sha256": "2a034a4560d6d794a9c12af14f586bac9ec6f710afeeb166a87e7d5c03eaffa4"
     },
     {
-      "path": "./docs/changes/change-20261003-contextual-empty-action/evidence/ariadne-empty-action-design-verdict.json",
+      "path": "./docs/changes/change-20261003-contextual-empty-action/evidence/syntoria-weave-empty-action-design-verdict.json",
       "original_sha256": "1e733c395fbd59e53178d38411966a3791226a709b57cc11952cc1b93b714577"
     },
     {

@@ -39,8 +39,8 @@
     "todo": 0
   },
   "browser_evidence": [
-    "/tmp/ariadne-empty-action/browser.json",
-    "/tmp/ariadne-empty-action/recovery-browser.json"
+    "/tmp/syntoria-weave-empty-action/browser.json",
+    "/tmp/syntoria-weave-empty-action/recovery-browser.json"
   ],
   "screenshots_inspected": [
     "create-projects-1280-light.png",

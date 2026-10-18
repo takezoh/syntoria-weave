@@ -1,6 +1,6 @@
 {
   "disposition": "candidate",
-  "summary": "Native implementation Profile author implements typed group-isolated proposals and immutable preview/recovery continuity. Targeted model/application suite: 20 passing tests, no skips/failures. Typecheck passed. Evidence: /tmp/ariadne-ui-modern/proposal-tests.log and /tmp/ariadne-ui-modern/proposal-typecheck.log. No runtime kernel or ledger acceptance is claimed.",
+  "summary": "Native implementation Profile author implements typed group-isolated proposals and immutable preview/recovery continuity. Targeted model/application suite: 20 passing tests, no skips/failures. Typecheck passed. Evidence: /tmp/syntoria-weave-ui-modern/proposal-tests.log and /tmp/syntoria-weave-ui-modern/proposal-typecheck.log. No runtime kernel or ledger acceptance is claimed.",
   "changes": [
     {
       "path": "lib/ui/model/drafts.ts",

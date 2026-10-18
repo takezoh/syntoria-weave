@@ -4,7 +4,7 @@
 
 ## Product and caller boundary
 
-Ariadne is a shared state store for the user and authorized AI consumers, exposed through API/MCP operations and a shared UI. Actions, projects, tags and perspectives are its current structured model for everyday work and personal state. User prompts, the caller-side LLM, dot and caller-side schedulers choose the management method and execution timing. GTD is one possible use. External collection, Slack/email access, observation and notifications belong to the caller; composing its tools with Ariadne does not require a dedicated plugin integration. Preserve flexible operations and stable data guarantees when changing the plugin.
+Syntoria Weave is Syntoria's State Store for the user and authorized AI consumers, exposed through API/MCP operations and a shared UI. Actions, projects, tags and perspectives are its current structured model for everyday work and personal state. User prompts, the caller-side LLM and caller-side schedulers choose the management method and execution timing. GTD is one possible use. External collection, Slack/email access, observation and notifications belong to the caller; composing its tools with Weave does not require a dedicated plugin integration. Preserve flexible operations and stable data guarantees when changing the plugin.
 
 The intended benefit is less total remembering and management work, with more attention for action and rest. Plugin correctness, caller workflow quality and user outcomes require separate evidence. Product text must stay within the claim boundaries in product design. See [product design](design/product.md) and [caller responsibilities](design/assistance.md).
 
@@ -64,4 +64,4 @@ The current runtime is Sites plus Cloudflare Worker/D1. Preserve the existing Si
 
 A release must associate source commit, artifact, version/deployment, timestamp, access scope and actual host results. Hosted cache, tools and UI resources must be checked after any relevant deployment.
 
-The host skill file is documentation until actually installed/delivered. Ariadne does not itself run notifications, calendar sync, external observation or background execution. A user may arrange these in a caller workflow; validation of that workflow belongs to its own execution environment.
+The host skill file is documentation until actually installed/delivered. Weave does not itself run notifications, calendar sync, external observation or background execution. A user may arrange these in a caller workflow; validation of that workflow belongs to its own execution environment.

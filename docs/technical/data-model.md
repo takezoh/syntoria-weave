@@ -4,7 +4,7 @@ Updated: 2026-10-14. The current contract is defined by [shared readonly types](
 
 ## Data and management policy
 
-The model represents shared state used by the human and authorized AI consumers: everyday actions, original notes, containment, classifications, dates and saved perspectives. The API calls the saved entity action. User prompts and caller-side LLMs interpret that state and choose GTD or other management conventions; classification names and descriptive text do not impose a method or become executable policy. Caller-side collection and scheduling write through the same owner-scoped operations as conversation and UI. Ariadne validates data integrity, not an external management routine.
+The model represents shared state used by the human and authorized AI consumers: everyday actions, original notes, containment, classifications, dates and saved perspectives. The API calls the saved entity action. User prompts and caller-side LLMs interpret that state and choose GTD or other management conventions; classification names and descriptive text do not impose a method or become executable policy. Caller-side collection and scheduling write through the same owner-scoped operations as conversation and UI. Weave validates data integrity, not an external management routine.
 
 ## Durable records
 

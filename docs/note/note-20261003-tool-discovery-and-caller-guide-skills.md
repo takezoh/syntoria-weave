@@ -35,7 +35,7 @@ Choose a portable skill instead of a host-specific subagent definition for this 
 - The official [Claude Code skill guide](https://code.claude.com/docs/en/skills) documents the same `SKILL.md` pattern and its local discovery paths. Use the common format without host-specific frontmatter.
 - The official [Claude Code subagent guide](https://code.claude.com/docs/en/sub-agents#built-in-subagents) identifies `claude-code-guide` as a helper for Claude Code feature questions and explains isolated contexts/tool restrictions. Use its product-question role as a reference, without copying its host-specific agent configuration or asserting that a built-in Codex guide agent exists.
 
-These sources were retrieved on 2026-10-03. They inform packaging and routing, not proof of Ariadne tool access in either environment.
+These sources were retrieved on 2026-10-03. They inform packaging and routing, not proof of Weave tool access in either environment.
 
 ## Result and verification boundary
 
@@ -45,6 +45,6 @@ The user supplied [Plugins in ChatGPT](https://help.openai.com/ja-jp/articles/20
 
 [README](../../README.md) explains plugin installation, conversational usage and data building blocks, and links to the new [workflow entry point](../usage/agent-workflows.md). That page routes the caller to the API contract and both skills and explains schema discovery, authentication boundaries, caller composition and optional installation. The API reference explicitly documents the generic payload and absent output schema.
 
-Before this correction, README used an assisted source-setup prompt, an unverified-installation caveat and directory-installation steps based on the [ChatGPT plugin documentation](https://learn.chatgpt.com/docs/plugins) and [plugin use guide](https://learn.chatgpt.com/docs/build-plugins). Those instructions were replaced by the direct Work request above. The repository does not supply a verified install URL or prove a public Ariadne directory listing.
+Before this correction, README used an assisted source-setup prompt, an unverified-installation caveat and directory-installation steps based on the [ChatGPT plugin documentation](https://learn.chatgpt.com/docs/plugins) and [plugin use guide](https://learn.chatgpt.com/docs/build-plugins). Those instructions were replaced by the direct Work request above. The repository does not supply a verified install URL or prove a public Weave directory listing.
 
 Validation covers documentation references, declared tool names, skill frontmatter and the documentation graph. It does not establish behavioral skill acceptance, host installation, authenticated external-client access or a deployment. Existing delivered initialize/snapshot guidance remains separate from repository skill distribution.

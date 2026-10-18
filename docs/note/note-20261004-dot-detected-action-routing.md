@@ -46,6 +46,6 @@ Execution used the existing built Worker at localhost:8788 and its env.DB Wrangl
 - [Caller decisions, input events and assertions](evidence/dot-detected-20261004/caller-outcomes.json)
 - [Exact requests and compact response ledger](evidence/dot-detected-20261004/http-call-ledger.json)
 - [Evaluated source and built artifact fingerprints](evidence/dot-detected-20261004/source-fingerprints.json)
-- [User-facing use case](../usage/use-cases.md#let-dot-collect-items-that-need-your-attention)
+- [User-facing use case](../usage/use-cases.md#let-your-ai-collect-items-that-need-your-attention)
 
 This establishes the requested handling of detected actions through MCP → Worker → local D1. Live dot monitoring, source authentication, detection quality, scheduler execution and alert delivery were not exercised.

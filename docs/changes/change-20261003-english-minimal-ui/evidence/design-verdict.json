@@ -7,8 +7,8 @@
     "kernel_status": "not_executed"
   },
   "source_refs": [
-    "/tmp/ariadne-ui-english/design.json",
-    "/tmp/ariadne-ui-english/notes.md",
+    "/tmp/syntoria-weave-ui-english/design.json",
+    "/tmp/syntoria-weave-ui-english/notes.md",
     "./lib/widget.ts",
     "./lib/ui/adapters/dom.js",
     "./lib/ui/model/presentation.ts",

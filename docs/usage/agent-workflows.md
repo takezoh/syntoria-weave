@@ -1,6 +1,6 @@
-# Build a workflow with Ariadne
+# Build a workflow with Syntoria Weave
 
-Ariadne is a shared state store for the user and authorized AI consumers. Its actions, projects, tags and perspectives are available through data tools and a shared UI. Your LLM interprets the saved state and chooses how to capture, organize, review and change it. Start with a prompt and the existing tools; use a reusable skill when the same guidance is useful across requests.
+Weave is a shared state store for the user and authorized AI consumers. Its actions, projects, tags and perspectives are available through data tools and a shared UI. Your LLM interprets the saved state and chooses how to capture, organize, review and change it. Start with a prompt and the existing tools; use a reusable skill when the same guidance is useful across requests.
 
 ## Find tools and schemas
 
@@ -17,7 +17,7 @@ Read tool descriptions alongside schemas: `apply_change` and `preview_change` sp
 
 ## Connect and authorize access
 
-The README directs users to ask ChatGPT Work to install this repository as a plugin for personal use. This conversation-based route does not require Ariadne to be listed in the public plugin directory. Work can prepare the app and skills as part of creating the plugin; the absence of a prebuilt plugin manifest is not itself a reason to require the user to package it manually. The [ChatGPT plugin help](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt) describes conversational plugin creation, automatic installation of local plugins and Sites-hosted MCP apps. App deployment follows the [deployment workflow](../technical/deployment.md), preserving the existing Site, DB binding and private scope when updating an existing installation.
+The README directs users to ask ChatGPT Work to install this repository as a plugin for personal use. This conversation-based route does not require Weave to be listed in the public plugin directory. Work can prepare the app and skills as part of creating the plugin; the absence of a prebuilt plugin manifest is not itself a reason to require the user to package it manually. The [ChatGPT plugin help](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt) describes conversational plugin creation, automatic installation of local plugins and Sites-hosted MCP apps. App deployment follows the [deployment workflow](../technical/deployment.md), preserving the existing Site, DB binding and private scope when updating an existing installation.
 
 The current delivery is a ChatGPT plugin with Sites-managed authentication. Use that environment's authorized connection. A direct MCP client needs a supported authenticated transport to the deployed `POST /mcp` endpoint; this repository does not establish such access for Codex, Claude Code or other clients. Do not invent a public URL, bearer-token setup or owner argument. Public discovery and UI metadata do not grant access to saved actions.
 
@@ -27,7 +27,7 @@ The current delivery is a ChatGPT plugin with Sites-managed authentication. Use 
 
 Decide what should trigger the workflow, what information it may read, what changes are authorized and what the user should receive. Execution timing, external access and notifications belong to the caller's environment.
 
-For example, a caller with authorized email access can collect requested commitments, read the current action snapshot, avoid duplicating saved actions and preserve exact source wording in notes through `capture_intent`. It can subsequently organize those actions with `apply_change` when the user's intent is clear. Scheduling that collection requires a scheduler in the caller's environment; no Ariadne email connector or background worker is needed.
+For example, a caller with authorized email access can collect requested commitments, read the current action snapshot, avoid duplicating saved actions and preserve exact source wording in notes through `capture_intent`. It can subsequently organize those actions with `apply_change` when the user's intent is clear. Scheduling that collection requires a scheduler in the caller's environment; no Weave email connector or background worker is needed.
 
 For a review, query saved actions or a perspective, then present relevant candidates and reasons. A recommendation does not itself complete, defer or flag an action. A recurring extraction can be saved as a filter-only perspective; a temporary query need not create a saved view.
 
@@ -58,10 +58,10 @@ Neither skill is required by the server. Tool discovery and caller-facing initia
 
 The folders under `skills/` are distribution sources, not proof that a host has installed them. Copy the complete selected folder, including `references/`, into your host's supported skill location. Current official documentation lists `.agents/skills/` in a project or `~/.agents/skills/` for Codex, and `.claude/skills/` in a project or `~/.claude/skills/` for local Claude Code. Follow your environment's policy and verify discovery after installation. These locations come from the [Codex skill guide](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills) and [Claude Code skill guide](https://code.claude.com/docs/en/skills#where-skills-live).
 
-Installing a local skill does not connect the MCP server, establish authenticated access, install it in ChatGPT or configure a scheduler. The skills use generic identifiers; Ariadne is the product and host listing name.
+Installing a local skill does not connect the MCP server, establish authenticated access, install it in ChatGPT or configure a scheduler. The skills use generic identifiers; Syntoria Weave is the product and host listing name.
 
 ## Skill or subagent?
 
 Use a skill to supply reusable product knowledge and workflow guidance in the caller's existing conversation. A separate subagent can help when repeated documentation research needs an isolated context or a restricted tool set; its configuration belongs to the caller's host. The supplied guide uses the portable `SKILL.md` format and does not require a subagent runtime.
 
-The official [OpenAI skill guide](https://learn.chatgpt.com/docs/build-skills) describes loading detailed references when needed. Claude Code's built-in `claude-code-guide` illustrates a dedicated assistant for product questions; its [subagent documentation](https://code.claude.com/docs/en/sub-agents#built-in-subagents) explains isolated contexts and tool restrictions. These are design references, not evidence that Ariadne is connected or verified in either host.
+The official [OpenAI skill guide](https://learn.chatgpt.com/docs/build-skills) describes loading detailed references when needed. Claude Code's built-in `claude-code-guide` illustrates a dedicated assistant for product questions; its [subagent documentation](https://code.claude.com/docs/en/sub-agents#built-in-subagents) explains isolated contexts and tool restrictions. These are design references, not evidence that Weave is connected or verified in either host.

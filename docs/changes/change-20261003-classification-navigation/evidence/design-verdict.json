@@ -7,8 +7,8 @@
     "kernel_status": "not_executed"
   },
   "source_refs": [
-    "/tmp/ariadne-navigation-design.json",
-    "/tmp/ariadne-navigation-explore-v2.json",
+    "/tmp/syntoria-weave-navigation-design.json",
+    "/tmp/syntoria-weave-navigation-explore-v2.json",
     "./lib/domain/core.ts",
     "./lib/ui/adapters/dom.js",
     "./lib/ui/application.ts",

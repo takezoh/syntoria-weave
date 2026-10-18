@@ -5,7 +5,7 @@ title: Research on GTD Benefits and Redesigning Assistance with LLMs
 status: published
 created: '2026-10-02'
 updated: '2026-10-02'
-summary: Separates original GTD sources, cognitive research, LLM planning research, and public practice examples; records implications for Ariadne and the benefits that remain unproven.
+summary: Separates original GTD sources, cognitive research, LLM planning research, and public practice examples; records implications for Weave and the benefits that remain unproven.
 topic: gtd-benefits-and-llm
 tags: [research, gtd, cognition, llm]
 owners: []
@@ -22,7 +22,7 @@ Product and vendor names and identifying source URLs have been removed from this
 
 ## 1. Questions and Research Scope
 
-Reviewed on 2026-10-02. Rechecked original sources, papers, and public practice examples mentioned in the conversation so far, and organized them for use in Ariadne product design. This is a focused research note, not a comprehensive systematic review or a test of public implementations.
+Reviewed on 2026-10-02. Rechecked original sources, papers, and public practice examples mentioned in the conversation so far, and organized them for use in Weave product design. This is a focused research note, not a comprehensive systematic review or a test of public implementations.
 
 The question is not only “How can an LLM perform GTD?” The focus is **what benefits GTD provided, and how its procedures or rules could change if management work previously done by people is shifted to an LLM**.
 
@@ -35,7 +35,7 @@ There is a rationale for exploring a design that reduces management burden while
 | Evidence type | Sources | What it supports | What it does not support |
 | --- | --- | --- | --- |
 | Method's original sources | G1–G4 | GTD's goals and mechanisms | Causal proof of effectiveness |
-| Cognitive experiments | R1, R3 | Effects of planning and externalization costs on specific tasks | Same effects for AI-generated plans or all of Ariadne |
+| Cognitive experiments | R1, R3 | Effects of planning and externalization costs on specific tasks | Same effects for AI-generated plans or all of Weave |
 | Theory/design principles | R2, R4 | Frameworks for external memory and division of work between people and systems | Effects of current LLM implementations |
 | Research proposal | R5 | Concept for long-term assistance that includes GTD | Results from evaluations that were not performed |
 | Limited LLM-assistance research | R6–R9 | What helps or burdens users in conversation, planning, and intervention | Long-term superiority in everyday life |
@@ -49,7 +49,7 @@ Source: [Official Getting Things Done site](https://gettingthingsdone.com/what-i
 
 Five activities—capture, clarify, organize, reflect, and engage—manage intentions and commitments in a trusted external system. This includes deciding what to do with information that will not become an action. Read GTD as a method aimed at clearing the mind and making choices, not merely creating lists.
 
-**Interpretation for Ariadne:** Use the five stages to check for missing functions, not as a mandatory conversation sequence. This is an Ariadne design interpretation, not a direct quotation from the original source.
+**Interpretation for Weave:** Use the five stages to check for missing functions, not as a mandatory conversation sequence. This is a Weave design interpretation, not a direct quotation from the original source.
 
 ### G2. David Allen: The Two-Minute Rule (2020)
 
@@ -57,7 +57,7 @@ Source: [Official GTD site, 2020-05-29](https://gettingthingsdone.com/2020/05/th
 
 The rule is explained as an efficiency principle: a short action can cost less to do now than to read, think about, and handle again later.
 
-**Hypothesis for Ariadne:** If an LLM changes the cost of saving, resurfacing, or preparing, the result of the same principle may change. Include context switching and approval; it is not established that “two minutes” should simply be replaced by another fixed threshold.
+**Hypothesis for Weave:** If an LLM changes the cost of saving, resurfacing, or preparing, the result of the same principle may change. Include context switching and approval; it is not established that “two minutes” should simply be replaced by another fixed threshold.
 
 ### G3. GTD Weekly Review Checklist
 
@@ -65,7 +65,7 @@ Source: [Official one-page PDF](https://gettingthingsdone.com/wp-content/uploads
 
 The review covers more than action lists: things on one's mind, past/upcoming calendar, waiting items, projects, and future possibilities. It combines maintenance tasks with the function of reconsidering interests and commitments.
 
-**Hypothesis for Ariadne:** Even if dot handles mechanical checks, it should not eliminate the user's opportunity to reconsider direction. Distinguish AI-checked from user-reviewed.
+**Hypothesis for Weave:** Even if dot handles mechanical checks, it should not eliminate the user's opportunity to reconsider direction. Distinguish AI-checked from user-reviewed.
 
 ### G4. GTD Workflow Map
 
@@ -73,7 +73,7 @@ Source: [Official one-page PDF](https://gettingthingsdone.com/wp-content/uploads
 
 Defer in the diagram has a broad meaning that includes placing actions not to be done now on a calendar or Next Actions list. It does not only mean hiding items until a particular date. Reference information, future possibilities, and waiting after delegation also have separate paths.
 
-**Implication for Ariadne:** Do not collapse GTD's broad Defer, Ariadne's date-based Defer, Waiting For, and Someday/Maybe into a single state.
+**Implication for Weave:** Do not collapse GTD's broad Defer, Weave's date-based Defer, Waiting For, and Someday/Maybe into a single state.
 
 ## 4. Cognitive Research and Design Principles for Benefits
 
@@ -135,7 +135,7 @@ Source: [Author's paper](https://arxiv.org/html/2403.17089v2). Scope reviewed: G
 
 Proposes using GTD and other methods to decompose long-term goals into activities and tasks, with human-AI collaboration for information gathering, decision making, and real-world action. Initial high-level plans and progressive detail are relevant references.
 
-**Limit:** The evaluation is described as a plan; this is not evidence that the proposed assistance benefits have been measured. A multi-agent configuration is not a requirement for Ariadne.
+**Limit:** The evaluation is described as a plan; this is not evidence that the proposed assistance benefits have been measured. A multi-agent configuration is not a requirement for Weave.
 
 **Design hypothesis:** Do not decompose every step up front; support the detail currently needed and updates as work progresses.
 
@@ -185,7 +185,7 @@ Uses wearable input and a model of working memory to choose intervention timing.
 
 **Limit:** A limited physical-task experiment, not evidence for everyday ToDos or long-term life assistance. Do not reinterpret response rate improvement as benefit across daily life.
 
-**Design hypothesis:** Separate “return to the candidate list” from “interrupt and show now.” This does not prove prompts alone can choose timing well; consider necessary context, state, and evaluation. It also does not justify adding sensors or a dedicated working-memory engine to Ariadne.
+**Design hypothesis:** Separate “return to the candidate list” from “interrupt and show now.” This does not prove prompts alone can choose timing well; consider necessary context, state, and evaluation. It also does not justify adding sensors or a dedicated working-memory engine to Weave.
 
 ## 6. Public Practices and Implementation Descriptions
 
@@ -197,7 +197,7 @@ Describes common Markdown state and GTD Skills used from coding assistants. Sepa
 
 **Useful reference:** Separate workflow guidance, persistent state, and connection to an execution environment.
 
-**Not adopted by implication:** Markdown as Ariadne's source of truth, CLI-oriented UX, fixed list structure, or the quality/reliability of public code and operations. The code was not run or audited here.
+**Not adopted by implication:** Markdown as Weave's source of truth, CLI-oriented UX, fixed list structure, or the quality/reliability of public code and operations. The code was not run or audited here.
 
 ### N2. Practice Report in a reference-product user forum
 
@@ -207,11 +207,11 @@ An example that separates GTD semantics, the reference product as the source of 
 
 **Limit:** Personal self-report, not an official reference-product vendor recommendation or independent effectiveness evaluation.
 
-**Difference from Ariadne:** Ariadne does not require GTD's fixed classification system and reconsiders the workflow itself based on benefits. Use the role separation as a reference, not a workflow to copy as-is.
+**Difference from Weave:** Weave does not require GTD's fixed classification system and reconsiders the workflow itself based on benefits. Use the role separation as a reference, not a workflow to copy as-is.
 
 ## 7. What to Carry from Research into Design
 
-The following are design inferences for Ariadne, not direct conclusions of the cited sources.
+The following are design inferences for Weave, not direct conclusions of the cited sources.
 
 | Design question | Main references | Proposed direction |
 | --- | --- | --- |
@@ -223,14 +223,14 @@ The following are design inferences for Ariadne, not direct conclusions of the c
 | When should items be shown? | R6, R9 | Separate selection from intervention timing and evaluate within actual host capabilities |
 | How to separate storage and judgment? | N1, N2 | Separate dot's prompt from D1 as the source of truth |
 
-The final division of responsibilities is not uniquely derived from the literature. **Ariadne as a thin interface to D1, with dot providing assistance through prompts, is the product architecture specified by the user.** The literature provides questions for evaluating that design.
+The final division of responsibilities is not uniquely derived from the literature. **Weave as a thin interface to D1, with dot providing assistance through prompts, is the product architecture specified by the user.** The literature provides questions for evaluating that design.
 
 ## 8. Corrections to the Initial Research and Open Questions
 
-The initial synthesis leaned toward “how to delegate GTD to an LLM.” Reconsidering from benefits removes the assumption that fixed five stages, classifying every item, simply automating weekly review, or building a recommendation engine into Ariadne itself are requirements.
+The initial synthesis leaned toward “how to delegate GTD to an LLM.” Reconsidering from benefits removes the assumption that fixed five stages, classifying every item, simply automating weekly review, or building a recommendation engine into Weave itself are requirements.
 
 The evidence was also qualified: GOLF's proposal is not treated as evaluated; limited settings in PITCH and Cocoa are retained; ProMemAssist response rates are distinguished from benefits; personal practice is separated from experiments.
 
 This research does not resolve whether a user can feel at ease with only AI-organized state, whether exception-focused checks avoid omissions, whether repeated corrections preserve user intent, whether supervision burden stays below the original management burden, or whether the host provides the necessary opportunities to act.
 
-The conclusion is therefore: **there is a rationale and a set of evaluation questions for redesigning from benefits, but Ariadne must test whether the redesign works.** This connects to the [assistance design evaluation proposal](../design/assistance.md) and should not be confused with acceptance of the existing Work deployment.
+The conclusion is therefore: **there is a rationale and a set of evaluation questions for redesigning from benefits, but Weave must test whether the redesign works.** This connects to the [assistance design evaluation proposal](../design/assistance.md) and should not be confused with acceptance of the existing Work deployment.

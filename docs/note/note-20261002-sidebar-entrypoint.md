@@ -1,7 +1,7 @@
 ---
 id: note-20261002-sidebar-entrypoint
 kind: note
-title: Launch Ariadne from the sidebar
+title: Launch Weave from the sidebar
 status: published
 created: '2026-10-02'
 tags: []
@@ -12,9 +12,9 @@ summary: Sidebar entry-point declaration, deployment and outstanding acceptance 
 updated: '2026-10-03'
 ---
 
-# Launch Ariadne from the sidebar
+# Launch Weave from the sidebar
 
-Added `openai/ui.entrypoints` with `global` and `thread` to the `_meta` of `ariadne_open`. Declared that the existing `tasks-v3.html` can open from the full-screen sidebar and the panel beside a conversation. Did not add an entry point to the verification fixture. No changes to persistence, DB or access permissions.
+Added `openai/ui.entrypoints` with `global` and `thread` to the `_meta` of `weave_open`. Declared that the existing `tasks-v3.html` can open from the full-screen sidebar and the panel beside a conversation. Did not add an entry point to the verification fixture. No changes to persistence, DB or access permissions.
 
 Official reference: https://developers.openai.com/plugins/build/extensions (Sidebar apps). Apply connection information by refreshing the existing Plugin.
 

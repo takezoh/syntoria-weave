@@ -1,6 +1,6 @@
 # Use cases: ask your AI
 
-Tell your AI what you want to hand over and how you want it handled. These examples are starting points for your own prompts. Ariadne stores shared state for everyday work and personal actions. Your AI reads and updates it, and you can inspect and correct the same saved actions in conversation or the dedicated UI. Interpretation and decisions belong to your AI; Ariadne keeps the requested state and its updates consistent.
+Tell your AI what you want to hand over and how you want it handled. These examples are starting points for your own prompts. Syntoria Weave stores shared state for everyday work and personal actions. Your AI reads and updates it, and you can inspect and correct the same saved actions in conversation or the dedicated UI. Interpretation and decisions belong to your AI; Weave keeps the requested state and its updates consistent.
 
 ## Put down an unfinished thought
 
@@ -52,7 +52,7 @@ Conversation and the dedicated UI use the same saved list. Undo checks whether l
 
 > I corrected the trip plan in the dedicated UI. Read the current saved actions, then help me decide the next step. Keep the saved state unchanged while you make suggestions.
 
-> Another conversation renamed the hotel action. Retrieve its current name and ID from Ariadne before continuing.
+> Another conversation renamed the hotel action. Retrieve its current name and ID from Weave before continuing.
 
 The current saved state supplies the correction even when this conversation still contains older wording. Your AI can reconsider its advice from the retrieved state. It remains responsible for interpreting the change; reading an action does not complete it or record that you have read it.
 
@@ -62,17 +62,17 @@ The current API provides full snapshots and queries. These examples ask for curr
 
 > Read the actions saved by my collection workflow, including their source notes. Help me organize them for today's work without adding duplicates.
 
-For example, one caller workflow can collect commitments and another can help review them. Both operate on the same owner's saved actions rather than maintaining separate lists. Each caller needs authorized access in its environment and reads the current state before proposing updates. Ariadne preserves ownership and rejects writes based on stale state; deciding which information matters and how to respond belongs to each AI. ChatGPT is the current delivery environment.
+For example, one caller workflow can collect commitments and another can help review them. Both operate on the same owner's saved actions rather than maintaining separate lists. Each caller needs authorized access in its environment and reads the current state before proposing updates. Weave preserves ownership and rejects writes based on stale state; deciding which information matters and how to respond belongs to each AI. ChatGPT is the current delivery environment.
 
 ## Collect inputs from other tools
 
 > Read the emails I selected and capture the commitments I made. Preserve their source wording and links, check my existing list for duplicates, and leave uncertain interpretations for review.
 
-An AI with authorized email or Slack access can compose those tools with Ariadne. You can also arrange recurring collection or reviews through a scheduler available to your AI. Choose the sources, permitted changes, timing and delivery with that caller.
+An AI with authorized email or Slack access can compose those tools with Weave. You can also arrange recurring collection or reviews through a scheduler available to your AI. Choose the sources, permitted changes, timing and delivery with that caller.
 
-## Let dot collect items that need your attention
+## Let your AI collect items that need your attention
 
-> Monitor my authorized personal and work Slack and email sources. When you detect something I need to check or respond to, save it in Ariadne under my Personal or Work project according to the source account or workspace. Preserve the original message, source link and event ID, and add my Notification tag. Check existing records before adding the same event again. If the scope is unclear, ask me. Don't invent a deadline, send a reply or mark anything complete.
+> Monitor my authorized personal and work Slack and email sources. When you detect something I need to check or respond to, save it in Weave under my Personal or Work project according to the source account or workspace. Preserve the original message, source link and event ID, and add my Notification tag. Check existing records before adding the same event again. If the scope is unclear, ask me. Don't invent a deadline, send a reply or mark anything complete.
 
 For example, a lunch confirmation from personal Slack and an electricity-bill question from personal email go into Personal. A release-proposal review from work Slack and an estimate confirmation from work email go into Work. All four get the Notification tag, so you can ask:
 
@@ -82,6 +82,6 @@ After checking an item, you can say:
 
 > I've checked the electricity-bill message. Remove its Notification tag, but keep the action open because the bill still needs handling.
 
-The tag records what still needs your attention; clearing it is separate from completing the action. dot's source access and monitoring run in its environment. Notification is your saved tag; delivery of an alert is a separate caller action.
+The tag records what still needs your attention; clearing it is separate from completing the action. Your AI's source access and monitoring run in its environment. Notification is your saved tag; delivery of an alert is a separate caller action.
 
 For tool discovery, reusable skills and custom automation, see the [workflow guide](agent-workflows.md). For the meaning of actions, dates and perspectives, see [Product and usage](../../PRODUCT.md).

@@ -29,11 +29,11 @@ This report covers tests of current M0. It does not show that all target feature
 ## Environment and Saved Artifacts
 
 - Client: desktop web ChatGPT in cloud Chrome, **Work mode**. Email sign-in and MFA completed.
-- Installed and connected the personal plugin **Ariadne · Work Verification**. Confirmed the connected state and called tools from Work.
+- Installed and connected the personal plugin **Weave · Work Verification**. Confirmed the connected state and called tools from Work.
 - [Work conversation with round-trip, retry, and negative tests](https://chatgpt.com/c/6abe4f30-5b4c-83e8-83fe-ddf0e6b1714a)
 - [Separate Work conversation restored without copied history](https://chatgpt.com/c/6abe501d-5528-83e8-90ba-af5c03afe6d4)
-- Verification version: https://Ariadne-work-proof.example.chatgpt.site
-- MCP: https://Ariadne-work-proof.example.chatgpt.site/mcp
+- Verification version: https://syntoria-weave-work-proof.example.chatgpt.site
+- MCP: https://syntoria-weave-work-proof.example.chatgpt.site/mcp
 - Site project: `appgprj_6abe391bc8cc81918b4e842b4db293e8`
 - Version: `appgprj_6abe391bc8cc81918b4e842b4db293e8~appgver_943a61393c5481919f8feb645627b376`
 - Deployment: `appgdep_6abe3c1c9fa4819186c41330d0768b0f`, `succeeded` / `has_mcp=true`
@@ -54,10 +54,10 @@ Only four tools are available:
 
 | Tool | Current operation |
 | --- | --- |
-| ariadne_open | Dedicated UI and saved list |
-| ariadne_list_tasks | Independent list retrieval |
-| ariadne_add_task | Add fictional task and retry addition with identical input |
-| ariadne_rename_task | Rename using expected_revision |
+| weave_open | Dedicated UI and saved list |
+| weave_list_tasks | Independent list retrieval |
+| weave_add_task | Add fictional task and retry addition with identical input |
+| weave_rename_task | Rename using expected_revision |
 
 All reads and writes are owner-scoped using the server-side authentication ID. Service credentials are not treated as user IDs, and authentication headers were not spoofed. The storage table has owner/id/title/initial_title/revision/last_request/created_at/updated_at; it has no Defer, graph, completion, or operation-history columns.
 
@@ -67,14 +67,14 @@ Shared task ID: `3ddd2e2a-0d4f-42b5-86a7-67a383e2ad70`. Times are JST.
 
 | Operation | Retrieved result | Verdict |
 | --- | --- | --- |
-| 21:17:11, ariadne_open in Work | Ariadne screen in the conversation, add/update/save actions, empty list | Pass |
+| 21:17:11, weave_open in Work | Weave screen in the conversation, add/update/save actions, empty list | Pass |
 | 21:17:37, add in UI | “Verification only: check fictional travel packing list,” revision 1. Independent production D1 read agreed | Pass |
 | Close tab and reopen same conversation in new tab | At 21:18:04, same ID/title/revision 1 | Pass |
 | List and rename in conversation, refresh UI | At 21:19:00, “Verification only: changed packing check from conversation,” revision 2 | Pass |
 | Correct title in UI, list from conversation | At 21:19:19, “Verification only: corrected packing check from UI,” revision 3. Production D1 agreed | Pass |
 | List/open in new Work conversation | At 21:21:18, same ID/title/revision 3. Prompt did not include old title, ID, revision, or conversation history | Pass |
 
-Screenshot of new conversation: `Ariadne-work-new-chat-20261001.jpg`. Structured measurement record: [work-m0-live-20261001.json](evidence/work-m0-live-20261001.json).
+Screenshot of new conversation: `syntoria-weave-work-new-chat-20261001.jpg`. Structured measurement record: [work-m0-live-20261001.json](evidence/work-m0-live-20261001.json).
 
 ## Retry and Conflict Measurements
 
@@ -104,7 +104,7 @@ The current last_request-only check cannot preserve the mapping between request 
 2. In another UI still on revision 4, entered “Verification only: unsaved correction to preserve” and saved. It conflicted, but the input remained at that point.
 3. As instructed, pressed “Refresh.” At 21:27:49 it retrieved revision 5 and replaced the input field with the saved title. The unsaved proposal was not preserved or shown for comparison.
 
-Screenshots: `Ariadne-conflict-20261001.jpg` and `Ariadne-refresh-draft-loss-20261001.jpg`. Protecting saved content succeeded, but the experience contract to preserve unsaved input was not met.
+Screenshots: `syntoria-weave-conflict-20261001.jpg` and `syntoria-weave-refresh-draft-loss-20261001.jpg`. Protecting saved content succeeded, but the experience contract to preserve unsaved input was not met.
 
 ## Verdict on Remaining Required Items
 

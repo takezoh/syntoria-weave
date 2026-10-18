@@ -22,7 +22,7 @@ Called once with the specified arguments; it was rejected with idempotency_confl
 The retrieved current name remains “Verification 0303: latest correction preserved after Undo.”
 The overall revision also remains 75. No save with a new request ID was made.
 You said:
-The organization result for “Verification 0305,” saved in Ariadne as original input only, is still missing. Check its save status and organize it now. Creating the report note waits for the numbers to be checked. No parent-child relationship is needed; keep the reference URL only in the report note's notes. Do not add duplicates.
+The organization result for “Verification 0305,” saved in Weave as original input only, is still missing. Check its save status and organize it now. Creating the report note waits for the numbers to be checked. No parent-child relationship is needed; keep the reference URL only in the report note's notes. Do not add duplicates.
 …
 Show more
 Worked for 44s
@@ -66,4 +66,4 @@ Ultra
 Persistent
 Outputs
 Create file or site
-Ariadne response-loss verification UI
+Weave response-loss verification UI

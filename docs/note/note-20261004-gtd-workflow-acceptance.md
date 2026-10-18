@@ -56,4 +56,4 @@ A separate seventh stage captured the exact input “Deal with the bank issue.�
 - [Independent initial assessment](evidence/gtd-workflow-20261004/initial-assessment.json)
 - [Blind fresh-context review](evidence/gtd-workflow-20261004/blind-reuse.json)
 
-This is behavioral acceptance of the requested caller workflow on the existing MCP → Worker → local D1 path. Category meaning and review procedure are caller policy, not an Ariadne-owned GTD engine. Long-term reduction in management effort is not established by this finite scenario. The initial assessment's additional unknown-outcome and conflict-recovery suggestions were outside this workflow scenario, not failures of its observed stages.
+This is behavioral acceptance of the requested caller workflow on the existing MCP → Worker → local D1 path. Category meaning and review procedure are caller policy, not a Weave-owned GTD engine. Long-term reduction in management effort is not established by this finite scenario. The initial assessment's additional unknown-outcome and conflict-recovery suggestions were outside this workflow scenario, not failures of its observed stages.

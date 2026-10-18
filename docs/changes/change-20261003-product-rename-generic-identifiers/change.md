@@ -81,7 +81,7 @@ updated: '2026-10-03'
 
 ## Summary
 
-On 2026-10-03 the user requested a product rename, chose the full scope including published identifiers, and directed that source code use neither product name. Documentation used the selected product name. Code, tests, scripts, configuration, MCP tool names, UI resource URIs, the Skill and the revision guard use generic identifiers such as action-tools and list_actions. The current product name is Ariadne.
+On 2026-10-03 the user requested a product rename, chose the full scope including published identifiers, and directed that source code use neither product name. Documentation used the selected product name. Code, tests, scripts, configuration, MCP tool names, UI resource URIs, the Skill and the revision guard use generic identifiers such as action-tools and list_actions. The current product name is Weave.
 
 The tool and resource renames are a breaking external contract change without aliases. Migration 0012 changes only the revision guard's raised marker. Hosted migration, deployment and host acceptance are outside this change.
 

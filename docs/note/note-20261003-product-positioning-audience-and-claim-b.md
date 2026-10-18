@@ -20,7 +20,7 @@ updated: '2026-10-03'
 
 ## Decision and source
 
-Source: the user's adoption, in this repository conversation on 2026-10-03, of a branding proposal derived from the product's architecture. The adoption explicitly left product naming undecided at that time. The current product name is Ariadne.
+Source: the user's adoption, in this repository conversation on 2026-10-03, of a branding proposal derived from the product's architecture. The adoption explicitly left product naming undecided at that time. The current product name is Weave.
 
 Adopted direction: the product is positioned as a task list built for an AI to manage. The headline is "Hand your to-do list to your AI—without watching over it." The primary audience is individuals who want their AI to handle task upkeep, especially people for whom maintaining a to-do app became work in itself. Safe AI writes and method independence are the differentiators supporting relief from remembering. User-facing text says "AI" rather than "LLM", the tone is calm and plain, and claims stay within current contracts. The governing statement is in the [product design](../design/product.md); user-facing wording is in [README](../../README.md) and [PRODUCT](../../PRODUCT.md).
 
@@ -32,9 +32,9 @@ A limited web review in 2026-10 informed the decision. Sources were vendor help 
 - Public guidance for one established ChatGPT task integration asks users to check each change before confirming. It described no undo or conflict handling; absence from documentation does not prove absence of the feature.
 - AI planners make organizing or scheduling decisions inside their own apps.
 - Open-source GTD-oriented tool servers fix a GTD status model or depend on a local desktop app.
-- Host features cover reminders and scheduled prompts. They complement Ariadne's data responsibilities rather than compete with them.
+- Host features cover reminders and scheduled prompts. They complement Weave's data responsibilities rather than compete with them.
 
-Interpretation: delegation to an AI alone does not differentiate Ariadne. Its contract-backed differences are safe AI writes (latest-revision validation, proposal retention, receipt replay, unknown-outcome recovery and conflict-aware Undo) and the absence of a backend management method. People already settled in an established app can use that app's AI connection, so the primary audience is people for whom app upkeep was the burden. These are design judgments, not market validation or measured user outcomes.
+Interpretation: delegation to an AI alone does not differentiate Weave. Its contract-backed differences are safe AI writes (latest-revision validation, proposal retention, receipt replay, unknown-outcome recovery and conflict-aware Undo) and the absence of a backend management method. People already settled in an established app can use that app's AI connection, so the primary audience is people for whom app upkeep was the burden. These are design judgments, not market validation or measured user outcomes.
 
 ## Scope and preservation
 

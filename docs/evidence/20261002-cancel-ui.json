@@ -3,7 +3,7 @@
   "source": "4cf3abe5ce38cde9ba25457420ed9d6f76f28f86",
   "deployment": "appgdep_6abf2114bcc48191b126aa345ed40ea1",
   "steps": [
-    "Connection Refresh, close old panel, open and expand new Ariadne",
+    "Connection Refresh, close old panel, open and expand new Weave",
     "Confirmed cancelled navigation and pending concern wording",
     "Test task detail > cancel > preview > save",
     "Independent tool read: revision37 cancelled",

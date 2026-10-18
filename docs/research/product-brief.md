@@ -1,16 +1,16 @@
 Product and vendor names and identifying source URLs have been removed from this historical reference. The observations below are retained research summaries, not independently verifiable source citations.
 
-# Ariadne — Product Brief
+# Weave — Product Brief
 
-> Historical synthesis of the 2026-10-02 discussion and research. The text below retains the terminology, proposals and implementation assumptions of that period; it is not the current product contract. This record predates the product's earlier rename from Ariadne and its later rename to Ariadne. Current positioning, audience and claim boundaries are defined in the active product design. At the time, the product provided structured task-data API/MCP tools and a shared UI; user prompts, LLMs, dot and caller-side schedulers chose the management method and execution. Caller-side Slack/email collection was tool composition, not a future Ariadne integration. See [PRODUCT](../../PRODUCT.md), [active product design](../design/product.md), [caller responsibilities](../design/assistance.md), the [2026-10-03 clarification](../note/note-20261003-llm-delegated-task-management-and-plugin.md), the [positioning decision](../note/note-20261003-product-positioning-audience-and-claim-b.md) and the [rename change](../changes/change-20261003-product-rename-generic-identifiers/change.md).
+> Historical synthesis of the 2026-10-02 discussion and research. The text below retains the terminology, proposals and implementation assumptions of that period; it is not the current product contract. This record predates the product's earlier rename from Weave and its later rename to Weave. Current positioning, audience and claim boundaries are defined in the active product design. At the time, the product provided structured task-data API/MCP tools and a shared UI; user prompts, LLMs, dot and caller-side schedulers chose the management method and execution. Caller-side Slack/email collection was tool composition, not a future Weave integration. See [PRODUCT](../../PRODUCT.md), [active product design](../design/product.md), [caller responsibilities](../design/assistance.md), the [2026-10-03 clarification](../note/note-20261003-llm-delegated-task-management-and-plugin.md), the [positioning decision](../note/note-20261003-product-positioning-audience-and-claim-b.md) and the [rename change](../changes/change-20261003-product-rename-generic-identifiers/change.md).
 
 **The right things, at the right time.**
 
 **Forget what is not needed now with confidence. Focus on what needs doing now.**
 
-Ariadne is a personal daily task manager where people enter work and personal “to-dos” in natural language and ChatGPT organizes them into a task list. dot inside ChatGPT uses the input and saved tasks to organize, defer, and present items; Ariadne provides a thin read/change interface to D1 and a dedicated UI.
+Weave is a personal daily task manager where people enter work and personal “to-dos” in natural language and ChatGPT organizes them into a task list. dot inside ChatGPT uses the input and saved tasks to organize, defer, and present items; Weave provides a thin read/change interface to D1 and a dedicated UI.
 
-The goal is to save necessary information and prevent omissions while relieving the burden of remembering what is not needed now, so the user can focus on what should be done now through a task list suited to their purpose and context. The aim is not to automate GTD procedures unchanged, but to provide their benefits while also reducing the work of managing the system itself. The reference product informs the design of states, parameters, and perspectives, but Ariadne should not require the same management work of its users.
+The goal is to save necessary information and prevent omissions while relieving the burden of remembering what is not needed now, so the user can focus on what should be done now through a task list suited to their purpose and context. The aim is not to automate GTD procedures unchanged, but to provide their benefits while also reducing the work of managing the system itself. The reference product informs the design of states, parameters, and perspectives, but Weave should not require the same management work of its users.
 
 | Document information | Details |
 | --- | --- |
@@ -40,7 +40,7 @@ The audience is **daily tasks in work and personal life**. Handle separately tas
 
 The problem is not only “the list is hard to operate.” The aim is to reduce the burden of deciding what to remember, how to organize it, what can be forgotten for now, and when it should come back to attention.
 
-Obsidian Air Sync's Like Air is a UX reference, but Ariadne does not copy its transparency of synchronization directly. What matters is not making everything invisible; it is **ensuring necessary things receive attention without demanding unnecessary attention**. Silently hiding an important item is not considered burden reduction.
+Obsidian Air Sync's Like Air is a UX reference, but Weave does not copy its transparency of synchronization directly. What matters is not making everything invisible; it is **ensuring necessary things receive attention without demanding unnecessary attention**. Silently hiding an important item is not considered burden reduction.
 
 The user enters “to-dos” and change requests in natural language to ChatGPT. dot reviews the original input and existing tasks, then organizes necessary actions, parent-child relationships, and dependencies. The user can review the task list and request corrections, deferral, completion, or cancellation. A dedicated screen inside ChatGPT can also review and correct the same saved information.
 
@@ -61,7 +61,7 @@ The user enters “to-dos” and change requests in natural language to ChatGPT.
 
 ### 2.1 Core Benefit
 
-**Forget what is not needed now with confidence. Focus on what needs doing now.** This is the intended outcome; it does not mean Ariadne's long-term effects have been proven.
+**Forget what is not needed now with confidence. Focus on what needs doing now.** This is the intended outcome; it does not mea Weave's long-term effects have been proven.
 
 Even after deciding “not now,” the user may remain burdened by remembering “I need to do that later.” The aim is not only to make a decision, but to set necessary information aside without losing it and direct attention toward a task list suited to the current purpose.
 
@@ -80,7 +80,7 @@ Task count, completed-task count, and notification response rate are not success
 
 GTD aims to put intentions and commitments into a trusted external system, clear the mind, and make it possible to choose what to do. In manual use, however, people take on the work of organizing, maintaining, and reviewing that system. [G1](#g1)
 
-Ariadne should not merely shift the burden of remembering to the burden of organizing; it should also delegate as much organization, maintenance, search, and reconsideration as possible to dot. But if explanations to AI, full review of every result, approval, and error correction increase, the burden may only have moved.
+Weave should not merely shift the burden of remembering to the burden of organizing; it should also delegate as much organization, maintenance, search, and reconsideration as possible to dot. But if explanations to AI, full review of every result, approval, and error correction increase, the burden may only have moved.
 
 The starting point for evaluation is **the burden of explaining, approving, correcting, monitoring, and interruptions caused by AI, subtracted from the burden of memory, organization, search, and reconsideration reduced**. This is a design criterion to turn into measured items alongside quality conditions against omissions; it is not an established numeric metric. [R2](#r2) and [R3](#r3) are references, not papers that directly tested this subtraction.
 
@@ -94,7 +94,7 @@ Therefore, distinguish correct saving to D1 from the person's understanding of h
 
 Retain the earlier idea “choose what to do or not do now with confidence” as support for user agency. However, position the core product benefit as the result of that choice: “forget safely” and “focus.” This reframing does not remove the user's ability to choose deferral or cancellation.
 
-| Role | Position in Ariadne |
+| Role | Position in Weave |
 | --- | --- |
 | Benefit | Forget what is not needed now with confidence and focus on what needs doing now |
 | Form provided | A task list that shows what to work on and necessary context |
@@ -125,11 +125,11 @@ The five GTD activities can help check for gaps, but do not justify a fixed conv
 
 Use the reference product as a reference for separating the meaning of dates/states, viewing the same data for different purposes, and combining conditions with order. The goal is not to import its feature count, forms, or maintenance of detailed classifications.
 
-Parameters preserve different meanings inferred by dot. Perspectives retrieve and display the same source of truth for the purpose, helping the user focus on what needs doing now. Do not add parameters to make users configure the same system manually. Official manuals support feature meanings; they are not comparative studies proving Ariadne reduces burden. [O1–O3](#state-and-view-sources)
+Parameters preserve different meanings inferred by dot. Perspectives retrieve and display the same source of truth for the purpose, helping the user focus on what needs doing now. Do not add parameters to make users configure the same system manually. Official manuals support feature meanings; they are not comparative studies proving Weave reduces burden. [O1–O3](#state-and-view-sources)
 
 ### 3.3 Assumptions Not Adopted
 
-Do not assume Ariadne should be built as an app that runs fixed GTD procedures, a chatbot with a separate source of truth, or a standalone LLM coach/importance inference/recommendation/review engine. Do not preselect a rich backend intelligence, its own constant monitoring/notifications, or a number of agents. Public implementations and papers are material for consideration, not requirements by themselves.
+Do not assume Weave should be built as an app that runs fixed GTD procedures, a chatbot with a separate source of truth, or a standalone LLM coach/importance inference/recommendation/review engine. Do not preselect a rich backend intelligence, its own constant monitoring/notifications, or a number of agents. Public implementations and papers are material for consideration, not requirements by themselves.
 
 <a id="approach"></a>
 ## 4. Assistance Approach: What Work to Take on for the User
@@ -200,14 +200,14 @@ If the user says “suggest it, but wait to apply,” preserve that boundary. Do
 
 ### 5.1 Architecture Explicitly Specified by the User
 
-> Ariadne provides an LLM with a thin interface to D1. The LLM provides benefits through prompts. Embedding it in ChatGPT lets dot use Ariadne to help the user.
+> Weave provides an LLM with a thin interface to D1. The LLM provides benefits through prompts. Embedding it in ChatGPT lets dot use Weave to help the user.
 
 This is a product direction specified by the user, not the only architecture derived from literature. Research gives questions for designing and evaluating assistance with this architecture.
 
 ```text
 User ↔ dot inside ChatGPT + assistance prompt/Skill
                          ↕ versioned read/change operations
-                 Ariadne thin interface ↔ D1 (source of truth)
+                 Weave thin interface ↔ D1 (source of truth)
                          ↕ same operation contract
                  Dedicated UI inside ChatGPT ↔ User
 ```
@@ -215,14 +215,14 @@ User ↔ dot inside ChatGPT + assistance prompt/Skill
 | Layer | Responsibility | Not responsible for |
 | --- | --- | --- |
 | dot/prompt | Understand meaning, relate items, organize/defer/review/present, decide if clarification is needed | Claim saving succeeded without evidence |
-| Ariadne operation layer | Read, preview, validated changes, revision, receipt, Undo, consistency, authorization boundary | Independent LLM engine deciding importance or life goals |
+| Weave operation layer | Read, preview, validated changes, revision, receipt, Undo, consistency, authorization boundary | Independent LLM engine deciding importance or life goals |
 | D1 | Persistence for original input, structure, dates, operation results, etc. | Autonomous judgment or guessing user intent |
 | Dedicated UI in ChatGPT | Display the same state, distinguish unsaved drafts, allow review/direct correction | A task source of truth separate from conversation |
-| ChatGPT host | dot execution opportunities, tool use, actual provided connection/execution capability | Unlimited continuous execution that Ariadne may assume exists |
+| ChatGPT host | dot execution opportunities, tool use, actual provided connection/execution capability | Unlimited continuous execution that Weave may assume exists |
 
 **Flexible meaning judgments; reliable storage and state transitions.** A thin interface does not mean exposing arbitrary SQL or owner selection to an LLM, nor delegating consistency to a model. It also does not mean narrowing the API so much that required state/changes cannot be expressed.
 
-The backend is serverless; the current platform is Sites + D1 + MCP Apps UI. Cloud Run + Firestore remains in alternative history. Ariadne is not only a collection of prompts; it also covers code and evaluation scenarios for persistent state, operations, and UI.
+The backend is serverless; the current platform is Sites + D1 + MCP Apps UI. Cloud Run + Firestore remains in alternative history. Weave is not only a collection of prompts; it also covers code and evaluation scenarios for persistent state, operations, and UI.
 
 ### 5.2 Operational Guarantees That Must Not Change
 
@@ -230,7 +230,7 @@ The backend is serverless; the current platform is Sites + D1 + MCP Apps UI. Clo
 | --- | --- |
 | Original input and organization | Preserve original input first; distinguish saved input from organized meaning |
 | Inference and user instruction | Do not make an inference into confirmed intent or undo a user correction in later reasoning |
-| Existing state is needed | Read the required state from Ariadne instead of relying on conversation memory alone |
+| Existing state is needed | Read the required state from Weave instead of relying on conversation memory alone |
 | Defer, reopening ancestors, etc. | Do not skip required preview; show scope/date/deadline risk |
 | Write result | Report based on tool result and necessary reread |
 | Update conflict | Preserve latest state and user's proposal; do not overwrite without permission |
@@ -247,7 +247,7 @@ Verify separately that a prompt was saved in the repository, delivered to the ho
 
 The initial policy was not to treat the mere existence of `skills/action-tools/SKILL.md` as host integration. At the source revision, an implementation was added that defines assistance policy in `lib/assistance.ts`, includes it in MCP initialize.instructions and tool descriptions, and synchronizes the Skill. However, that implementation/deployment must not be mistaken for acceptance of every assistance behavior in real Work. [Progress record](../note/note-20261002-benefit-mvp-progress.md)
 
-Also distinguish “can decide the right time” from “dot starts at that time.” Distinguish conversation start, list retrieval, and execution opportunities actually provided and permitted by the host. Do not implicitly add Ariadne's own monitoring, scheduler, or notification engine.
+Also distinguish “can decide the right time” from “dot starts at that time.” Distinguish conversation start, list retrieval, and execution opportunities actually provided and permitted by the host. Do not implicitly add Weave's own monitoring, scheduler, or notification engine.
 
 The initial direction to use Sign in with ChatGPT also does not imply a right to independent service-side inference or unlimited background execution. Eligibility, execution model, limits, and commercial terms need verification. “dot” in this brief refers to the intended assistance agent, not a guarantee of new platform capabilities.
 
@@ -259,10 +259,10 @@ The initial direction to use Sign in with ChatGPT also does not imply a right to
 | Subject | Example | Responsibility |
 | --- | --- | --- |
 | Saved facts/intent | Original input, corrected title, parent-child, dependency, Defer date | D1 and change contract |
-| Criteria-based projection/selection | Normal/deferred/completed, waiting reason, criteria match | Ariadne reads and deterministic criteria |
+| Criteria-based projection/selection | Normal/deferred/completed, waiting reason, criteria match | Weave reads and deterministic criteria |
 | Contextual assistance | What to work on now, whether to ask, whether to suggest deferral | dot and prompt |
 
-Ariadne reads state under specified criteria and applies consistent changes. Do not bury an assistance policy about “what matters” inside display criteria.
+Weave reads state under specified criteria and applies consistent changes. Do not bury an assistance policy about “what matters” inside display criteria.
 
 What is stored, retrieved this time, displayed this time, and reviewed by the user are different. dot must not treat unread information as inspected. A few top results from related search do not replace a complete snapshot or owner-wide revision required to validate changes.
 
@@ -305,7 +305,7 @@ The “outcome to achieve” associated with GTD projects is a useful concept, b
 | Future possibility | Something of interest that is not currently a commitment to act | Do not treat with the same pressure as incomplete tasks; dedicated field is a candidate extension |
 | Defer | Intent to remove an item from the normal list until a specified time | Not completion, deletion, or changing a due date |
 
-Broad GTD Defer includes putting actions not to be done now on a calendar or Next Actions. It is not the same as Ariadne's date-based Defer. Do not collapse Waiting For or Someday/Maybe into one “deferred” state either. [G4](#g4)
+Broad GTD Defer includes putting actions not to be done now on a calendar or Next Actions. It is not the same as Weave's date-based Defer. Do not collapse Waiting For or Someday/Maybe into one “deferred” state either. [G4](#g4)
 
 ### 6.6 Defer, Planned, and Due
 
@@ -376,7 +376,7 @@ Say whether only some items were recommended or all items matching the criteria 
 
 Available and First Available in the reference product are different. The first item in a Parallel project or treatment in a Single Actions List is structural, not a signal of “most important.” [O3](#o3)
 
-Ariadne should also separate dependency-based availability, display order, and recommendation priority. Adding an Available-like view must not replace the existing contract that dependency-waiting items remain in the normal list with a reason.
+Weave should also separate dependency-based availability, display order, and recommendation priority. Adding an Available-like view must not replace the existing contract that dependency-waiting items remain in the normal list with a reason.
 
 ### 7.5 Do Not Confuse Defer and Perspectives
 
@@ -581,7 +581,7 @@ If a gap is found, do not immediately add intelligence to the backend. Determine
 
 Research leaves open whether a user can feel confident with only AI-organized state, whether exception-focused checking prevents omissions, whether repeated corrections preserve user intent, whether supervision burden stays below the original burden, and whether the host offers the needed execution opportunities.
 
-The conclusion is **there is a rationale and evaluation agenda for redesigning around benefits, but Ariadne must test whether it works**. Do not confuse the absence of long-term proof in research with the absence of implementation contracts or limited measured results.
+The conclusion is **there is a rationale and evaluation agenda for redesigning around benefits, but Weave must test whether it works**. Do not confuse the absence of long-term proof in research with the absence of implementation contracts or limited measured results.
 
 <a id="research"></a>
 ## 13. Research Evidence and Design Implications
@@ -595,7 +595,7 @@ The research was limited to topics raised in discussion; it is not a comprehensi
 | Type | Sources | What it supports | What it cannot establish |
 | --- | --- | --- | --- |
 | Method sources | G1–G4 | GTD's goals and mechanisms | Causal proof of effectiveness |
-| Cognitive experiments | R1, R3 | Effects of planning and offloading costs in specific tasks | The same effects for AI-generated plans or Ariadne |
+| Cognitive experiments | R1, R3 | Effects of planning and offloading costs in specific tasks | The same effects for AI-generated plans or Weave |
 | Theory and design principles | R2, R4 | Ideas about external memory and division of initiative | Effectiveness of a current LLM implementation |
 | Research proposal | R5 | A concept for long-term assistance including GTD | Results of evaluations that were not conducted |
 | Limited LLM-assistance studies | R6–R9 | Benefits and problems in dialogue, planning, and intervention | Long-term superiority in everyday life |
@@ -612,7 +612,7 @@ Source: [Getting Things Done official site](https://gettingthingsdone.com/what-i
 
 Intentions and commitments are handled through a trusted external system by capturing, clarifying, organizing, reviewing, and engaging. The system includes information that does not call for action; the aim is to clear the mind and make choices, not to maintain lists for their own sake.
 
-**Limitations and implications:** This describes a method; it does not prove causal effects. Treating its five stages as a checklist of needed functions rather than a fixed dialogue sequence is Ariadne's interpretation.
+**Limitations and implications:** This describes a method; it does not prove causal effects. Treating its five stages as a checklist of needed functions rather than a fixed dialogue sequence is Weave's interpretation.
 
 <a id="g2"></a>
 #### G2. David Allen: The Two-Minute Rule (2020)
@@ -639,7 +639,7 @@ Source: [Official one-page PDF](https://gettingthingsdone.com/wp-content/uploads
 
 Defer broadly includes placing actions that are not to be done now on a calendar or in Next Actions. Reference material, future possibilities, and items awaiting someone else's delegated work branch into other categories.
 
-**Implication:** Do not collapse GTD Defer, Ariadne's date-based Defer, Waiting For, and Someday/Maybe into one state. Confusing them could hide actions that are available but simply not intended for now.
+**Implication:** Do not collapse GTD Defer, Weave's date-based Defer, Waiting For, and Someday/Maybe into one state. Confusing them could hide actions that are available but simply not intended for now.
 
 ### 13.3 Cognitive Research and Division of Work Between People and Systems
 
@@ -706,7 +706,7 @@ Source: [Author's paper](https://arxiv.org/html/2403.17089v2). Reviewed scope: i
 
 **Finding:** The proposal draws on GTD to decompose long-term goals into activities and tasks, with people and AI collaborating on information gathering, decisions, and real-world actions. Its use of an overall plan that gains detail as work proceeds is a useful reference.
 
-**Limitations:** Evaluation is described as a plan; the source does not report measured benefits. A multi-agent architecture is not a requirement for Ariadne.
+**Limitations:** Evaluation is described as a plan; the source does not report measured benefits. A multi-agent architecture is not a requirement for Weave.
 
 **Design hypothesis:** Support the detail needed now and later updates as work progresses instead of decomposing every step upfront.
 
@@ -760,7 +760,7 @@ Source: [Author's paper](https://arxiv.org/html/2507.21378v1). Reviewed scope: 1
 
 **Limitations:** This was a limited physical-task experiment, not evidence about ordinary ToDos or long-term life assistance. Do not equate response rate with overall life benefit. It also does not show that prompts alone are enough to select presentation timing.
 
-**Design hypothesis:** Distinguish returning an item to the candidate set from interrupting the user with it now, and consider the context, state, and evaluation needed. This paper does not justify adding sensors or a dedicated working-memory engine to Ariadne.
+**Design hypothesis:** Distinguish returning an item to the candidate set from interrupting the user with it now, and consider the context, state, and evaluation needed. This paper does not justify adding sensors or a dedicated working-memory engine to Weave.
 
 ### 13.5 Public Practices and Implementations
 
@@ -773,7 +773,7 @@ Source: [Public repository](https://github.com/mikonos/LLM-GTD). Reviewed scope:
 
 **Reference:** Keep workflow instructions, persistent state, and connections to execution environments separate.
 
-**Not adopted or verified:** Making Markdown Ariadne's source of truth, CLI-oriented UX, a fixed list structure, or the quality and operational reliability of the public code. The code was not run or audited.
+**Not adopted or verified:** Making Markdown Weave's source of truth, CLI-oriented UX, a fixed list structure, or the quality and operational reliability of the public code. The code was not run or audited.
 
 <a id="n2"></a>
 #### N2. Practice Described in the a reference-product user forum
@@ -784,7 +784,7 @@ Source: GTD is the ontology, the reference product is the system of record, and 
 
 **Limitations:** This is one person's self-report, not an official reference-product vendor design recommendation or independent effectiveness study.
 
-**Difference from Ariadne:** Ariadne does not require GTD's fixed taxonomy and reconsiders the assistance workflow from the desired benefits. It references role separation without copying the workflow.
+**Difference from Weave:** Weave does not require GTD's fixed taxonomy and reconsiders the assistance workflow from the desired benefits. It references role separation without copying the workflow.
 
 <a id="state-and-view-sources"></a>
 ### 13.6 Reference Design Documentation
@@ -816,11 +816,11 @@ Source: Official 4.9.2 manual (source URL removed). Reviewed: project structures
 
 **Finding:** The structures include Sequential, Parallel, and Single Actions List. Available differs from First Available: in Parallel, the first item in order is First Available; in a Single Actions List, several actions may qualify. This does not mean “most important.” The manual also describes project completion as involving completion of child items.
 
-**Proposal:** Separate inclusion, prerequisites, order, and importance. Do not infer sequential dependencies from list order. Ariadne prioritizes C4, which keeps dependency-blocked tasks in the normal list, and C2, which prevents completing a parent with unfinished descendants. These differences from the reference product are deliberate product decisions that prevent unfinished work from being marked complete accidentally.
+**Proposal:** Separate inclusion, prerequisites, order, and importance. Do not infer sequential dependencies from list order. Weave prioritizes C4, which keeps dependency-blocked tasks in the normal list, and C2, which prevents completing a parent with unfinished descendants. These differences from the reference product are deliberate product decisions that prevent unfinished work from being marked complete accidentally.
 
 ### 13.7 Design Inferences from Primary Sources and Research
 
-| Design question | Main evidence | Inference for Ariadne |
+| Design question | Main evidence | Inference for Weave |
 | --- | --- | --- |
 | Why is saving alone insufficient? | G1, R1 | Also check whether the user understands how an item will be handled and can set it aside with confidence. |
 | How can management burden be reduced? | R2, R3 | Include supervision of AI, not only capture and categorization, in the total burden. |
@@ -831,9 +831,9 @@ Source: Official 4.9.2 manual (source URL removed). Reviewed: project structures
 | How should persistence and judgment be separated? | N1, N2 | Separate dot's prompt from D1 as the source of truth. |
 | How should state and its presentation be separated? | O1–O3 | Use semantically distinct states and purpose-specific views over the same state. |
 
-These are Ariadne design inferences, not direct conclusions from the literature. The sources provide reasons to investigate redesigning assistance through prompts, but do not establish long-term superiority over conventional GTD.
+These are Weave design inferences, not direct conclusions from the literature. The sources provide reasons to investigate redesigning assistance through prompts, but do not establish long-term superiority over conventional GTD.
 
-Correct the interpretation of the initial research as well: do not treat GOLF as evaluated; retain the limited conditions of PITCH and Cocoa; distinguish ProMemAssist response rates from benefits; and distinguish individual practice from experiments. Do not assume that fixed five-stage processing, categorizing every item, simple automation of weekly reviews, or a recommendation engine inside Ariadne is required.
+Correct the interpretation of the initial research as well: do not treat GOLF as evaluated; retain the limited conditions of PITCH and Cocoa; distinguish ProMemAssist response rates from benefits; and distinguish individual practice from experiments. Do not assume that fixed five-stage processing, categorizing every item, simple automation of weekly reviews, or a recommendation engine inside Weave is required.
 
 <a id="sources"></a>
 ## Appendix A. Sources Integrated and Reference Points
@@ -886,7 +886,7 @@ The mapping below makes the destination of information explicit; it is not an au
 | G §3 GTD sources | §13.2 | G1–G4, sources, reviewed scope, and interpretation |
 | G §4 Cognition and design principles | §13.3 | R1–R4, citations, dates, DOI, findings, limitations, hypotheses |
 | G §5 LLM assistance | §13.4 | R5–R9, versions, sample sizes, results, limitations, implications |
-| G §6 Public practice | §13.5 | N1–N2, author/date/scope, unaudited status, unofficial status, and difference from Ariadne |
+| G §6 Public practice | §13.5 | N1–N2, author/date/scope, unaudited status, unofficial status, and difference from Weave |
 | G §7 From research to design | §13.7 | Original seven questions, evidence, and inferences; responsibility split is user direction |
 | G §8 Corrections and open questions | §§3, 12, 13.7 | Corrected initial interpretation, avoiding overstatement, unresolved questions |
 | O §1 Purpose and version | §13.6 | Pinned 4.9.2; O1–O3; not a latest-version, hands-on, or pricing comparison |
@@ -908,10 +908,10 @@ IDs are local to the source documents. This section adds no new operational cons
 
 | Source document and ID | Contract meaning | Original check type |
 | --- | --- | --- |
-| P RESP-001 | Design dot's assistance and Ariadne's state and operations as one experience, starting from benefits | responsibility |
-| P INV-001 | dot is responsible for judgment; do not assume an independent LLM engine inside Ariadne | review |
+| P RESP-001 | Design dot's assistance and Weave's state and operations as one experience, starting from benefits | responsibility |
+| P INV-001 | dot is responsible for judgment; do not assume an independent LLM engine inside Weave | review |
 | P INV-002 | Distinguish policy, MVP contract, extension hypothesis, and measured result | review |
-| A RESP-001 | Separate dot's judgment policy from Ariadne's operational guarantees | responsibility |
+| A RESP-001 | Separate dot's judgment policy from Weave's operational guarantees | responsibility |
 | A INV-001 | A prompt cannot create successful persistence or external execution; claims must follow tool evidence | contract |
 | A INV-002 | Flexible assistance must not omit original-input retention, necessary previews, or conflict handling | review |
 | S RESP-001 | Do not confuse persistent state, display conditions, and recommendations | responsibility |
@@ -947,6 +947,6 @@ In v1.1, benefit wording, the role of perspectives, the distinction from Defer, 
 
 In v1.2, the README was organized around user operations and experience, the One-pager around audience, value, structure, and scope, and this brief around detailed design decisions and evidence. The main text and related design documents were aligned around entering everyday tasks in natural language, having ChatGPT save and organize them, and reviewing or changing them in a list. The original 37 sections, research, sources, limitations, contracts, and measured results were retained; features, acceptance conditions, and deployment status were not changed. Appendix A's SHAs remain records from the first edition.
 
-**People should gain the confidence, clarity, and freedom of choice that GTD seeks without having to manage GTD. Along with what to move out of mind, they should be able to delegate the work of deciding what to bring back, when, and at what level of detail.** This is central to Ariadne's design and evaluation.
+**People should gain the confidence, clarity, and freedom of choice that GTD seeks without having to manage GTD. Along with what to move out of mind, they should be able to delegate the work of deciding what to bring back, when, and at what level of detail.** This is central to Weave's design and evaluation.
 
 In the user's words, that benefit is: **“Set aside what you don't need right now with confidence. Focus on what you need to do now.”**

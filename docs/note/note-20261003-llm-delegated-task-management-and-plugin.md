@@ -20,9 +20,9 @@ updated: '2026-10-03'
 
 ## Decision and source
 
-Source: the user's clarification in this repository conversation on 2026-10-03. The concept is simply delegating task management to an LLM, including GTD or a user-defined method. Ariadne exposes structured action data through API/MCP tools and a shared UI. ChatGPT is the current delivery environment.
+Source: the user's clarification in this repository conversation on 2026-10-03. The concept is simply delegating task management to an LLM, including GTD or a user-defined method. Weave exposes structured action data through API/MCP tools and a shared UI. ChatGPT is the current delivery environment.
 
-Ariadne supplies data management, not a particular assistant workflow. User prompts, ChatGPT's dot and caller-side schedulers decide when and how to invoke its tools. A user can configure an authorized agent to inspect Slack/email with its own tools and save actions through Ariadne. No dedicated Ariadne integration is needed for that composition. This decision is not proof that any host has those capabilities configured.
+Weave supplies data management, not a particular assistant workflow. User prompts, ChatGPT's dot and caller-side schedulers decide when and how to invoke its tools. A user can configure an authorized agent to inspect Slack/email with its own tools and save actions through Weave. No dedicated Weave integration is needed for that composition. This decision is not proof that any host has those capabilities configured.
 
 ## Outcome and benefits
 
@@ -30,7 +30,7 @@ Desired outcomes are less remembering, collection, organization, review and upda
 
 ## Scope and preservation
 
-Product naming was outside the scope of this clarification. Current product, architecture, development, technical and Skill documentation are aligned with the clarified boundary. The historical product brief and superseded state design receive explicit current-entry notices; completed change packages, research/acceptance notes, ADR history and vendor licenses retain their recorded contents. The current product name is Ariadne.
+Product naming was outside the scope of this clarification. Current product, architecture, development, technical and Skill documentation are aligned with the clarified boundary. The historical product brief and superseded state design receive explicit current-entry notices; completed change packages, research/acceptance notes, ADR history and vendor licenses retain their recorded contents. The current product name is Weave.
 
 No runtime, API, schema, dependency, migration, deployment, host scheduling or external action is changed. In particular, runtime initialize/snapshot assistance text is not modified by this documentation update; it remains a separately implemented delivery mechanism rather than backend management policy. Its current arrival example still says the user supplies arrival evidence; the revised Skill documentation also permits evidence obtained by an authorized caller. That narrower runtime guidance has not been changed or host-verified here. See [runtime guidance source](../../lib/domain/assistance.ts).
 

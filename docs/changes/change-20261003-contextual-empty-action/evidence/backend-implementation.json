@@ -21,13 +21,13 @@
       "passed": 150,
       "failed": 0,
       "skipped": 0,
-      "log": "/tmp/ariadne-empty-action-backend-all.log"
+      "log": "/tmp/syntoria-weave-empty-action-backend-all.log"
     },
     "application_final": {
       "passed": 13,
       "failed": 0,
       "skipped": 0,
-      "log": "/tmp/ariadne-empty-action-backend-application.log"
+      "log": "/tmp/syntoria-weave-empty-action-backend-application.log"
     },
     "typecheck": "passed",
     "lint": "passed"

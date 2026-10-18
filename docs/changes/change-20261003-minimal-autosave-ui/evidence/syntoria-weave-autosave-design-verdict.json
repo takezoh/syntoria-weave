@@ -2,7 +2,7 @@
   "profile": "native independent review",
   "subject_kind": "design",
   "source_refs": [
-    "/tmp/ariadne-autosave-design.json",
+    "/tmp/syntoria-weave-autosave-design.json",
     "./lib/ui/application.ts",
     "./lib/ui/model/drafts.ts"
   ],

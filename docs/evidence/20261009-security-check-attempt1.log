@@ -337,7 +337,7 @@ ESLint found too many warnings (maximum: 0).
 ✔ verification fixture discards exactly one trusted write response, while still executing request (1.094531ms)
 ✔ host context notification has separate direct partial subscription and disposal (0.277555ms)
 ✔ private MCP authenticates before every JSON-RPC method and rejects unapproved transport (22.403815ms)
-✔ MCP exposes one Ariadne launcher while list retains the shared resource (4.311209ms)
+✔ MCP exposes one Weave launcher while list retains the shared resource (4.311209ms)
 ✔ MCP resource declares supported host modes while retaining CSP and HTML identity (3.070477ms)
 ✔ MCP action titles and catalog names retain required semantics (0.755331ms)
 ✔ MCP publishes exactly the current tool names without aliases (0.583673ms)

@@ -5,7 +5,7 @@ title: Modern simple shared action interface
 status: active
 created: '2026-10-03'
 profile: sdd@1
-intent: Make the shared Ariadne UI modern, simple and intuitive while preserving proposals
+intent: Make the shared Weave UI modern, simple and intuitive while preserving proposals
   and exact recovery.
 outcomes:
 - Named list-first controls with coherent generated SVG icons work in narrow and broad

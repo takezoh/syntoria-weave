@@ -20,7 +20,7 @@ The user requires hierarchical projects and tags, association with tasks and que
 
 ## Implementation contract and additional acceptance criteria
 
-- Ariadne generates UUIDs for new task/project/tag/capture entities. `operationId` / `request_id` is a separate idempotency key. Atomically save generated/resolved entity IDs and `created` results under receipt `resolved`; identical retries and `operation_status` return the same values.
+- Weave generates UUIDs for new task/project/tag/capture entities. `operationId` / `request_id` is a separate idempotency key. Atomically save generated/resolved entity IDs and `created` results under receipt `resolved`; identical retries and `operation_status` return the same values.
 - Get-or-Create projects/tags by owner, parent and trimmed case-sensitive name. Do not Unicode-normalize; allow equal names under different parents. Reject natural-key collisions on rename/move and enforce uniqueness in the database. Do not merge duplicates during migration.
 - In `structure_create`, each new task has a unique, nonempty ref. `parent_ref` may reference any task in the request. Existing tasks use `{id}` references; a dependency endpoint uses exactly one of `{ref}` or `{id}`. Do not bypass unknown-key validation by injecting internal UUIDs into caller payloads.
 - Preview does not reserve IDs. Mark candidate IDs `preview_only:true` and preserve the payload and refs. Include descendants whose paths change for project/tag edits, but do not expose unrelated nodes or the identity ledger.

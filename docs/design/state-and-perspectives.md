@@ -1,7 +1,7 @@
 ---
 id: design-state-and-perspectives
 kind: design
-title: Ariadne State, Parameters and Perspectives
+title: Weave State, Parameters and Perspectives
 status: superseded
 created: '2026-10-02'
 updated: '2026-10-03'
@@ -60,9 +60,9 @@ compatibility_policies:
 - Introduce extension candidates through a separate change design without modifying the schemaVersion 2 API contract.
 ---
 
-# Ariadne State, Parameters and Perspectives
+# Weave State, Parameters and Perspectives
 
-> Superseded historical design. References to dot, dependencies, candidate perspectives and unsupported observation describe the recorded version, not restrictions on current caller workflows. Current Ariadne exposes data tools to user-defined LLM management; external collection and scheduling belong to the caller. See [current state design](design-action-state-and-perspectives.md), [product design](product.md) and [caller responsibilities](assistance.md).
+> Superseded historical design. References to dot, dependencies, candidate perspectives and unsupported observation describe the recorded version, not restrictions on current caller workflows. Current Weave exposes data tools to user-defined LLM management; external collection and scheduling belong to the caller. See [current state design](design-action-state-and-perspectives.md), [product design](product.md) and [caller responsibilities](assistance.md).
 
 ## 1. Separate three responsibilities
 
@@ -70,8 +70,8 @@ compatibility_policies:
 
 | Concern | Example | Owner |
 | --- | --- | --- |
-| Source-of-truth state | Original input, corrected title, parent-child links, dependencies, Defer date | D1 and Ariadne change contract |
-| Deterministic projection/filter | Regular, deferred and completed lists; waiting reasons; matching explicit conditions | Ariadne reads and verifiable conditions |
+| Source-of-truth state | Original input, corrected title, parent-child links, dependencies, Defer date | D1 and Weave change contract |
+| Deterministic projection/filter | Regular, deferred and completed lists; waiting reasons; matching explicit conditions | Weave reads and verifiable conditions |
 | Contextual assistance | What to advance now, whether to ask a question, whether to suggest Defer | dot following prompts |
 
 Even a thin interface must read state under requested conditions and make consistent changes. Do not hide assistance policy—such as “what matters”—inside a projection.
@@ -108,7 +108,7 @@ Preserving explicit information, the source of inferences and user corrections i
 
 Parent-child means containment; a dependency is a prerequisite for execution. Do not infer dependencies from list order or execution order from parent-child links alone.
 
-“An outcome to achieve” is a useful concept for GTD projects, but do not constrain the current project node to that type. Do not force a one-off action to become a project. Resolve projects/tags by owner, parent and trimmed case-sensitive local name; reject duplicate names under the same parent. Ariadne generates new entity UUIDs, separate from operationId.
+“An outcome to achieve” is a useful concept for GTD projects, but do not constrain the current project node to that type. Do not force a one-off action to become a project. Resolve projects/tags by owner, parent and trimmed case-sensitive local name; reject duplicate names under the same parent. Weave generates new entity UUIDs, separate from operationId.
 
 ### Waiting, future candidates and Defer
 
@@ -118,7 +118,7 @@ Parent-child means containment; a dependency is a prerequisite for execution. Do
 | Future candidate | An interest not currently accepted as work | Do not apply the same pressure as an incomplete task; a dedicated attribute is only a future idea |
 | Defer | Intent to remove an item from the regular list until a point in time | Not completion, deletion or a deadline change |
 
-The broad meaning of Defer in the GTD workflow is not the same as Ariadne's date-specific Defer. See G4 in the [GTD research note](../note/note-20261002-gtd-benefits-and-llm-research.md).
+The broad meaning of Defer in the GTD workflow is not the same as Weave's date-specific Defer. See G4 in the [GTD research note](../note/note-20261002-gtd-benefits-and-llm-research.md).
 
 ### Defer, Planned and Due
 
@@ -171,7 +171,7 @@ Save conditions if there is ongoing value. Do not create a new perspective for e
 
 ## 6. Candidate parameter extensions
 
-These are meanings to evaluate in Ariadne based on GTD and state/view design references, not physical DB schema or settled APIs.
+These are meanings to evaluate in Weave based on GTD and state/view design references, not physical DB schema or settled APIs.
 
 | Candidate | Scenario to validate need | Constraint |
 | --- | --- | --- |

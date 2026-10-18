@@ -32,13 +32,13 @@
       "passed": 74,
       "failed": 0,
       "skipped": 0,
-      "log": "/tmp/ariadne-autosave-review-ui-final.log"
+      "log": "/tmp/syntoria-weave-autosave-review-ui-final.log"
     },
-    "shared_backend_probe": "/tmp/ariadne-autosave/reviewer-unknown-external.json",
-    "shared_backend_probe_source": "/tmp/ariadne-autosave/reviewer-unknown-external.mjs",
+    "shared_backend_probe": "/tmp/syntoria-weave-autosave/reviewer-unknown-external.json",
+    "shared_backend_probe_source": "/tmp/syntoria-weave-autosave/reviewer-unknown-external.mjs",
     "visual": [
-      "/tmp/ariadne-autosave/autosave-inbox-1280-light.png",
-      "/tmp/ariadne-autosave/autosave-tags-320-light.png"
+      "/tmp/syntoria-weave-autosave/autosave-inbox-1280-light.png",
+      "/tmp/syntoria-weave-autosave/autosave-tags-320-light.png"
     ],
     "presentation_amendment": "Independent generated HTML/JSDOM assertions passed for normal/verification hidden state and retained fetched node."
   },
