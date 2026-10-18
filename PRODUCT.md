@@ -2,7 +2,7 @@
 
 **Keep less in your head. Your AI keeps track of the rest.** Design your own workflow with your AI—GTD, a simple daily list or something entirely new; it captures, organizes and reviews your tasks your way while you stay in control.
 
-Syntoria Weave is Syntoria's State Store: where AI shares structured state with people and other authorized AI callers. Its current data model covers everyday work and personal actions, including unfinished thoughts and reference notes. Conversations, the dedicated UI and authorized caller workflows read and update the same saved state, so you can delegate upkeep while retaining a place to inspect and correct it. The intended benefit is less effort remembering, collecting, organizing and reviewing, with more attention for action, decisions and rest. Weave currently provides its data tools and shared UI as a ChatGPT plugin; the concept does not depend on a particular assistant or management method.
+Syntoria Weave is Syntoria's State Store: where AI shares structured state with people and other authorized AI callers. The state it holds is what is currently true of the work—open actions, items waiting on a decision, the relations between them and the intent recorded against them—together with the original input, its background and references back to the source. Its current data model covers everyday work and personal actions, including unfinished thoughts and reference notes. Conversations, the dedicated UI and authorized caller workflows read and update the same saved state, so you can delegate upkeep while retaining a place to inspect and correct it. The intended benefit is less effort remembering, collecting, organizing and reviewing, with more attention for action, decisions and rest. Weave currently provides its data tools and shared UI as a ChatGPT plugin; the concept does not depend on a particular assistant or management method.
 
 ## Who it is for
 
@@ -20,6 +20,7 @@ Weave supports personal workflows. Shared state stays within the authenticated o
 | --- | --- |
 | Get it out of your head | Save the original input, including unresolved concerns and references, without requiring a deadline, classification or commitment |
 | Set aside what is unnecessary now | Defer hides actions until a chosen time while preserving content and Due |
+| Hold what is waiting on someone else | Explicit on-hold keeps an action unfinished and visible, editable independently of Defer |
 | Design a workflow that fits you | Prompts and AI workflows choose GTD or another method over the same data tools |
 | Change methods without rebuilding lists | Keep saved actions while changing prompts and caller-side routines |
 | Let your AI do the upkeep | Capture, clarification, organization and review run through the AI's prompts and tools over the same saved actions |
@@ -44,7 +45,7 @@ User prompts, the user's AI and caller-side schedulers can use the same tools. A
 
 ## Everyday usage
 
-Capture an input such as “Prepare for the trip: check what I have, then buy what is missing; keep the information page as a reference.” Preserve the original wording and organize only intended actions. Place the actions under a parent and order checking before buying. That order expresses the user's plan without preventing a later action from being completed first. Reference URLs do not automatically create additional work.
+“Prepare for the trip: check what I have, then buy what is missing; keep the information page as a reference.” That becomes a parent action with checking ordered before buying, the reference URL kept as a reference rather than another errand, and the original sentence preserved as written. The order records the plan; a later action can still be completed first.
 
 A concern such as “I may clear out the family house, but have not decided how much” can remain in Inbox with its original notes. Saving does not require a deadline, classification or commitment to perform it.
 

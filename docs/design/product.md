@@ -80,7 +80,7 @@ Weave provides API/MCP tools and a dedicated UI over that shared state. The user
 
 Weave is Syntoria's State Store. Its subject is the state currently shared between the user and their authorized AI consumers: what is open, what waits on a decision, the original input, its context and the references back to its source. That state covers the relations and intent around the work as well: containment and classification say how actions belong together, and order, flags and dates say what the user meant to do with them. Weave keeps that state durable, validated and correctable, and makes the same records available to every authorized reader.
 
-Weave owns its storage, API, history and change cursor, and releases and deploys on its own. It serves whatever authorized caller holds its credentials; a caller that works with other services alongside shared state composes them itself and decides how the results relate.
+Weave owns its storage, API, history and change cursor, and releases and deploys on its own. It serves whatever authorized caller holds its credentials; a caller that works with other services alongside shared state composes them itself and decides how the results relate. An Action's state records what the person decided or finished; whether a delegated process has run is a separate fact kept in the caller's own records.
 
 ## Audience
 
@@ -104,12 +104,12 @@ People already settled in an established task app can use that app's AI connecti
 | Continue from shared state | Human corrections and saved AI results are available to the next authorized consumer | Conversation and UI read the same owner-scoped state; callers retrieve current snapshots and reconcile their own context |
 | Stay in control—without watching every change (primary differentiator) | AI changes do not silently break the saved list, and the user can inspect and correct directly | Latest-revision validation rejects stale writes; the UI retains unsaved proposals; identical replay uses the receipt; unknown outcomes keep exact IDs and arguments for lookup or resend; Undo rejects later target corrections; owner isolation; conversation and UI share one action path and saved state |
 
-Lead with relief from remembering, then the appeal of designing a workflow with the AI. Use safe delegation and direct correction as reasons to believe. A pillar must not promise more than its supporting contract.
+Lead with relief from remembering, then the appeal of designing a workflow with the AI. Use safe delegation and direct correction as reasons to believe. A pillar must not promise more than its supporting contract. New user-facing benefit text requires a matching row in the [Product](../../PRODUCT.md) `Value and approach` table naming the behavior that supports it; text without one is not published. Take impact from concrete scenes and specifics rather than from stronger claims.
 
 ## Messaging and tone
 
 - Headline: "Keep less in your head. Your AI keeps track of the rest." Supporting line: "Design your own workflow with your AI—GTD, a simple daily list or something entirely new. It captures, organizes and reviews your tasks your way, while you stay in control."
-- Repository description: "Keep less in your head. Design your own workflow with your AI—GTD, a simple daily list or something entirely new. It captures, organizes and reviews your tasks your way, while you stay in control."
+- Repository description: "Share the current state of your work between you, your AI and other authorized AI workflows. Keep less in your head and stay in control." Lead it with the verb and the shared state; the State Store role name lives in README/PRODUCT and the repository topics.
 - Present GTD as one example among several workflows, never as a built-in or default method.
 - Write benefit-, outcome- and appeal-first. The user and their AI are the subjects of user-facing text; describe the combined experience rather than the data layer. Data-layer responsibilities and limits follow in a "How it works" section and technical documentation.
 - Explain Weave as the shared state store for the user and their AI, with everyday actions as its current use. Show the value through a human correction, another conversation's saved result and continuing from current state. Sharing stored state does not imply automatically synchronized AI context or access across owners.

@@ -72,6 +72,7 @@ Conversation and Web preview share actionCall/core/store paths. Do not connect U
 - Trusted Sites headers determine owner. Never accept owner from arguments; owner-scope SQL and receipts.
 - Unfinished is active/on-hold. Inbox is project-unassigned unfinished actions, independent of title or an organization flag.
 - New original input is an ordinary action with caller-supplied title and exact raw notes. Do not automatically create tags.
+- A person finishing their work and a delegated process finishing its run are separate records. Action lifecycle reflects the person's decision; keep execution progress outside it.
 
 ## Development and checks
 

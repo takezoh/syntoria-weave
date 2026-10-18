@@ -4,13 +4,13 @@
 
 **Design your own workflow with your AI—GTD, a simple daily list or something entirely new. It captures, organizes and reviews your tasks your way, while you stay in control.**
 
-Syntoria Weave is Syntoria's State Store: the place you and your AI share the current state of everyday work and personal actions. You, your AI and other authorized AI workflows can read and update the same saved actions, across conversations and the dedicated UI.
+Syntoria Weave is Syntoria's State Store: where you and your AI keep the current state of your work—what is open, what is waiting on a decision, how things relate and what you meant to do with them. You, your AI and other authorized AI workflows read and update the same saved state, across conversations and the dedicated UI.
 
-Tell your AI whatever is on your mind—a commitment, a worry, a half-formed plan. It saves each one as a task, fits it into the workflow you designed together and brings back what matters when you ask. You spend less energy remembering and organizing, and more on doing, deciding and resting.
+Tell your AI “I keep meaning to deal with the storage unit, and I'm not sure it's even worth keeping.” It saves that in your words—no deadline, no category, no commitment—and brings it back when you ask what is still unsettled. You spend less energy remembering and organizing, and more on doing, deciding and resting.
 
 ## Get it out of your head
 
-Hand over commitments, concerns and unfinished thoughts as they are. Your original words are kept, and you do not have to pick a deadline, a category or even a commitment first. Put aside what you do not need right now with Defer; the task and its deadline stay saved and return to your list at the time you choose.
+Hand over commitments, concerns and unfinished thoughts as they are. Your original words are kept, and you do not have to pick a deadline, a category or even a commitment first. Put aside what you do not need right now with Defer; the task and its deadline stay saved and return to your list at the time you choose. Something waiting on someone else's answer can sit as on-hold—still open, without pretending to be done.
 
 ## Design a workflow that fits you
 
@@ -20,15 +20,19 @@ Weave comes with no built-in method, so the workflow is yours to design. Follow 
 
 Capturing, clarifying, sorting into projects, weekly reviews, choosing what to focus on next: ask your AI, and it does the work inside your system. Agents you set up can also bring in commitments from Slack or email and file them as tasks. Your attention goes to the tasks themselves, not to maintaining the list.
 
+## Pick up where you left off—in any conversation
+
+Rename the hotel in the dedicated UI on Monday. On Thursday, in a different conversation, ask your AI what is left for the trip: it reads the current saved state and works from the new name, not the one it saw last week. Another AI workflow you authorized reads the same state and the same correction. Each one reads when it continues, so ask yours to check the saved state if a conversation has been open for a while.
+
 ## Stay in control—without watching every change
 
-Your conversations and the dedicated UI use the same saved tasks. Check anything and fix it directly, in either place. If you correct a name in the UI or change a plan in another conversation, ask your AI to read the current saved state before continuing; it can take that correction into account without relying on an earlier conversation alone.
+Your conversations and the dedicated UI use the same saved tasks. Check anything and fix it directly, in either place.
 
-You do not have to watch every change your AI makes: an edit based on an outdated list never overwrites newer ones, the dedicated UI keeps your unsaved edits, retrying a request never creates a duplicate, a lost response can be checked or resent exactly, and Undo never quietly erases a correction made afterward.
+Let your AI reorganize the list while you are doing something else, then look only when you want to. Your wording survives, your unsaved edit waits for you, a repeated request still means one change, and a correction you made afterwards stays made.
 
 ## Who it is for
 
-Weave is for people who want their AI to handle the upkeep of their tasks—especially if keeping a to-do app going has felt like work in itself. It also suits people who practice GTD or run their own system, and people who build their own agents or scheduled workflows.
+If you have set up a to-do app three times and stopped maintaining it three times, the upkeep was the problem. If you already run GTD or a system of your own, it stays yours—the method lives in your prompts, not in the app. If you build your own agents or scheduled workflows, they write to the same state.
 
 Weave supports personal workflows over your own saved state. Calendar planning, reminders and background workflows are arranged in your AI's environment.
 
