@@ -10,7 +10,7 @@
   - button "More":
   - button "Toggle summary":
   - heading "You said:" [level=4]
-  - generic: I want to stop for now with Ariadne's "Verification only: fictional clarification to recover from a meaning-judgment failure."
+  - generic: I want to stop for now with Weave's "Verification only: fictional clarification to recover from a meaning-judgment failure."
   - button "Copy message":
   - button "Worked for 15s":
     - generic: Worked for 15s
@@ -21,7 +21,7 @@
     - text: or
     - strong: cancel the intention to do it in the future
     - text: ?
-  - paragraph: Ariadne's current policy is to clarify this distinction before making a change, so the task has not been changed yet.
+  - paragraph: Weave's current policy is to clarify this distinction before making a change, so the task has not been changed yet.
   - button "Copy":
   - button "Share":
   - button "Read aloud":
@@ -32,7 +32,7 @@
   - button "Copy message":
   - heading "ChatGPT said:" [level=4]
   - paragraph: I understand that you intend a temporary hold. I will not change the saved content.
-  - paragraph: Ariadne currently cannot automatically monitor for or notify you about the arrival of materials. When they arrive, tell me in this conversation, "The verification materials arrived." If related waiting information is saved, I can check the latest state and clear it.
+  - paragraph: Weave currently cannot automatically monitor for or notify you about the arrival of materials. When they arrive, tell me in this conversation, "The verification materials arrived." If related waiting information is saved, I can check the latest state and clear it.
   - button "Copy":
   - button "Share":
   - button "Read aloud":

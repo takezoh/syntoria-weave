@@ -1,6 +1,6 @@
 {
   "disposition": "candidate",
-  "summary": "Separately delegated bounded contract-proposal repair: captured fields now require Object.is equality between retained patch and exact sent wire value before acknowledgement. Differing direct-row flag writes preserve unsaved editor flag/title. Application and actual generated DOM regression tests cover the repair; 29 targeted application/DOM tests pass, no skips/failures. Log /tmp/ariadne-ui-modern/proposal-repair-tests.log. Widget HTML regenerated /tmp/ariadne-ui-modern/presentation-widget.html.",
+  "summary": "Separately delegated bounded contract-proposal repair: captured fields now require Object.is equality between retained patch and exact sent wire value before acknowledgement. Differing direct-row flag writes preserve unsaved editor flag/title. Application and actual generated DOM regression tests cover the repair; 29 targeted application/DOM tests pass, no skips/failures. Log /tmp/syntoria-weave-ui-modern/proposal-repair-tests.log. Widget HTML regenerated /tmp/syntoria-weave-ui-modern/presentation-widget.html.",
   "changes": [
     {
       "path": "lib/ui/application.ts",

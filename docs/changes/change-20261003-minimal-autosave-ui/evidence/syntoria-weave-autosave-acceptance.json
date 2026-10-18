@@ -159,7 +159,7 @@
     "kernel_receipt": false,
     "status": "Acceptance reconciled with authored native autosave design; final implementation acceptance pending"
   },
-  "design_basis": "/tmp/ariadne-autosave-design.json",
+  "design_basis": "/tmp/syntoria-weave-autosave-design.json",
   "reconciliation": {
     "status": "reconciled",
     "adopted": [

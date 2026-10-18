@@ -332,7 +332,7 @@ $ node scripts/check.mjs
 ✔ verification fixture discards exactly one trusted write response, while still executing request (0.320104ms)
 ✔ host context notification has separate direct partial subscription and disposal (0.387149ms)
 ✔ private MCP authenticates before every JSON-RPC method and rejects unapproved transport (22.037217ms)
-✔ MCP exposes one Ariadne launcher while list retains the shared resource (7.218964ms)
+✔ MCP exposes one Weave launcher while list retains the shared resource (7.218964ms)
 ✔ MCP resource declares supported host modes while retaining CSP and HTML identity (4.319815ms)
 ✔ MCP action titles and catalog names retain required semantics (1.528215ms)
 ✔ MCP publishes exactly the current tool names without aliases (0.667458ms)

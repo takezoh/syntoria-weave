@@ -12,12 +12,12 @@
       - generic: Plugins
     - button "Explore":
       - generic: Explore
-    - button "Open Ariadne":
-      - generic: Open Ariadne
+    - button "Open Weave":
+      - generic: Open Weave
     - button "Open profile menu"
   - navigation "Chat history"
 - main:
-  - heading "Ariadne · Work verification" [level=1]
+  - heading "Weave · Work verification" [level=1]
   - heading "Outputs" [level=3]
   - button "Create file or site":
   - button "Create file or site":
@@ -25,20 +25,20 @@
 - status
 - status
 - status: Response complete
-- region "Check the latest Ariadne information":
+- region "Check the latest Weave information":
   - button:
   - separator "Resize chat width"
   - separator "Resize chat width"
   - separator "Resize chat height"
   - button "Show compact floating chat" [expanded]
   - button "Minimize chat":
-  - heading "Check the latest Ariadne information" [level=2]
+  - heading "Check the latest Weave information" [level=2]
   - button "Dock Chat":
   - button "Worked for 9s":
     - generic: Worked for 9s
   - heading "ChatGPT said:" [level=4]
   - paragraph:
-    - strong: Ariadne cannot automatically detect and notify you when materials arrive.
+    - strong: Weave cannot automatically detect and notify you when materials arrive.
     - text: It does not monitor email or provide notifications triggered by an arrival.
   - paragraph: The available actions are limited to the following:
   - list:
@@ -69,7 +69,7 @@
 - iframe:
   - iframe [id="root"]:
     - main:
-      - heading "Ariadne" [level=1]
+      - heading "Weave" [level=1]
       - button "Refresh"
       - textbox "New task"
       - button "Add"

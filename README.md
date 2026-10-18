@@ -1,10 +1,10 @@
-# Ariadne
+# Syntoria Weave
 
 ## Keep less in your head. Your AI keeps track of the rest.
 
 **Design your own workflow with your AI—GTD, a simple daily list or something entirely new. It captures, organizes and reviews your tasks your way, while you stay in control.**
 
-Ariadne is a shared state store for everyday work and personal actions. You, your AI and other authorized AI workflows can read and update the same saved actions, across conversations and the dedicated UI.
+Syntoria Weave is Syntoria's State Store: the place you and your AI share the current state of everyday work and personal actions. You, your AI and other authorized AI workflows can read and update the same saved actions, across conversations and the dedicated UI.
 
 Tell your AI whatever is on your mind—a commitment, a worry, a half-formed plan. It saves each one as a task, fits it into the workflow you designed together and brings back what matters when you ask. You spend less energy remembering and organizing, and more on doing, deciding and resting.
 
@@ -14,7 +14,7 @@ Hand over commitments, concerns and unfinished thoughts as they are. Your origin
 
 ## Design a workflow that fits you
 
-Ariadne comes with no built-in method, so the workflow is yours to design. Follow GTD, keep a simple daily list, or invent a system of your own together with your AI. Your method lives in your prompts, not in the app. Projects, tags, order, flags, dates, smaller steps inside a task and saved views are building blocks you combine as you like. Change your approach whenever you want—your tasks stay where they are.
+Weave comes with no built-in method, so the workflow is yours to design. Follow GTD, keep a simple daily list, or invent a system of your own together with your AI. Your method lives in your prompts, not in the app. Projects, tags, order, flags, dates, smaller steps inside a task and saved views are building blocks you combine as you like. Change your approach whenever you want—your tasks stay where they are.
 
 ## Let your AI do the upkeep
 
@@ -28,16 +28,16 @@ You do not have to watch every change your AI makes: an edit based on an outdate
 
 ## Who it is for
 
-Ariadne is for people who want their AI to handle the upkeep of their tasks—especially if keeping a to-do app going has felt like work in itself. It also suits people who practice GTD or run their own system, and people who build their own agents or scheduled workflows.
+Weave is for people who want their AI to handle the upkeep of their tasks—especially if keeping a to-do app going has felt like work in itself. It also suits people who practice GTD or run their own system, and people who build their own agents or scheduled workflows.
 
-Ariadne supports personal workflows over your own saved state. Calendar planning, reminders and background workflows are arranged in your AI's environment.
+Weave supports personal workflows over your own saved state. Calendar planning, reminders and background workflows are arranged in your AI's environment.
 
-## Add Ariadne to ChatGPT
+## Add Syntoria Weave to ChatGPT
 
 Ask ChatGPT Work to read [INSTALL.md](INSTALL.md) and perform the installation:
 
 ```text
-Read https://github.com/takezoh/ariadne/blob/main/INSTALL.md and install Ariadne for me.
+Read https://github.com/takezoh/syntoria-weave/blob/main/INSTALL.md and install Syntoria Weave for me.
 ```
 
 After connecting, ask ChatGPT to show your tasks and open the list.
@@ -59,9 +59,9 @@ See [use cases and example prompts](docs/usage/use-cases.md) for capturing conce
 
 ## How it works
 
-Ariadne stores shared state; your AI interprets it and decides how to help. Your prompts, ChatGPT or an authorized agent you set up determine what to capture, how to organize it and when to act. Ariadne provides the tools to read and update actions, preserves their relationships and keeps changes consistent and easy to correct. Each reader can retrieve the current saved state before making its next decision.
+Weave stores shared state; your AI interprets it and decides how to help. Your prompts, ChatGPT or an authorized agent you set up determine what to capture, how to organize it and when to act. Weave provides the tools to read and update actions, preserves their relationships and keeps changes consistent and easy to correct. Each reader can retrieve the current saved state before making its next decision.
 
-ChatGPT is the current delivery environment. Ariadne has no AI or background scheduler of its own; a deferred task returns to the list when it is next read after its Defer time.
+ChatGPT is the current delivery environment. Weave has no AI or background scheduler of its own; a deferred task returns to the list when it is next read after its Defer time.
 
 ## What your list contains
 
@@ -72,6 +72,6 @@ See [Product and usage](PRODUCT.md) for the meaning of these building blocks.
 
 ## License
 
-Ariadne's source code is released under the [MIT License](LICENSE). Bundled third-party files keep their own licenses.
+Syntoria Weave's source code is released under the [MIT License](LICENSE). Bundled third-party files keep their own licenses.
 
 [Product and usage](PRODUCT.md) · [Architecture](ARCHITECTURE.md) · [Development and verification](docs/development.md)

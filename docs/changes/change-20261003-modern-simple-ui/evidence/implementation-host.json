@@ -1,6 +1,6 @@
 {
   "disposition": "candidate",
-  "summary": "Native contract-host implementation: distinct direct host-context subscription, immutable validated context projection, independent display bridge with mode-specific notification generation, actual acknowledged response modes, Web-only full-window relay and existing MCP launch/resource metadata. 12 targeted tests passed without failures/skips; typecheck exit 0. Logs: /tmp/ariadne-ui-modern/host-tests.log and host-typecheck.log. No kernel acceptance/ledger claimed.",
+  "summary": "Native contract-host implementation: distinct direct host-context subscription, immutable validated context projection, independent display bridge with mode-specific notification generation, actual acknowledged response modes, Web-only full-window relay and existing MCP launch/resource metadata. 12 targeted tests passed without failures/skips; typecheck exit 0. Logs: /tmp/syntoria-weave-ui-modern/host-tests.log and host-typecheck.log. No kernel acceptance/ledger claimed.",
   "changes": [
     {
       "path": "lib/ui/ports.ts",

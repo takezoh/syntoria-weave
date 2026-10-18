@@ -11,7 +11,7 @@ outcomes:
 - Give tasks zero or one project and multiple tags; queries by parent may expand descendants and deduplicate results.
 - Reject cycles, dangling and cross-owner references. Reject deletion while children or references remain.
 - Preserve schemaVersion 2, owner isolation, atomic CAS, receipts, identical retries, Undo and C1-C4.
-- Generate UUIDs for new task/project/tag/capture entities in Ariadne. Keep them separate from operationId and atomically save resolved results in receipts.
+- Generate UUIDs for new task/project/tag/capture entities in Weave. Keep them separate from operationId and atomically save resolved results in receipts.
 - Get-or-Create projects/tags by owner, parent and trimmed case-sensitive name; reject natural-key collisions on rename/move.
 - Resolve new tasks in structure_create using unique local refs; use existing IDs only as references. Mark preview candidates preview_only.
 - Keep project/tag IDs reserved after deletion and track last-changed revision for project/tag/task_tag identities in a per-identity ledger for safe Undo.

@@ -4,17 +4,17 @@
   "lane": "native subagents under explicit user placement",
   "kernel_loop_acceptance": false,
   "external_opencode_used": false,
-  "goal": "Modern simple intuitive shared Ariadne UI with generated icons, sidebar and full host/Web display",
+  "goal": "Modern simple intuitive shared Weave UI with generated icons, sidebar and full host/Web display",
   "dependencies": [
     {
       "result": "Accepted observable UX requirements",
-      "artifact": "/tmp/ariadne-ui-modern/requirements-plan.json",
-      "verdict": "/tmp/ariadne-ui-modern/requirements-verdict.json"
+      "artifact": "/tmp/syntoria-weave-ui-modern/requirements-plan.json",
+      "verdict": "/tmp/syntoria-weave-ui-modern/requirements-verdict.json"
     },
     {
       "result": "Typed technical boundary contracts",
       "status": "independently approved per root message",
-      "artifact": "/tmp/ariadne-ui-modern/design-plan.json"
+      "artifact": "/tmp/syntoria-weave-ui-modern/design-plan.json"
     },
     {
       "result": "Implementation of accepted boundary contracts",

@@ -7,17 +7,17 @@
     "lib/ui/model/autosave.ts": "6cb28d8750b68530c81778b9affd2cf81a86888e2d6bc959f639c5b562a27398",
     "tests/ui/autosave.test.mjs": "f25d3f916770e56a6deeada8bd14ce239e641a9d3065349aa52474a287d40398",
     "tests/ui/dom.test.mjs": "031054920bf481e2098d7d54774bef11e696fdea4d34c28f175a0788e1e855ea",
-    "/tmp/ariadne-autosave/widget.html": "cdb43f2c211ae2ee53e1a74769250f2d5128d06017f9d2305bcf462bbf9a54ae"
+    "/tmp/syntoria-weave-autosave/widget.html": "cdb43f2c211ae2ee53e1a74769250f2d5128d06017f9d2305bcf462bbf9a54ae"
   },
-  "acceptance_basis": "/tmp/ariadne-autosave-acceptance.json",
+  "acceptance_basis": "/tmp/syntoria-weave-autosave-acceptance.json",
   "coverage": {
     "source": "Pure autosave model, serial application lane, DOM composition/navigation/conflict/recovery reviewed.",
     "independent_tests": "25 passed,0 failed/cancelled/skipped/todo; autosave lane9 + generated DOM16.",
     "positive_repro": "/tmp/autosave-ime-navigation-repro.mjs: pending action switch preserves final A notes and saves A only without refresh.",
     "provided_browser_evidence": [
-      "/tmp/ariadne-autosave/browser.json",
-      "/tmp/ariadne-autosave/recovery-browser.json",
-      "/tmp/ariadne-autosave/conflict-browser.json"
+      "/tmp/syntoria-weave-autosave/browser.json",
+      "/tmp/syntoria-weave-autosave/recovery-browser.json",
+      "/tmp/syntoria-weave-autosave/conflict-browser.json"
     ],
     "browser_summary": "4 layout/theme runs;2 unknown recovery modes;overlap Use saved/Use mine and unrelated revision passed in provided mock-host evidence.",
     "focus_moved_refresh_repro": {

@@ -227,10 +227,10 @@
       "finding_ref": "33a389a270985f89b23843a259b0f80f1b0de41112854c166304e93f69c2e6b6",
       "rationale": "Pure reviewChangeSummary enumerates exact sent fields with saved/proposed values, null and empty clears. Organization save submits only parent/deadline/order; labels match actual scope. Raw notes are rendered only as text.",
       "evidence_refs": [
-        "/tmp/ariadne-ui-modern/integration-review.json",
-        "/tmp/ariadne-ui-modern/review-repair-tests.log",
-        "/tmp/ariadne-ui-modern/review-repair-typecheck.log",
-        "/tmp/ariadne-ui-modern/review-repair-lint.log",
+        "/tmp/syntoria-weave-ui-modern/integration-review.json",
+        "/tmp/syntoria-weave-ui-modern/review-repair-tests.log",
+        "/tmp/syntoria-weave-ui-modern/review-repair-typecheck.log",
+        "/tmp/syntoria-weave-ui-modern/review-repair-lint.log",
         "tests/ui/dom.test.mjs"
       ]
     },
@@ -238,10 +238,10 @@
       "finding_ref": "caaa2df3d69602babf9b5e4a59f45b5bce979dd0ad4fa2d0279ce8e2e5533ff6",
       "rationale": "Parent options always retain current/proposed parent even when dropped, without manufacturing a null patch during unrelated title save.",
       "evidence_refs": [
-        "/tmp/ariadne-ui-modern/integration-review.json",
-        "/tmp/ariadne-ui-modern/review-repair-tests.log",
-        "/tmp/ariadne-ui-modern/review-repair-typecheck.log",
-        "/tmp/ariadne-ui-modern/review-repair-lint.log",
+        "/tmp/syntoria-weave-ui-modern/integration-review.json",
+        "/tmp/syntoria-weave-ui-modern/review-repair-tests.log",
+        "/tmp/syntoria-weave-ui-modern/review-repair-typecheck.log",
+        "/tmp/syntoria-weave-ui-modern/review-repair-lint.log",
         "tests/ui/dom.test.mjs"
       ]
     },
@@ -249,10 +249,10 @@
       "finding_ref": "fe07e1d95ab42a7490734078afe8128f22b17b91a1e3b986521d8551b4ebb4a3",
       "rationale": "Host display context/state types are owned by pure display model; ports imports/re-exports them. Dependency enforcement remains enabled and unused DOM test binding removed.",
       "evidence_refs": [
-        "/tmp/ariadne-ui-modern/integration-review.json",
-        "/tmp/ariadne-ui-modern/review-repair-tests.log",
-        "/tmp/ariadne-ui-modern/review-repair-typecheck.log",
-        "/tmp/ariadne-ui-modern/review-repair-lint.log",
+        "/tmp/syntoria-weave-ui-modern/integration-review.json",
+        "/tmp/syntoria-weave-ui-modern/review-repair-tests.log",
+        "/tmp/syntoria-weave-ui-modern/review-repair-typecheck.log",
+        "/tmp/syntoria-weave-ui-modern/review-repair-lint.log",
         "tests/ui/dom.test.mjs"
       ]
     },
@@ -260,10 +260,10 @@
       "finding_ref": "4d1d719aae6c5997635f5b1d3c099c85ad677cc619b768ca1ba5d966c9bed806",
       "rationale": "Mutation invoker identity is captured before entering busy/render, then restored to the newly keyed row control after cancel; vanished controls retain existing fallback.",
       "evidence_refs": [
-        "/tmp/ariadne-ui-modern/integration-review.json",
-        "/tmp/ariadne-ui-modern/review-repair-tests.log",
-        "/tmp/ariadne-ui-modern/review-repair-typecheck.log",
-        "/tmp/ariadne-ui-modern/review-repair-lint.log",
+        "/tmp/syntoria-weave-ui-modern/integration-review.json",
+        "/tmp/syntoria-weave-ui-modern/review-repair-tests.log",
+        "/tmp/syntoria-weave-ui-modern/review-repair-typecheck.log",
+        "/tmp/syntoria-weave-ui-modern/review-repair-lint.log",
         "tests/ui/dom.test.mjs"
       ]
     }

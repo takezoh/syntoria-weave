@@ -23,7 +23,7 @@ role: verification
 
 | Requirement | Evidence |
 | --- | --- |
-| R1 | Current documents use Ariadne; historical records identify product names generically where needed |
+| R1 | Current documents use Weave; historical records identify product names generically where needed |
 | R2 | Name search above |
 | R3, R7 | tests/ui/mcp-display.test.mjs asserts the exact published tool set; UI, application and adapter suites call the generic names |
 | R4 | tests/ui/mcp-display.test.mjs and the built Worker smoke test read the new resources |

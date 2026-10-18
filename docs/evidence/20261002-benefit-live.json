@@ -2,7 +2,7 @@
   "deployment": {
     "id": "appgdep_6abf1f9cd0d88191bd20be5017165740",
     "project_id": "appgprj_6abe391bc8cc81918b4e842b4db293e8",
-    "title": "Ariadne · Work Verification",
+    "title": "Weave · Work Verification",
     "version_id": "appgprj_6abe391bc8cc81918b4e842b4db293e8~appgver_e6f7952e0904819197062d16f4df170b",
     "type": "publish",
     "status": "pending",

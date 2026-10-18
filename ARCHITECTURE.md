@@ -1,12 +1,12 @@
-# Ariadne architecture
+# Syntoria Weave architecture
 
 Current sources are [shared data types](lib/data/types.ts), [data models](lib/data/model/), [domain](lib/domain/core.ts), [application](lib/application/action-service.ts), [D1 adapter](lib/adapters/d1-action-store.ts) and [schema](db/schema.ts).
 
 ## Responsibilities and runtime
 
-Ariadne is a shared state store through which caller-side LLMs share state with the user and other authorized callers. Its current model stores everyday work and personal actions, projects, tags and perspectives, exposed through API/MCP tools and a shared UI. ChatGPT is the current delivery environment. Meaning, organization, recommendations and workflow policy belong to the user's caller-side LLM. Ariadne validates input, persists state, projects lists and protects revision, replay, Undo and owner boundaries.
+Weave is Syntoria's State Store, through which caller-side LLMs share state with the user and other authorized callers. Its current model stores everyday work and personal actions, projects, tags and perspectives, exposed through API/MCP tools and a shared UI. ChatGPT is the current delivery environment. Meaning, organization, recommendations and workflow policy belong to the user's caller-side LLM. Weave validates input, persists state, projects lists and protects revision, replay, Undo and owner boundaries.
 
-User prompts, dot and caller-side schedulers decide when and how to invoke the tools. An agent can collect Slack/email commitments through its own authorized tools and write actions through Ariadne without a dedicated Ariadne integration. Source collection, external observation, scheduling and notification remain caller responsibilities. Ariadne publishes composable data capabilities rather than owning an assistant workflow; callers can change methods while keeping the same saved data.
+User prompts, caller-side LLMs and schedulers decide when and how to invoke the tools. An agent can collect Slack/email commitments through its own authorized tools and write actions through Weave without a dedicated Weave integration. Source collection, external observation, scheduling and notification remain caller responsibilities. Weave publishes composable data capabilities rather than owning an assistant workflow; callers can change methods while keeping the same saved data.
 
 Conversation, the dedicated UI and authorized callers use the same owner-scoped state. A human correction or another caller's saved result becomes available on the next read. Each caller maintains its own conversational context and must reconcile it with the retrieved state before deciding what to do; storing a change does not update an LLM's context automatically. Current full-state reads return a complete snapshot and owner-wide revision.
 
@@ -87,7 +87,7 @@ The database schema uses actions and action_tags. Deployment must preserve the c
 
 Use pnpm check and pnpm build for code changes. See [testing](docs/technical/testing.md), [data model](docs/technical/data-model.md), [API](docs/technical/mcp-api.md), and [deployment](docs/technical/deployment.md). SQLite, memory stores and mock-host UI tests do not establish hosted D1, Sites authentication or ChatGPT Work acceptance.
 
-Calendar synchronization, notifications, background jobs and external observation are not performed by Ariadne. Callers may compose those behaviors with their own capabilities and the published tools; this is not a restriction on caller-side workflows. Planned and duration estimates are unsupported data fields.
+Calendar synchronization, notifications, background jobs and external observation are not performed by Weave. Callers may compose those behaviors with their own capabilities and the published tools; this is not a restriction on caller-side workflows. Planned and duration estimates are unsupported data fields.
 
 ## Saved perspectives
 

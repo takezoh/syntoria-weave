@@ -19,7 +19,7 @@ ToDo persistence inside a ChatGPT account was measured using Pages. A simple ver
 
 Created a private Page with no real data through the Pages Plugin. Did not change existing Pages or sharing settings.
 
-Test target: [Ariadne ToDo persistence check](https://chatgpt.com/space/page_19afc26c57f08191b4ffd463c17f4aab)
+Test target: [Weave ToDo persistence check](https://chatgpt.com/space/page_19afc26c57f08191b4ffd463c17f4aab)
 
 | Operation | Observed result | Limit |
 | --- | --- | --- |

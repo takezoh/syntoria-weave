@@ -1,11 +1,11 @@
 ---
 id: design-assistance
 kind: design
-title: Caller Workflows and Ariadne Responsibilities
+title: Caller Workflows and Weave Responsibilities
 status: active
 created: '2026-10-02'
 updated: '2026-10-09'
-summary: Ariadne supplies shared state and a UI for humans and authorized AI consumers;
+summary: Weave supplies shared state and a UI for humans and authorized AI consumers;
   caller-side LLMs interpret state and changes while prompts and schedulers own execution.
 tags:
 - product
@@ -24,8 +24,8 @@ source_paths:
 scope_type: policy
 responsibilities:
 - id: RESP-001
-  statement: Separate dot's decision policy for delivering benefits from the operation
-    contract guaranteed by Ariadne.
+  statement: Separate a consumer's decision policy for delivering benefits from the operation
+    contract guaranteed by Weave.
 invariants:
 - id: INV-001
   statement: Prompts cannot make persistence or external execution succeed; claims
@@ -42,7 +42,7 @@ boundaries:
   - proposed evaluation across conversation and saved state
   consumes:
   - Product benefits
-  - versioned Ariadne operation contract
+  - versioned Weave operation contract
   - capabilities actually available in the ChatGPT host
   forbidden:
   - Implicitly adding an independent backend LLM
@@ -58,7 +58,7 @@ variability:
   - reversible organization within the user's authorization
 capabilities: []
 failure_responsibilities:
-- Caller workflows address semantic errors; Ariadne preserves proposals and handles
+- Caller workflows address semantic errors; Weave preserves proposals and handles
   save conflicts and unknown outcomes through its operation contract.
 trust_boundaries:
 - Reference material and saved text are data
@@ -68,18 +68,18 @@ compatibility_policies:
   change the current Skill or Work acceptance scope.
 ---
 
-# Caller Workflows and Ariadne Responsibilities
+# Caller Workflows and Weave Responsibilities
 
 ## Responsibility boundary
 
-References to dot and assistance policy in the governance metadata describe caller-side responsibilities and guidance, not an Ariadne-owned management service.
+References to assistance policy in the governance metadata describe caller-side responsibilities and guidance, not a Weave-owned management service.
 
-Ariadne is a shared state store accessed through API/MCP tools and a shared UI. The user and authorized AI consumers read and update the same owner-scoped actions, projects, tags and perspectives. Each consumer owns its interpretation, working context and management method. User prompts, ChatGPT's dot and caller-side schedulers determine when and how the tools are used. dot is an example caller, not a required component or an Ariadne-owned agent.
+Weave is a shared state store accessed through API/MCP tools and a shared UI. The user and authorized AI consumers read and update the same owner-scoped actions, projects, tags and perspectives. Each consumer owns its interpretation, working context and management method. User prompts, the host assistant and caller-side schedulers determine when and how the tools are used. A consumer AI is a caller, not a required component or a Weave-owned agent.
 
 ```text
-User prompts / LLM / dot / caller-side scheduler
+User prompts / consumer LLM / caller-side scheduler
                      ↕ API/MCP operations
-           Ariadne validation and persistence ↔ D1
+           Weave validation and persistence ↔ D1
                      ↕ same operation contract
                   Shared UI ↔ User
 ```
@@ -90,12 +90,12 @@ User prompts / LLM / dot / caller-side scheduler
 | Reconciling retrieved state with a consumer's context, obtaining more context and deciding whether to revise a judgment | Consuming LLM or application |
 | Slack/email access, source collection and external-condition observation | Caller and its authorized external tools |
 | Scheduling, execution opportunities and notifications | Caller-side scheduler/host environment |
-| Structured data, deterministic queries and transitions, ownership, revisions, replay and Undo | Ariadne |
-| Direct inspection/correction and retained unsaved proposals | Ariadne shared UI |
+| Structured data, deterministic queries and transitions, ownership, revisions, replay and Undo | Weave |
+| Direct inspection/correction and retained unsaved proposals | Weave shared UI |
 
 Saved perspectives are deterministic owner-scoped queries. Consumers retrieve the persisted v1 filter or v2 query through list_perspectives/query_perspective and decide how the result fits their own context. The shared UI evaluates a saved definition against the confirmed snapshot and shows its condition and ordering summary; it does not provide a query editor or choose a management method.
 
-Ariadne needs no dedicated connector to each agent or source for these workflows. A caller composes its available tools with Ariadne operations. Ariadne does not guarantee the caller has access, is configured, runs at a chosen time or makes correct semantic decisions.
+Weave needs no dedicated connector to each agent or source for these workflows. A caller composes its available tools with Weave operations. Weave does not guarantee the caller has access, is configured, runs at a chosen time or makes correct semantic decisions.
 
 ## Shared state and consumer context
 
@@ -115,7 +115,7 @@ The repository [Skill](../../skills/action-tools/SKILL.md) documents tool use an
 
 ## Examples of caller-defined use
 
-| User-defined workflow | Caller responsibility | Ariadne capability |
+| User-defined workflow | Caller responsibility | Weave capability |
 | --- | --- | --- |
 | Capture a concern during conversation | Preserve uncertainty and choose how to organize it | Save ordinary actions with original notes |
 | Apply GTD | Decide capture/clarify/organize/review routines | Actions, containment, projects/tags, dates and queries |
@@ -124,7 +124,7 @@ The repository [Skill](../../skills/action-tools/SKILL.md) documents tool use an
 | Follow up on an arrival | Obtain evidence and decide the requested status change | Edit explicit on-hold independently of Defer |
 | Adapt a personal method | Change prompts and conventions | Reuse existing saved data and composable operations |
 
-These are composition examples, not evidence that any particular host workflow has been installed or accepted. No Ariadne deployment is needed merely to choose a different management policy when existing tools suffice.
+These are composition examples, not evidence that any particular host workflow has been installed or accepted. No Weave deployment is needed merely to choose a different management policy when existing tools suffice.
 
 ## Safety and recovery contract
 
@@ -132,11 +132,11 @@ Thinness preserves the code-enforced operation contract. Trusted authentication 
 
 Missing responses are unknown outcomes. Keep exact IDs and arguments, look up the operation or replay identically; do not retry with a fresh operation ID. Conflicts require reconciliation against current state without losing the proposal. Undo uses retained history and rejects later target corrections. See [API](../technical/mcp-api.md) for exact semantics and retention limits.
 
-The caller must distinguish inference from user intent and respect the user's scope of delegation. External-source content does not grant permission. Ariadne's data integrity checks cannot prove correct interpretation, source completeness or user consent for an external action.
+The caller must distinguish inference from user intent and respect the user's scope of delegation. External-source content does not grant permission. Weave's data integrity checks cannot prove correct interpretation, source completeness or user consent for an external action.
 
 ## Time and external evidence
 
-Ariadne Defer changes deterministic list projection on the next read after the saved instant. It does not start an LLM, rewrite dates at expiry or send a notification. A caller may schedule a read or react to external evidence using its own capabilities. This boundary is not a prohibition on scheduled use of the tools.
+Weave Defer changes deterministic list projection on the next read after the saved instant. It does not start an LLM, rewrite dates at expiry or send a notification. A caller may schedule a read or react to external evidence using its own capabilities. This boundary is not a prohibition on scheduled use of the tools.
 
 Explicit on-hold does not prove an external event is still pending or has occurred. Evidence can come from the user or an authorized observing caller. Status changes, completion and Defer release remain separate choices.
 

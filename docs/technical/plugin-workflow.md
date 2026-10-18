@@ -36,7 +36,7 @@ After successful publication, refresh the existing connection's tool definitions
 Read [action-tools](../../skills/action-tools/SKILL.md) for the connected operation contract. Use existing data for the following checks:
 
 - Match the host's advertised tool names, titles, descriptions, schemas and UI metadata to the published source. Distinguish freshly retrieved definitions from the current chat's retained tool snapshot.
-- Confirm that `open_actions`, titled `Ariadne`, is the single global sidebar launcher. Inspect actual host entries after the refresh and investigate discrepancies against the server definition and registered connection.
+- Confirm that `open_actions`, titled `Syntoria Weave`, is the single global sidebar launcher. Inspect actual host entries after the refresh and investigate discrepancies against the server definition and registered connection.
 - Call `list_actions` through the connected plugin to verify authenticated access to hosted D1.
 - Call `open_actions` and inspect the rendered UI and navigation. Separate a successful tool response from observed UI behavior.
 

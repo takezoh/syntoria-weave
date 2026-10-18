@@ -7,7 +7,7 @@
   },
   "findings": [],
   "evidence": {
-    "design": "/tmp/ariadne-navigation-design.json",
+    "design": "/tmp/syntoria-weave-navigation-design.json",
     "sources": [
       "lib/ui/model/navigation.ts",
       "lib/ui/adapters/dom.js",
@@ -16,8 +16,8 @@
       "tests/ui/navigation.test.mjs"
     ],
     "browser_results": [
-      "/tmp/ariadne-navigation/browser.json",
-      "/tmp/ariadne-navigation/recovery-browser.json"
+      "/tmp/syntoria-weave-navigation/browser.json",
+      "/tmp/syntoria-weave-navigation/recovery-browser.json"
     ],
     "screenshots_inspected": [
       "projects-1280-light.png",

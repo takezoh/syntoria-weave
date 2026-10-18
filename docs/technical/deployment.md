@@ -4,7 +4,7 @@ Updated: 2026-10-03. See [development](../development.md), [architecture](../../
 
 ## Deployment boundary
 
-Deploying Ariadne publishes its data tools and shared UI. User prompts, dot and caller-side schedulers determine management workflows and execution timing. Choosing GTD, collecting Slack/email inputs through a caller's tools or scheduling reads does not require a new Ariadne deployment when existing operations suffice. Host access and caller execution must be verified in their own environment; an Ariadne release does not install or prove those workflows.
+Deploying Syntoria Weave publishes its data tools and shared UI. User prompts, caller-side LLMs and schedulers determine management workflows and execution timing. Choosing GTD, collecting Slack/email inputs through a caller's tools or scheduling reads does not require a new Weave deployment when existing operations suffice. Host access and caller execution must be verified in their own environment; a Weave release does not install or prove those workflows.
 
 ## Local execution
 

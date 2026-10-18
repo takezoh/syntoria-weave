@@ -49,7 +49,7 @@
   "failed_attempt": {
     "id": "appgdep_6ac0afd681048191b0546f9afb7e85e1",
     "project_id": "appgprj_6abe391bc8cc81918b4e842b4db293e8",
-    "title": "Ariadne · Work検証",
+    "title": "Weave · Work検証",
     "version_id": "appgprj_6abe391bc8cc81918b4e842b4db293e8~appgver_778b078051e081919b311ecb810e2661",
     "type": "publish",
     "status": "failed",
@@ -64,11 +64,11 @@
   "deployment": {
     "id": "appgdep_6ac0b161d0bc8191abe284681d9e6524",
     "project_id": "appgprj_6abe391bc8cc81918b4e842b4db293e8",
-    "title": "Ariadne · Work検証",
+    "title": "Weave · Work検証",
     "version_id": "appgprj_6abe391bc8cc81918b4e842b4db293e8~appgver_5379fb09cf3081919b67049143680583",
     "type": "publish",
     "status": "succeeded",
-    "url": "https://redacted.invalid/ariadne-historical-host",
+    "url": "https://redacted.invalid/syntoria-weave-historical-host",
     "has_mcp": true,
     "screenshot_asset_pointer": null,
     "provider_deployment_id": "site---6abe391bc8cc81918b4e842b4db293e8",
@@ -85,7 +85,7 @@
     "perspectives": 0,
     "projects": 0,
     "tags": 0,
-    "ariadne_open": "Successful tool response with new action snapshot.",
+    "weave_open": "Successful tool response with new action snapshot.",
     "database_tables": [
       "action_tags",
       "actions",

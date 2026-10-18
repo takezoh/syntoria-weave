@@ -75,14 +75,14 @@
     "tests/ui/dom.test.mjs": "4044052519c1634d46433d54ad585479a244acf03e73b3cc8914eaca14c83d8c"
   },
   "source_refs": [
-    "/tmp/ariadne-navigation-acceptance.json",
-    "/tmp/ariadne-navigation-explore-v2.json",
-    "/tmp/ariadne-navigation-design.json",
-    "/tmp/ariadne-navigation/independent-requirements-observations.json",
-    "/tmp/ariadne-navigation/browser.json",
-    "/tmp/ariadne-navigation/recovery-browser.json",
-    "/tmp/ariadne-navigation-implementation-verdict.json",
-    "/tmp/ariadne-navigation/check-final.log"
+    "/tmp/syntoria-weave-navigation-acceptance.json",
+    "/tmp/syntoria-weave-navigation-explore-v2.json",
+    "/tmp/syntoria-weave-navigation-design.json",
+    "/tmp/syntoria-weave-navigation/independent-requirements-observations.json",
+    "/tmp/syntoria-weave-navigation/browser.json",
+    "/tmp/syntoria-weave-navigation/recovery-browser.json",
+    "/tmp/syntoria-weave-navigation-implementation-verdict.json",
+    "/tmp/syntoria-weave-navigation/check-final.log"
   ],
   "limitations": [
     "Final build/live/built-resource checks not approved by this behavior verdict.",

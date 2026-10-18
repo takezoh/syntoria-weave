@@ -13,9 +13,9 @@ test('private MCP authenticates before every JSON-RPC method and rejects unappro
  const badType=await POST(new Request('https://local.invalid/mcp',{method:'POST',headers:{'Content-Type':'text/plain','oai-authenticated-user-id':'test-owner','oai-authenticated-user-email':'test@example.invalid'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list',params:{}})}));
  assert.equal(badType.status,415);
 });
-test('MCP exposes one Ariadne launcher while list retains the shared resource',async()=>{
+test('MCP exposes one Syntoria Weave launcher while list retains the shared resource',async()=>{
  const response=await POST(request('tools/list'));assert.equal(response.headers.get('cache-control'),'private, no-store');const tools=(await response.json()).result.tools;const open=tools.find(t=>t.name==='open_actions'),list=tools.find(t=>t.name==='list_actions');
- assert.deepEqual(open._meta['openai/ui'].entrypoints,[{type:'global'},{type:'thread'}]);assert.equal(open.title,'Ariadne');assert.equal(list._meta['openai/ui'],undefined);assert.equal(list._meta.ui.resourceUri,open._meta.ui.resourceUri);
+ assert.deepEqual(open._meta['openai/ui'].entrypoints,[{type:'global'},{type:'thread'}]);assert.equal(open.title,'Syntoria Weave');assert.equal(list._meta['openai/ui'],undefined);assert.equal(list._meta.ui.resourceUri,open._meta.ui.resourceUri);
  const resources=(await (await POST(request('resources/list'))).json()).result.resources;assert.equal(resources.length,2);assert(resources.some(r=>r.uri===open._meta.ui.resourceUri));
 });
 test('MCP resource declares supported host modes while retaining CSP and HTML identity',async()=>{

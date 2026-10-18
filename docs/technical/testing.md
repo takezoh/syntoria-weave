@@ -4,7 +4,7 @@ Pure domain/UI model functions must be deterministic and preserve their input. D
 
 ## Plugin, caller and outcome evidence
 
-Verify Ariadne's published data operations and shared UI separately from user-defined LLM workflows. Correct reads/writes do not prove a caller's GTD review, Slack/email collection, scheduling or notification behavior. Those are caller responsibilities and do not require dedicated Ariadne integrations. Evaluate reduced remembering and management effort using the chosen caller configuration and user evidence, rather than inferring it from storage tests.
+Verify Syntoria Weave's published data operations and shared UI separately from user-defined LLM workflows. Correct reads/writes do not prove a caller's GTD review, Slack/email collection, scheduling or notification behavior. Those are caller responsibilities and do not require dedicated Weave integrations. Evaluate reduced remembering and management effort using the chosen caller configuration and user evidence, rather than inferring it from storage tests.
 
 ### Bounded caller-value harness
 

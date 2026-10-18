@@ -15,7 +15,7 @@ summary: Starting instructions for applying the local implementation to the exis
 
 ## Starting instruction (pass this unchanged to Work)
 
-> @Sites, fetch `the original source repository` from GitHub and continue from `docs/note/note-20261002-work-mvp-deployment-handoff.md`. Record the fetched commit SHA, then update the existing Ariadne Sites, D1 and MCP Plugin from that fixed source. Do not create a Site, change sharing scope or initialize the database. Use the available official Sites Skill to build, apply additive migrations to the existing D1 and deploy; accept the MVP through the dedicated UI and conversation operations in ChatGPT Work. Do not substitute local tests for device acceptance. Distinguish successes, defects and unverified items, record the results in the repository, then commit and push. Do not add authentication, separation from other accounts, CSP, platform unit testing or cost evaluation to the completion criteria for this run.
+> @Sites, fetch `the original source repository` from GitHub and continue from `docs/note/note-20261002-work-mvp-deployment-handoff.md`. Record the fetched commit SHA, then update the existing Weave Sites, D1 and MCP Plugin from that fixed source. Do not create a Site, change sharing scope or initialize the database. Use the available official Sites Skill to build, apply additive migrations to the existing D1 and deploy; accept the MVP through the dedicated UI and conversation operations in ChatGPT Work. Do not substitute local tests for device acceptance. Distinguish successes, defects and unverified items, record the results in the repository, then commit and push. Do not add authentication, separation from other accounts, CSP, platform unit testing or cost evaluation to the completion criteria for this run.
 
 ## State at handoff time
 
@@ -29,9 +29,9 @@ Push a commit containing this handoff and implementation from the source workspa
 | --- | --- |
 | GitHub | https://github.com/the original source repository |
 | Sites project | `appgprj_6abe391bc8cc81918b4e842b4db293e8` |
-| Site | https://Ariadne-work-proof.take-gn.chatgpt.site |
-| MCP | https://Ariadne-work-proof.take-gn.chatgpt.site/mcp |
-| Personal Plugin | Ariadne · Work verification / `plugin_asdk_app_sites_b9cfa73bf234819184881924e7d5e92a` |
+| Site | https://syntoria-weave-work-proof.take-gn.chatgpt.site |
+| MCP | https://syntoria-weave-work-proof.take-gn.chatgpt.site/mcp |
+| Personal Plugin | Weave · Work verification / `plugin_asdk_app_sites_b9cfa73bf234819184881924e7d5e92a` |
 | Original Sites source | `c3171a04f3dab9970175a4f2866713b84e7038e7` |
 | Original deployment version | `appgprj_6abe391bc8cc81918b4e842b4db293e8~appgver_943a61393c5481919f8feb645627b376` |
 | Original deployment | `appgdep_6abe3c1c9fa4819186c41330d0768b0f` |

@@ -65,10 +65,10 @@
     "tests/ui/mcp-display.test.mjs": "10ad4b047e1b2d89d3b13654e93b96ce94e1b3ebb2fc41552039f3323df0df71"
   },
   "verification_evidence": {
-    "/tmp/ariadne-ui-modern/final-check.log": "39a54bc6fb0734b518882f0a09470e17100d312a3ca65d3128b628569fa031dc",
-    "/tmp/ariadne-ui-modern/final-build.log": "ace4a3b61e8e8c663128e24b59cf62c46d32ea307b4604f357a08e40d296d27a",
-    "/tmp/ariadne-ui-modern/final-built-ui.log": "519ba223c5ff49763adb6e2b45bb126cd6124a02d465a0ae9559b18df7e422e4",
-    "/tmp/ariadne-ui-modern/review-repro-after.log": "96dcd4b09660f56f2c59122e549450f045e4e0e92a00593cd393de80ce362184"
+    "/tmp/syntoria-weave-ui-modern/final-check.log": "39a54bc6fb0734b518882f0a09470e17100d312a3ca65d3128b628569fa031dc",
+    "/tmp/syntoria-weave-ui-modern/final-build.log": "ace4a3b61e8e8c663128e24b59cf62c46d32ea307b4604f357a08e40d296d27a",
+    "/tmp/syntoria-weave-ui-modern/final-built-ui.log": "519ba223c5ff49763adb6e2b45bb126cd6124a02d465a0ae9559b18df7e422e4",
+    "/tmp/syntoria-weave-ui-modern/review-repro-after.log": "96dcd4b09660f56f2c59122e549450f045e4e0e92a00593cd393de80ce362184"
   },
   "limits": [
     "Local mock-host and built-worker resources only; no actual ChatGPT Work host/cache/auth/D1/deployment proof.",

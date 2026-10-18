@@ -25,7 +25,7 @@ summary: Checked available tools and connection paths after receiving the handof
 
 The tools callable from this conversation did not include operations for ChatGPT Pages/Sites. The published list of installed Skills also had no dedicated Sites create/build/deploy Skill. Additional searches did not reveal a relevant execution path. Therefore, no private verification app was created and no live measurement was made for saving from a dedicated UI, updating the same task from conversation, or restoring it in another conversation.
 
-This is **an observation about this conversation's execution environment**. It does not establish that Pages/Sites are unavailable throughout ChatGPT Work, that the user's account is not eligible, or that Ariadne cannot be implemented on the platform provided by ChatGPT. Not running the app is not a failed product test.
+This is **an observation about this conversation's execution environment**. It does not establish that Pages/Sites are unavailable throughout ChatGPT Work, that the user's account is not eligible, or that Weave cannot be implemented on the platform provided by ChatGPT. Not running the app is not a failed product test.
 
 **Preserve the requirement for a dedicated UI inside ChatGPT, C1–C4, and S01–S16. Do not switch to a Cloud Run + Firestore implementation and do not treat Sites + D1 as adopted.**
 
@@ -40,7 +40,7 @@ This is **an observation about this conversation's execution environment**. It d
 
 The initial plan discussed at that time has been removed. Its dedicated in-ChatGPT UI requirement was carried forward to the [development guide](../development.md#mvp-requirements). Other reviewed materials: [requirements](../changes/change-20261001-structured-todo-mvp/requirements.md), [UX](../changes/change-20261001-structured-todo-mvp/ux.md), [preliminary verification](note-20261001-chatgpt-only-feasibility.md), [technical design](../changes/change-20261001-structured-todo-mvp/implementation.md), and [acceptance plan](../changes/change-20261001-structured-todo-mvp/verification.md). Prioritized the instruction to verify an approach using ChatGPT's provided platform first. Organizing referenced material does not change what was observed at that time.
 
-Repository documents were retrieved successfully, but this does not count as evidence that Ariadne business data was saved and restored. The preliminary verification Page was neither reloaded nor modified in this conversation.
+Repository documents were retrieved successfully, but this does not count as evidence that Weave business data was saved and restored. The preliminary verification Page was neither reloaded nor modified in this conversation.
 
 ## 2. Capability and Path Checks Performed
 
@@ -101,7 +101,7 @@ Therefore, displaying HTML, retaining a selection, or saving a file does not pas
 
 Official Sites documentation says that authenticated requests include values such as `oai-authenticated-user-email` and that authorization is performed on the server. [W1] Official authenticated MCP documentation describes OAuth, resource/audience, and token verification on each request. [W3]
 
-The existing Ariadne design derives an internal userKey from verified `issuer + subject` and does not merge separate accounts based only on matching email. **Being able to retrieve Sites authentication data and safely mapping MCP requests to the same Ariadne user are separate verification questions.**
+The existing Weave design derives an internal userKey from verified `issuer + subject` and does not merge separate accounts based only on matching email. **Being able to retrieve Sites authentication data and safely mapping MCP requests to the same Weave user are separate verification questions.**
 
 This is not a measured defect or lack of support in Sites. If choosing Sites, read the actual authentication/call contract and verify that both paths reach the same user's source of truth. Do not use client-supplied user IDs, email strings, or conversation wording as authorization evidence. Do not publish a Site or API just to avoid a login redirect.
 

@@ -8,14 +8,14 @@
       "finding_ref": "REQ-MODAL-001",
       "rationale": "UAC-008 and UAC-010 explicitly require full preview plus Confirm/Back keyboard/touch reachability under narrow width and zoom, modal focus containment, Escape/Back preserving unsaved proposal and meaningful return focus, and host-initiated mode updates preserving review. UAC-006 requires reachable result-check/retry after unknown save with no obsolete modal trapping focus. Then statements, observations and experience outcomes/exit observations carry consistent meaning.",
       "evidence_refs": [
-        "/tmp/ariadne-ui-modern/requirements-plan.json"
+        "/tmp/syntoria-weave-ui-modern/requirements-plan.json"
       ]
     },
     {
       "finding_ref": "REQ-FLOW-002",
       "rationale": "F-004 steps and When now agree on refresh, display/width changes, explicit view switch with dirty parent/lifecycle/date fields, and host correction removing the action from the selected view. Its Then and counterexample require a named retained-proposal route without false current-view membership; observable and experience statements are synchronized.",
       "evidence_refs": [
-        "/tmp/ariadne-ui-modern/requirements-plan.json"
+        "/tmp/syntoria-weave-ui-modern/requirements-plan.json"
       ]
     }
   ]
