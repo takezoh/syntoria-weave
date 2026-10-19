@@ -4,7 +4,7 @@
 
 The service persists structured actions, validates input and ownership, performs deterministic state transitions and supplies a shared UI. Meaning, classification, prioritization and management method belong to the user and caller-side LLM. External-source collection, observation, calendar sync, scheduling and notifications require the caller's own authorized capabilities.
 
-The service exposes authenticated HTTP and Remote MCP endpoints. The distributed local MCP plugin serves the shared UI and forwards business calls using its public-client OAuth connection. Installing a skill alone does not establish authenticated access. Never accept user identity from operation arguments or invent authentication headers.
+The service exposes authenticated HTTP and Remote MCP endpoints. The ChatGPT cloud plugin connects directly to Remote MCP using host-managed OAuth; the separate standalone local MCP consumer serves the shared UI and forwards business calls using its public-client OAuth connection. Installing a skill alone does not establish authenticated access. Never accept user identity from operation arguments or invent authentication headers.
 
 ## Discover exact operations
 

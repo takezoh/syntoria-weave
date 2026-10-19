@@ -45,13 +45,14 @@ TypeScript/Node.js runs on Cloud Run with Neon PostgreSQL. HTTP API, Remote MCP 
 | lib/domain/ | Pure action transitions, containment, dates, order, flags, delta, preview and Undo |
 | lib/application/, lib/adapters/, lib/server/ | ActionStore ports, operation progress, PostgreSQL/Node effects and production composition |
 | lib/mcp/dispatcher.ts, lib/server/node/server.ts | Remote JSON-RPC, tool discovery, UI resources and authenticated HTTP entry |
-| lib/mcp/local/, plugins/action-tools/ | Public-client OAuth consumer, private local authorization state, shared resources and portable plugin sources |
+| lib/mcp/local/ | Standalone public-client OAuth consumer and private local authorization state |
+| plugins/action-tools/ | ChatGPT cloud plugin metadata and remote MCP manifest template |
 | lib/server/node/authentication.ts, principal.ts | Verified OAuth/session identity, CSRF and request capability |
 | lib/ui/, lib/widget.ts | Pure model, typed controller, DOM/communication adapters and HTML composition |
 | lib/assistance.ts | Assistance-policy delivery; check initialize and snapshot assistance_policy |
 | web/ | Shared-UI shell, session recovery and HTTP relay |
 | lib/adapters/postgres/, db/schema.ts, db/postgres/migrations/ | PostgreSQL pool, transactions, identity and schema |
-| scripts/, build/ | Node, SPA/plugin build and verification helpers; build contains source |
+| scripts/, build/ | Node, SPA, standalone local MCP and cloud-plugin build/verification helpers; build contains source |
 | skills/action-tools/SKILL.md | Assistance documentation, not proof of host installation |
 
 Source code, tests, scripts, configuration, MCP tool names, UI resource URIs and the Skill use generic identifiers such as action-tools and list_actions and never contain the product name. The ChatGPT plugin identity is syntoria-weave and its display name is Syntoria Weave; its package manifest is host-listing metadata. Other source identifiers remain generic. Applied SQL migrations keep their recorded identifiers.
@@ -91,13 +92,13 @@ Use Node.js 24 LTS and package.json's pnpm version. Install with pnpm install --
 | pnpm test:ui | Pure models, mock ports, host communication and generated HTML DOM |
 | pnpm test:node:built | Built Node process, real PostgreSQL, HTTP, sessions, replay and UI resource |
 | pnpm typecheck / lint | TypeScript / ESLint |
-| pnpm build | Build the Node service, static SPA, local MCP bundle and generic plugin |
-| pnpm build:plugin | Package built local MCP/UI/skill resources; explicit --config selects rendered operator settings |
+| pnpm build | Build the Node service, static SPA, standalone local MCP bundle and noninstallable ChatGPT package template |
+| pnpm build:plugin | Generate the personal marketplace root; explicit --config requires rendered public settings and the host-issued app ID |
 | pnpm db:generate | Generate migrations; inspect SQL |
 | pnpm db:migrate:local | Migrate explicit ADMIN_DATABASE_URL; build first |
 | pnpm start | Start the built service; confirm the actual runtime |
 
-The checkout builds the Node service, static SPA and local MCP plugin directly. Use the package scripts and their declared configuration; there is no managed-host execution profile or alternate production database selection. Local MCP is an OAuth consumer of the Remote MCP service and has no database or resource-client credentials.
+The checkout builds the Node service, static SPA, standalone local MCP consumer and Syntoria Weave personal package directly. `pnpm build` emits a noninstallable template without a marketplace entry. `pnpm render:plugin-config` writes ignored deployment settings, including the actual `plugin_asdk_app…` ID returned by ChatGPT; `pnpm build:plugin --config .local/dist/action-tools/plugin-settings.json` emits the private install root. The package requires that registered app through `.app.json` and keeps `mcp.json` empty. It contains both operation skills, the shared UI and `LICENSE`. Use `pnpm render:local-mcp-config` for the separate local consumer, which is an OAuth consumer of Remote MCP and has no database or resource-client credentials.
 
 Code changes require pnpm check and pnpm build. Store changes must verify competition, identical replay, missing responses, Undo and user isolation. UI changes must verify proposal retention and unknown-result recovery. Documentation-only changes require content/reference checks; do not claim app acceptance.
 

@@ -1,36 +1,38 @@
-# Plugin updates
+# ChatGPT personal plugin updates
 
-The plugin release contains a runnable local MCP server, the shared UI resource and the action-tools skill. Backend releases follow [deployment](deployment.md); distribute plugin artifacts independently of Cloud Run or SPA deployment.
+The Syntoria Weave package uses a required ChatGPT app dependency for the deployed Remote MCP service. It does not bundle a duplicate HTTP server entry or depend on a local MCP process. Initial setup follows [INSTALL.md](../../INSTALL.md); the [update-plugin skill](../../skills/update-plugin/SKILL.md) routes package and host updates here.
 
-## Build and configure
+## Build the package
 
-Initial ChatGPT installation executes [INSTALL.md](../../INSTALL.md). Updates use [update-plugin](../../skills/update-plugin/SKILL.md). Both construct the installation package from shared implementation/templates and deployment-specific connection settings. The Remote MCP URL is required in the generated config.json; a generic package alone is not a configured installation.
-
-Use the pinned Node.js and package manager. Run the required checks, then build the plugin from the selected source version. Render only public endpoint/client settings and the explicit private data-directory path into an ignored operator-specific artifact. Never distribute token state, database settings, resource-client secrets or GitHub credentials.
+Keep the deployed HTTPS MCP URL, Gate issuer, existing registered public client ID and exact host-issued app ID in ignored `.local/` renderer settings. The issuer, verified subject and client ID also require an enabled Weave `identity.client_grants` entry. ChatGPT supplies the exact OAuth callback; add that URI to the Gate client. The direct consumer's loopback callback does not belong to ChatGPT.
 
 ```sh
 pnpm check
 pnpm build
-node scripts/render-plugin.mjs \
-  --issuer https://identity.example.invalid \
-  --resource-endpoint https://actions.example.invalid/mcp \
-  --client-id action-tools-client \
-  --data-directory /absolute/private/action-tools
-node scripts/build-plugin.mjs --config .local/dist/action-tools/config.json
+pnpm render:plugin-config \
+  --issuer "$GATE_ISSUER" \
+  --resource-endpoint "$WEAVE_MCP_URL" \
+  --client-id "$PUBLIC_CLIENT_ID" \
+  --registered-plugin-id "$REGISTERED_PLUGIN_ID"
+pnpm build:plugin --config .local/dist/action-tools/plugin-settings.json
+pnpm verify:plugin
 ```
 
-The renderer accepts explicit issuer, resource endpoint, registered public client ID and optional private data-directory flags; it writes `.local/dist/action-tools/config.json`. Replace the reserved example values with authorized operator settings. The generic build does not implicitly load local deployment settings.
+The generic build has a template-only app ID and no marketplace entry, so it cannot be installed as the personal package. The configured build emits the private install root with `syntoria-weave-personal-marketplace`, the `syntoria-weave` package, required `.app.json` mapping, empty `mcpServers`, both operation skills, shared UI, `LICENSE` and the hash inventory. The package carries no endpoint, issuer, client ID or local runtime.
 
-Copy the complete package, including licenses, resources and skill references. Preserve the existing connection data outside the install directory. An endpoint/client/issuer change requires a new OAuth connection; replacing program files alone must not erase private credentials or prompt for a new approval on every call.
+## Install and refresh
 
-Retain plugin identity `syntoria-weave` and display name `Syntoria Weave` from the packaged manifest. If correcting an installation registered under a different name, update its local marketplace entry/source using the host-supported install/refresh flow and preserve the existing external credential directory. A source rebuild does not rename an already installed cached plugin.
+Install the generated root through the supported CLI:
 
-## Refresh the client
+```sh
+codex plugin marketplace add "$PWD/dist/plugin" --json
+codex plugin add syntoria-weave@syntoria-weave-personal-marketplace --json
+```
 
-Update the existing local plugin using the client's supported installation mechanism. Restart its MCP process and request current tool discovery and resources in a supported fresh session. Keep the existing connection identity and access scope. Do not infer resource cache refresh from a successful build or API deployment.
+Check the installed cache and exact required app ID. In ChatGPT, use `plugin_management.suggest_plugins` with that ID only if the host has not already confirmed that its tools are available. Preserve an existing connection when updating the package. Wait for host confirmation; the suggestion alone is not connection evidence.
 
-## Verify
+After a package or skill change, rebuild and reinstall the package. After a server registration change, refresh the registered tools, then start a new chat for current resources. In a ChatGPT web/cloud session with the Desktop app and local MCP process stopped, verify authenticated reads and open the shared UI. Select Action A and Action B in turn and call UI-local `get_selection_context`; then clear explicit selection and verify `selected: []`, even while an active item is displayed. These checks confirm UI context separately from the backend operations.
 
-Check `get_connection_status`, authenticated `list_actions`, `open_actions` resource association, actual UI rendering and calls through the local server. Verify retained drafts and exact-request recovery separately from authentication. A direct Remote MCP connection has its own tool/resource refresh and acceptance.
+## Evidence boundary
 
-Record the source commit, artifact inventory/hash, endpoint configuration identity, client installation identity and observed results. Distinguish build validation, authenticated service access and actual client UI acceptance. Do not publish tokens or action text in logs.
+The artifact verifier proves package layout, manifest shape, required skills, local dependency mapping, hashes and UI-resource identity. It does not prove app registration, host installation, OAuth, tool availability, resource cache refresh, rendering or selection behavior. Record source version, artifact inventory, actual host app ID, Gate client/grant, installed cache, authenticated read and observed UI behavior separately. A local or mock check cannot replace host acceptance.

@@ -9,7 +9,8 @@ Personal AI interprets intent, organizes work and decides what to do. Weave vali
 ```mermaid
 flowchart LR
   AI[Authorized AI clients] --> MCP[Remote MCP]
-  Plugin[Local MCP plugin and shared UI] -->|OAuth bearer calls| MCP
+  ChatGPT[ChatGPT cloud plugin] -->|host-managed OAuth / streamable HTTP| MCP
+  Local[Standalone local MCP consumer and shared UI] -->|public-client OAuth / HTTP| MCP
   Browser[Browser] --> SPA[Static SPA]
   SPA --> HTTP[HTTP API]
   SPA --> Gate[Gate browser session]
@@ -47,13 +48,13 @@ A consumer reads current state before reconciling its context. Saved changes do 
 
 Operational topology, database guarantees and release requirements are defined in [infrastructure](docs/technical/infrastructure.md), [data model](docs/technical/data-model.md) and [deployment](docs/technical/deployment.md).
 
-## Local MCP and plugin resources
+## Local MCP and ChatGPT plugin resources
 
 The local stdio MCP server is an OAuth public client of the deployed Remote MCP service. It publishes the shared static business-tool definitions and serves the same generated UI HTML as `dist/spa/workspace.html`. MCP Apps UI calls reach this serving local server; it forwards the original business tool name and arguments to the configured HTTPS Remote MCP. It has no database connection, resource-client secret, browser-cookie fallback or alternate persistence path. Remote MCP remains independently usable.
 
 Explicit issuer, resource endpoint and public client configuration bind the local authorization state to one service. Gate authorization uses S256 PKCE and the exact registered loopback callback. OAuth state is stored outside the install directory in a private SQLite database; transactions serialize token updates across processes and generation checks prevent a cancelled callback or stale response from restoring or erasing later authorization. Missing write responses remain unknown outcomes and are never automatically retried.
 
-The plugin contains portable root manifests, a self-contained Node24 stdio bundle, the common UI resource, the action-tools skill/references and dependency licenses. Deployment settings are rendered only into ignored operator artifacts. The standalone D1 adapter and its tests have no production composition or database-selection path.
+The standalone local MCP consumer is built under `dist/local` and serves the shared UI before forwarding business calls to Remote MCP. The ChatGPT personal package is generated from `plugins/action-tools/plugin.json`, `mcp.json` and `.app.json`. It requires the host-registered Remote MCP app through `.app.json` and leaves `mcpServers` empty, so it cannot create a duplicate connection. Its private marketplace root includes both operation skills, the shared UI resource, `LICENSE` and a hash inventory. It contains no local server, launcher, OAuth state or deployment endpoint settings. Generic builds have a template ID and no marketplace entry; configured builds require the exact host-issued app ID and use ignored renderer settings. The registration, package installation, tool refresh and new-chat resource refresh remain separate host observations. The standalone D1 adapter and its tests have no production composition or database-selection path.
 
 ## Action contract
 
