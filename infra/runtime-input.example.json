@@ -6,6 +6,5 @@
   "appId": "weave-spa",
   "loginRedirectUri": "https://app.example.com/auth-return.html",
   "browserClientId": "weave-web",
-  "gateResourceClientId": "weave-api",
-  "gateAllowedClientIds": ["weave-web", "weave-mcp"]
+  "gateResourceClientId": "weave-api"
 }

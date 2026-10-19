@@ -7,18 +7,17 @@ function parseArguments(args) {
   const values = new Map();
   for (let index = 0; index < args.length; index++) {
     const key = args[index];
-    if (!['--issuer', '--resource-endpoint', '--client-id', '--data-directory'].includes(key) || values.has(key) || typeof args[index + 1] !== 'string') {
-      throw new Error('Usage: node scripts/render-local-mcp-config.mjs --issuer <https-url> --resource-endpoint <https-url> --client-id <registered-public-client-id> [--data-directory <absolute-private-path>]');
+    if (!['--issuer', '--resource-endpoint', '--data-directory'].includes(key) || values.has(key) || typeof args[index + 1] !== 'string') {
+      throw new Error('Usage: node scripts/render-local-mcp-config.mjs --issuer <https-url> --resource-endpoint <https-url> [--data-directory <absolute-private-path>]');
     }
     values.set(key, args[++index]);
   }
-  for (const required of ['--issuer', '--resource-endpoint', '--client-id']) {
+  for (const required of ['--issuer', '--resource-endpoint']) {
     if (!values.has(required)) throw new Error(`Missing required option ${required}.`);
   }
   return {
     issuer: values.get('--issuer'),
     resourceEndpoint: values.get('--resource-endpoint'),
-    clientId: values.get('--client-id'),
     ...(values.has('--data-directory') ? {dataDirectory: values.get('--data-directory')} : {}),
   };
 }

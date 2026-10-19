@@ -124,7 +124,3 @@ variable "monthly_budget_usd" {
 variable "gate_resource_client_id" {
   type = string
 }
-
-variable "gate_allowed_client_ids" {
-  type = list(string)
-}

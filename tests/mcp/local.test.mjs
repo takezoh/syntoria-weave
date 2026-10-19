@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {createServer, get as httpGet} from 'node:http';
 import {DatabaseSync} from 'node:sqlite';
+import {existsSync} from 'node:fs';
 import {mkdtemp, lstat, readdir, rm, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -17,7 +18,7 @@ const resourceEndpoint = 'https://api.example.com/mcp';
 const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
 function configuration(issuer, dataDirectory) {
-  return validateLocalConfiguration({issuer, resourceEndpoint, clientId: 'action-tools-client', dataDirectory});
+  return validateLocalConfiguration({issuer, resourceEndpoint, dataDirectory});
 }
 
 async function fixture(t, {fetcher} = {}) {
@@ -32,9 +33,39 @@ async function fixture(t, {fetcher} = {}) {
     }
     return gate.fetch(url, options);
   });
+  let registrations = 0;
+  const dcrFetcher = async (url, options = {}) => {
+    const target = new URL(url);
+    if (target.origin === new URL(gate.issuer).origin && target.pathname === '/.well-known/openid-configuration') {
+      const response = await baseFetcher(target, options);
+      const metadata = await response.json();
+      return new Response(JSON.stringify({...metadata, registration_endpoint: `${gate.issuer}/register`, authorization_response_iss_parameter_supported: true}), {status: response.status, headers: {'content-type': 'application/json'}});
+    }
+    if (target.origin === new URL(gate.issuer).origin && target.pathname === '/register' && options.method === 'POST') {
+      registrations++;
+      const request = JSON.parse(options.body);
+      return new Response(JSON.stringify({
+        client_id: `dynamic-test-client-${registrations}`,
+        client_id_issued_at: Math.floor(Date.now() / 1000),
+        application_type: request.application_type,
+        redirect_uris: request.redirect_uris,
+        response_types: request.response_types,
+        grant_types: request.grant_types,
+        scope: request.scope,
+        token_endpoint_auth_method: request.token_endpoint_auth_method,
+      }), {status: 201, headers: {'content-type': 'application/json'}});
+    }
+    return baseFetcher(target, options);
+  };
   const store = new AuthorizationStateStore(config.dataDirectory, configurationBinding(config));
-  const oauth = new LocalOAuthClient({config, store, fetcher: baseFetcher});
-  return {directory, gate, config, store, oauth, fetcher: baseFetcher};
+  const oauth = new LocalOAuthClient({config, store, fetcher: dcrFetcher});
+  return {directory, gate, config, store, oauth, fetcher: dcrFetcher, registrationCount: () => registrations};
+}
+
+function authorizeWithIssuer(gate, authorizationUrl, options) {
+  const callback = new URL(gate.authorize(authorizationUrl, options));
+  callback.searchParams.set('iss', gate.issuer);
+  return callback.href;
 }
 
 function callbackRequest(callbackUrl) {
@@ -72,14 +103,26 @@ test('local stdio discovery restores the ChatGPT sidebar and widget metadata', a
   assert.equal(resource._meta['openai/widgetDescription'], 'Structured actions: normal, deferred, completed, details and safe editing.');
 });
 
+test('local configuration and renderer reject fixed public client IDs', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'action-tools-local-renderer-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  assert.throws(() => validateLocalConfiguration({issuer: 'https://gate.example.test', resourceEndpoint, clientId: 'fixed-public-client'}), error => error.code === 'configuration_invalid');
+  const renderer = new URL('../../scripts/render-local-mcp-config.mjs', import.meta.url).pathname;
+  const result = spawnSync(process.execPath, [renderer, '--issuer', 'https://gate.example.test', '--resource-endpoint', resourceEndpoint, '--client-id', 'fixed-public-client'], {cwd: directory, encoding: 'utf8'});
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Usage:/);
+  assert.equal(existsSync(join(directory, '.local')), false);
+});
+
 test('local authorization preserves exact root issuer, uses PKCE, and wrong-state callbacks do not consume the flow', async t => {
-  const {gate, config, store, oauth} = await fixture(t);
+  const {gate, config, store, oauth, fetcher, registrationCount} = await fixture(t);
   assert.equal(config.issuer, gate.issuer);
+  assert.equal(Object.hasOwn(config, 'clientId'), false);
   assert.equal(new URL(config.issuer).pathname, '/');
   assert.equal(CALLBACK_URL, 'http://127.0.0.1:55437/callback');
   const flow = await oauth.connect();
   const authorize = new URL(flow.authorizationUrl);
-  assert.equal(authorize.searchParams.get('client_id'), config.clientId);
+  assert.equal(authorize.searchParams.get('client_id'), 'dynamic-test-client-1');
   assert.equal(authorize.searchParams.get('redirect_uri'), CALLBACK_URL);
   assert.equal(authorize.searchParams.get('resource'), resourceEndpoint);
   assert.equal(authorize.searchParams.get('code_challenge_method'), 'S256');
@@ -87,7 +130,7 @@ test('local authorization preserves exact root issuer, uses PKCE, and wrong-stat
   assert.equal(authorize.searchParams.get('state').length >= 32, true);
   assert.deepEqual(await oauth.connect(), flow);
 
-  const callback = new URL(gate.authorize(flow.authorizationUrl));
+  const callback = new URL(authorizeWithIssuer(gate, flow.authorizationUrl));
   const wrong = new URL(callback);
   wrong.searchParams.set('state', 'wrong-state');
   const rejected = await callbackRequest(wrong.href);
@@ -106,6 +149,16 @@ test('local authorization preserves exact root issuer, uses PKCE, and wrong-stat
   assert.equal(gate.authorizations, 1);
 
   const saved = await store.inspect();
+  assert.deepEqual(saved.registration, {
+    profileVersion: 1,
+    clientId: 'dynamic-test-client-1',
+    applicationType: 'native',
+    redirectUris: [CALLBACK_URL],
+    responseTypes: ['code'],
+    grantTypes: ['authorization_code', 'refresh_token'],
+    tokenEndpointAuthMethod: 'none',
+  });
+  assert.equal(registrationCount(), 1);
   await store.updateCredentials(async state => ({...state.credentials, expiresAt: Math.floor(Date.now() / 1000) - 1}));
   const refreshedToken = await oauth.accessToken();
   assert.equal(typeof refreshedToken, 'string');
@@ -119,6 +172,13 @@ test('local authorization preserves exact root issuer, uses PKCE, and wrong-stat
   assert.equal((await store.inspect()).credentials, null);
   await oauth.disconnect();
   assert.equal((await store.inspect()).generation, saved.generation + 2);
+  assert.deepEqual((await store.inspect()).registration, saved.registration);
+  const restartedStore = new AuthorizationStateStore(config.dataDirectory, configurationBinding(config));
+  const restartedOAuth = new LocalOAuthClient({config, store: restartedStore, fetcher});
+  const reconnect = await restartedOAuth.connect();
+  assert.equal(new URL(reconnect.authorizationUrl).searchParams.get('client_id'), 'dynamic-test-client-1');
+  assert.equal(registrationCount(), 1);
+  await restartedOAuth.close();
 });
 
 test('local OAuth rejects redirects at discovery, protected-resource metadata, and token exchange', async t => {
@@ -146,11 +206,53 @@ test('local OAuth rejects redirects at discovery, protected-resource metadata, a
   const tokenStore = new AuthorizationStateStore(join(config.dataDirectory, 'token-redirect'), configurationBinding(config));
   const tokenClient = new LocalOAuthClient({config, store: tokenStore, fetcher: tokenFetcher});
   const flow = await tokenClient.connect();
-  const callback = gate.authorize(flow.authorizationUrl);
+  const callback = authorizeWithIssuer(gate, flow.authorizationUrl);
   assert.equal((await callbackRequest(callback)).status, 200);
   await delay(50);
   assert.equal((await tokenStore.inspect()).credentials, null);
   assert.equal(gate.authorizations, 0);
+});
+
+test('local OAuth validates the DCR endpoint and refuses confidential or mismatched client profiles', async t => {
+  const {config, store, fetcher, registrationCount} = await fixture(t);
+  const crossOriginRegistration = async (url, options) => {
+    const response = await fetcher(url, options);
+    if (new URL(url).pathname !== '/.well-known/openid-configuration') return response;
+    const metadata = await response.json();
+    return new Response(JSON.stringify({...metadata, registration_endpoint: 'https://attacker.invalid/register'}), {status: 200, headers: {'content-type': 'application/json'}});
+  };
+  const endpointClient = new LocalOAuthClient({config, store, fetcher: crossOriginRegistration});
+  await assert.rejects(endpointClient.connect(), error => error.code === 'authorization_unavailable');
+  assert.equal(registrationCount(), 0);
+
+  for (const mutation of [
+    metadata => ({...metadata, client_secret: 'must-not-be-issued'}),
+    metadata => ({...metadata, registration_access_token: 'must-not-be-issued'}),
+    metadata => ({...metadata, redirect_uris: ['http://127.0.0.1:55438/callback']}),
+    metadata => ({...metadata, token_endpoint_auth_method: 'client_secret_post'}),
+    metadata => ({...metadata, grant_types: ['client_credentials']}),
+  ]) {
+    const invalidResponseFetcher = async (url, options) => {
+      const response = await fetcher(url, options);
+      if (new URL(url).pathname !== '/register') return response;
+      return new Response(JSON.stringify(mutation(await response.json())), {status: 201, headers: {'content-type': 'application/json'}});
+    };
+    const invalidClient = new LocalOAuthClient({config, store, fetcher: invalidResponseFetcher});
+    await assert.rejects(invalidClient.connect(), error => error.code === 'authorization_unavailable');
+    assert.equal((await store.inspect()).registration, null);
+  }
+  assert.equal(registrationCount(), 5);
+});
+
+test('local callback issuer is checked by the OIDC client before token exchange', async t => {
+  const {gate, store, oauth} = await fixture(t);
+  const flow = await oauth.connect();
+  const callback = new URL(gate.authorize(flow.authorizationUrl));
+  callback.searchParams.set('iss', 'https://wrong-issuer.example.test');
+  assert.equal((await callbackRequest(callback.href)).status, 200);
+  await delay(50);
+  assert.equal(gate.authorizations, 0);
+  assert.equal((await store.inspect()).credentials, null);
 });
 
 test('disconnect and process close invalidate in-flight callbacks without clearing saved credentials on shutdown', async t => {
@@ -170,7 +272,7 @@ test('disconnect and process close invalidate in-flight callbacks without cleari
     return baseFetcher(url, options);
   }});
   const flow = await oauth.connect();
-  const callback = gate.authorize(flow.authorizationUrl);
+  const callback = authorizeWithIssuer(gate, flow.authorizationUrl);
   assert.equal((await callbackRequest(callback)).status, 200);
   await tokenStarted;
   await oauth.disconnect();
@@ -194,7 +296,7 @@ test('disconnect and process close invalidate in-flight callbacks without cleari
     return baseFetcher(url, options);
   }});
   const shutdownFlow = await shutdownOAuth.connect();
-  const shutdownCallback = gate.authorize(shutdownFlow.authorizationUrl);
+  const shutdownCallback = authorizeWithIssuer(gate, shutdownFlow.authorizationUrl);
   assert.equal((await callbackRequest(shutdownCallback)).status, 200);
   await shutdownStarted;
   await shutdownOAuth.close();
@@ -219,7 +321,21 @@ test('callback port conflict is actionable and private authorization storage is 
   const fileInfo = await lstat(join(config.dataDirectory, 'authorization.sqlite'));
   assert.equal(directoryInfo.mode & 0o777, 0o700);
   assert.equal(fileInfo.mode & 0o777, 0o600);
-  assert.deepEqual(state, {version: 1, binding: configurationBinding(config), generation: 0, credentials: null});
+  assert.deepEqual(state, {
+    version: 1,
+    binding: configurationBinding(config),
+    generation: 0,
+    registration: {
+      profileVersion: 1,
+      clientId: 'dynamic-test-client-1',
+      applicationType: 'native',
+      redirectUris: [CALLBACK_URL],
+      responseTypes: ['code'],
+      grantTypes: ['authorization_code', 'refresh_token'],
+      tokenEndpointAuthMethod: 'none',
+    },
+    credentials: null,
+  });
   const db = new DatabaseSync(join(config.dataDirectory, 'authorization.sqlite'));
   db.exec('UPDATE authorization_state SET version = 2 WHERE id = 1');
   db.close();
@@ -236,7 +352,7 @@ test('callback port conflict is actionable and private authorization storage is 
 test('SQLite transactions serialize same-process and cross-process refreshes in a private directory', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'action-tools-sqlite-race-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
-  const binding = JSON.stringify({issuer: 'https://gate.example.test', resourceEndpoint, clientId: 'action-tools-client', redirectUri: CALLBACK_URL});
+  const binding = JSON.stringify({profileVersion: 1, issuer: 'https://gate.example.test', resourceEndpoint, redirectUri: CALLBACK_URL});
   const store = new AuthorizationStateStore(directory, binding);
   await store.saveAuthorization({accessToken: 'expired', refreshToken: 'refresh', expiresAt: 0}, 0);
   const sameProcessStore = new AuthorizationStateStore(directory, binding);
@@ -296,6 +412,51 @@ test('SQLite transactions serialize same-process and cross-process refreshes in 
   assert.equal(Number(childResult.refreshed) + Number(parentRefreshed), 1);
   const final = await store.inspect();
   assert.equal(final.credentials.accessToken, 'fresh-access-token');
+
+  const registration = {
+    profileVersion: 1,
+    clientId: 'single-cross-process-registration',
+    applicationType: 'native',
+    redirectUris: [CALLBACK_URL],
+    responseTypes: ['code'],
+    grantTypes: ['authorization_code'],
+    tokenEndpointAuthMethod: 'none',
+  };
+  let registrationCount = 0;
+  let registrationStartedResolve;
+  const registrationStarted = new Promise(resolve => { registrationStartedResolve = resolve; });
+  const parentRegistration = store.ensureRegistration(async () => {
+    registrationCount++;
+    registrationStartedResolve();
+    await delay(250);
+    return registration;
+  });
+  await registrationStarted;
+  const registrationCode = `
+    const {AuthorizationStateStore}=await import(process.argv[1]);
+    const [directory,binding]=process.argv.slice(2);
+    let created=false;
+    const store=new AuthorizationStateStore(directory,binding);
+    const registration=await store.ensureRegistration(async()=>{created=true;return {profileVersion:1,clientId:'duplicate-registration'};});
+    process.stdout.write(JSON.stringify({created,registration}));
+  `;
+  const registrationChild = spawn(process.execPath, ['--input-type=module', '-e', registrationCode, moduleUrl, directory, binding], {stdio: ['ignore', 'pipe', 'pipe']});
+  let registrationStdout = '', registrationStderr = '';
+  registrationChild.stdout.on('data', chunk => { registrationStdout += chunk; });
+  registrationChild.stderr.on('data', chunk => { registrationStderr += chunk; });
+  const registrationExit = new Promise((resolve, reject) => {
+    registrationChild.once('error', reject);
+    registrationChild.once('close', (status, signal) => status === 0 && !signal ? resolve() : reject(new Error(registrationStderr || `child exited ${status ?? signal}`)));
+  });
+  const parentRegistrationResult = await parentRegistration;
+  await registrationExit;
+  const childRegistration = JSON.parse(registrationStdout);
+  assert.equal(registrationCount, 1);
+  assert.deepEqual(parentRegistrationResult, registration);
+  assert.deepEqual(childRegistration.registration, registration);
+  assert.equal(childRegistration.created, false);
+  await store.disconnect();
+  assert.deepEqual((await store.inspect()).registration, registration);
 });
 
 test('Remote MCP preserves protocol errors and exact business results, and never retries an unknown write', async () => {

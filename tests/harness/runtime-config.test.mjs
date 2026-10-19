@@ -21,5 +21,5 @@ test('runtime settings reject invalid scope, duplicate browser origins and unreg
  assert.throws(()=>validateRuntimeSettings({...example,spaOrigins:[...example.spaOrigins,...example.spaOrigins]}),/must not contain duplicates/);
  assert.throws(()=>validateRuntimeSettings({...example,loginRedirectUri:'https://attacker.example.com/auth-return.html'}),/exact registered SPA/);
  assert.throws(()=>validateRuntimeSettings({...example,loginRedirectUri:'https://app.example.com/auth-return.html?next=https://attacker.example.com'}),/exact registered SPA/);
- assert.throws(()=>validateRuntimeSettings({...example,gateAllowedClientIds:['weave-mcp']}),/include browserClientId/);
+ assert.throws(()=>validateRuntimeSettings({...example,gateAllowedClientIds:['weave-mcp']}),/unsupported|unknown|gateAllowedClientIds/i);
 });

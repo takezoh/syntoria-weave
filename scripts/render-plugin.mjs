@@ -13,19 +13,18 @@ function parseArguments(args) {
   const values = new Map();
   for (let index = 0; index < args.length; index++) {
     const key = args[index];
-    if (!['--issuer', '--resource-endpoint', '--client-id', '--registered-plugin-id'].includes(key)
+    if (!['--issuer', '--resource-endpoint', '--registered-plugin-id'].includes(key)
       || values.has(key) || typeof args[index + 1] !== 'string') {
-      throw new Error('Usage: node scripts/render-plugin.mjs --issuer <https-url> --resource-endpoint <https-url> --client-id <registered-public-client-id> --registered-plugin-id <plugin_asdk_app…>');
+      throw new Error('Usage: node scripts/render-plugin.mjs --issuer <https-url> --resource-endpoint <https-url> --registered-plugin-id <plugin_asdk_app…>');
     }
     values.set(key, args[++index]);
   }
-  for (const required of ['--issuer', '--resource-endpoint', '--client-id', '--registered-plugin-id']) {
+  for (const required of ['--issuer', '--resource-endpoint', '--registered-plugin-id']) {
     if (!values.has(required)) throw new Error(`Missing required option ${required}.`);
   }
   return {
     issuer: values.get('--issuer'),
     resourceEndpoint: values.get('--resource-endpoint'),
-    clientId: values.get('--client-id'),
     registeredPluginId: values.get('--registered-plugin-id'),
   };
 }

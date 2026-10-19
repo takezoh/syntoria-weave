@@ -2,7 +2,7 @@ import {isIP} from 'node:net';
 
 export type ServiceConfig=Readonly<{
  origin:string;issuer:string;resource:string;browserClientId:string;spaOrigins:readonly string[];sharedCookieDomain:string;
- gateClientId:string;gateClientSecret:string;allowedClientIds:readonly string[];
+ gateClientId:string;gateClientSecret:string;
  databaseUrl:string;cursorEpoch:string;writeMode:'blocked'|'enabled';port:number;localDatabase:boolean;
 }>;
 
@@ -55,9 +55,7 @@ export function readConfig(env:NodeJS.ProcessEnv):ServiceConfig {
  const resource=required(env,'OAUTH_RESOURCE');if(resource!==origin+'/mcp')throw new Error('OAuth resource differs from canonical MCP URL.');
  const writeMode=env.WRITE_MODE??'blocked';if(writeMode!=='blocked'&&writeMode!=='enabled')throw new Error('Invalid WRITE_MODE.');
  const port=Number(env.PORT??8080);if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid PORT.');
- const allowedClientIds=required(env,'GATE_ALLOWED_CLIENT_IDS').split(',').map(value=>value.trim()).filter(Boolean);
- if(allowedClientIds.length===0||new Set(allowedClientIds).size!==allowedClientIds.length)throw new Error('GATE_ALLOWED_CLIENT_IDS must contain unique client IDs.');
- const browserClientId=required(env,'GATE_BROWSER_CLIENT_ID');if(!allowedClientIds.includes(browserClientId))throw new Error('GATE_BROWSER_CLIENT_ID must be included in GATE_ALLOWED_CLIENT_IDS.');
+ const browserClientId=required(env,'GATE_BROWSER_CLIENT_ID');
  const cursorEpoch=required(env,'CURSOR_EPOCH');if(!/^[0-9a-f-]{36}$/i.test(cursorEpoch))throw new Error('CURSOR_EPOCH must be a deployment UUID.');
- return Object.freeze({origin,issuer,resource,browserClientId,spaOrigins,sharedCookieDomain,gateClientId:required(env,'GATE_RESOURCE_CLIENT_ID'),gateClientSecret:required(env,'GATE_RESOURCE_CLIENT_SECRET'),allowedClientIds:Object.freeze(allowedClientIds),databaseUrl,cursorEpoch,writeMode,port,localDatabase});
+ return Object.freeze({origin,issuer,resource,browserClientId,spaOrigins,sharedCookieDomain,gateClientId:required(env,'GATE_RESOURCE_CLIENT_ID'),gateClientSecret:required(env,'GATE_RESOURCE_CLIENT_SECRET'),databaseUrl,cursorEpoch,writeMode,port,localDatabase});
 }

@@ -26,6 +26,7 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
   const entries=Object.entries(row),columns=entries.map(([key])=>'"'+(key==='user_id'?'owner':key)+'"');
   await target.admin.query(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${entries.map((_,i)=>'$'+(i+1)).join(',')})`,entries.map(([,value])=>value));
  }
+ await target.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes,enabled) VALUES($1,$2,$3,$4,false)',['test','person','fixed-client',['state:read','state:write']]);
  await assert.rejects(checkRuntime(target.pool),/Incompatible schema/);
  const journal=(await target.admin.query('SELECT version,checksum FROM schema_migrations')).rows;
  await migrate(target.admin,resolve('db/postgres/migrations'));
@@ -33,6 +34,7 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  await checkRuntime(target.pool);
  assert.deepEqual((await target.admin.query('SELECT version,checksum FROM schema_migrations WHERE version=$1',['0001_state.sql'])).rows,journal);
  assert.deepEqual(await exportData(target.admin),value);
+ assert.equal((await target.admin.query("SELECT to_regclass('identity.client_grants') AS table_name")).rows[0].table_name,null);
  const saved=await invoke(target.pool,'A','list_actions');assert.deepEqual(saved.actions,original.actions);
  const replay=await invoke(target.pool,'A','apply_change',request);assert.deepEqual(replay.result,original.result);
  assert.equal((await invoke(target.pool,'B','list_actions')).actions.length,0);

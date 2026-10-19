@@ -15,6 +15,10 @@ import {actionCall} from '../../lib/application/action-service.ts';
 import {createAuthentication, createGateVerification, sessionCookie} from '../../lib/server/node/authentication.ts';
 import {createServer} from '../../lib/server/node/server.ts';
 import {createGateVerifier} from '../../lib/server/node/gate-verifier.ts';
+import {LocalOAuthClient} from '../../lib/mcp/local/oauth.mjs';
+import {AuthorizationStateStore} from '../../lib/mcp/local/state-store.mjs';
+import {configurationBinding} from '../../lib/mcp/local/config.mjs';
+import {setTimeout as delay} from 'node:timers/promises';
 
 if (process.env.NODE_ENV === 'production' || !/^(127\.0\.0\.1|localhost):[0-9]+$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')) {
   throw new Error('Explicit loopback Firestore Emulator is required.');
@@ -67,7 +71,6 @@ const gateConfig = {
     {app_id: 'other-suite', app_name: 'Other suite app', redirect_uris: [secondAppOrigin + '/auth-return.html']},
   ],
   browserOrigins: Object.freeze([appOrigin, secondAppOrigin]),
-  clients: [{client_id: 'mcp-client', client_name: 'MCP integration', redirect_uris: [callback]}],
   resources: [
     {audience: resource, client_id: 'weave-resource', client_secret: resourceSecret, browser_client_id: 'weave-browser'},
     {audience: otherResource, client_id: 'other-resource', client_secret: otherResourceSecret, browser_client_id: 'other-browser'},
@@ -77,6 +80,7 @@ const gateConfig = {
 let gateServer;
 let weave;
 let fixture;
+let localOAuth;
 let gateAvailable = true;
 const cookies = new Map();
 
@@ -267,7 +271,6 @@ try {
     sharedCookieDomain: 'example.test',
     gateClientId: 'weave-resource',
     gateClientSecret: resourceSecret,
-    allowedClientIds: Object.freeze(['weave-browser', 'mcp-client']),
     databaseUrl: fixture.url,
     cursorEpoch: randomUUID(),
     writeMode: 'enabled',
@@ -275,9 +278,6 @@ try {
     localDatabase: true,
   };
   await fixture.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)', [issuer, subject, 'integration-user']);
-  for (const client of config.allowedClientIds) {
-    await fixture.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)', [issuer, subject, client, ['state:read', 'state:write']]);
-  }
 
   const identityStore = createIdentityStore(fixture.pool);
   const verification = createGateVerification(config, {fetch: trustedFetch});
@@ -336,7 +336,7 @@ try {
     audience: otherResource,
     clientId: 'other-resource',
     clientSecret: otherResourceSecret,
-    allowedClientIds: ['other-browser'],
+    browserClientId: 'other-browser',
   }, {fetch: trustedFetch});
   const otherPrincipal = await otherVerifier.verifySession(browserSecret);
   assert.equal(otherPrincipal.userId, browserPrincipal.userId);
@@ -405,10 +405,33 @@ try {
   assert.equal(replay.status, 200, replay.text);
   assert.equal(json(replay).revision, 1);
 
+  const discovery = json(await requestGate('/.well-known/openid-configuration'));
+  assert.equal(discovery.registration_endpoint, issuer + '/reg');
+  const registrationReply = await requestGate(discovery.registration_endpoint, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({
+      client_name: 'MCP integration', application_type: 'native',
+      redirect_uris: [callback], token_endpoint_auth_method: 'none',
+      grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'],
+    }),
+  });
+  assert.equal(registrationReply.status, 201, registrationReply.text);
+  const registered = json(registrationReply);
+  assert.equal(registered.client_secret, undefined);
+  assert.ok(registered.client_id);
+  assert.equal((await fixture.admin.query('SELECT count(*)::int AS count FROM identity.subjects')).rows[0].count, 1);
+
+  const unsafeRegistration = await requestGate(discovery.registration_endpoint, {
+    method: 'POST', headers: {'content-type': 'application/json'},
+    body: JSON.stringify({redirect_uris: ['https://client.example.test/*'], token_endpoint_auth_method: 'none'}),
+  });
+  assert.equal(unsafeRegistration.status, 400, unsafeRegistration.text);
+
   const codeVerifier = randomBytes(32).toString('base64url');
   const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
   const authorizationUrl = '/auth?' + new URLSearchParams({
-    client_id: 'mcp-client',
+    client_id: registered.client_id,
     redirect_uri: callback,
     response_type: 'code',
     scope: 'openid',
@@ -424,7 +447,7 @@ try {
     headers: {'content-type': 'application/x-www-form-urlencoded'},
     body: new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: 'mcp-client',
+      client_id: registered.client_id,
       redirect_uri: callback,
       code: authorized.searchParams.get('code'),
       code_verifier: codeVerifier,
@@ -432,6 +455,13 @@ try {
   });
   assert.equal(tokenReply.status, 200, tokenReply.text);
   const mcpTokens = JSON.parse(tokenReply.text);
+  const refreshedReply = await requestGate('/token', {
+    method: 'POST', headers: {'content-type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({grant_type: 'refresh_token', client_id: registered.client_id, refresh_token: JSON.parse(tokenReply.text).refresh_token, resource}),
+  });
+  assert.equal(refreshedReply.status, 200, refreshedReply.text);
+  Object.assign(mcpTokens, json(refreshedReply));
+
   const mcpPayload = {jsonrpc: '2.0', id: 1, method: 'tools/list'};
   const mcpReply = await apiRequest(apiPort, '/mcp', {
     method: 'POST',
@@ -441,6 +471,33 @@ try {
   assert.equal(mcpReply.status, 200, mcpReply.text);
   assert.ok(json(mcpReply).result.tools.some(tool => tool.name === 'apply_change'));
   assert.equal((await fixture.admin.query('SELECT count(*)::int AS count FROM identity.sessions')).rows[0].count, 0);
+
+  const localConfig = {issuer, resourceEndpoint: resource};
+  const localState = new AuthorizationStateStore(join(directory, 'local-consumer'), configurationBinding(localConfig));
+  localOAuth = new LocalOAuthClient({config: localConfig, store: localState, fetcher: async (input, options = {}) => {
+    const target = new URL(input);
+    if (target.origin === issuer) return trustedFetch(input, options);
+    assert.equal(target.origin, origin);
+    const reply = await apiRequest(apiPort, target.pathname + target.search, options);
+    return new Response(reply.data, {status: reply.status, headers: reply.headers});
+  }});
+  const localConnection = await localOAuth.connect();
+  const localCallback = await approveOAuthAuthorization(await requestGate(localConnection.authorizationUrl, {}, true));
+  const callbackReply = await fetch(localCallback, {redirect: 'error'});
+  assert.equal(callbackReply.status, 200);
+  for (let count = 0; count < 100 && !(await localState.inspect()).credentials; count++) await delay(20);
+  const localConnected = await localState.inspect();
+  assert.ok(localConnected.credentials, 'maintained local OAuth client completes actual Gate DCR and code exchange');
+  const localRegistrationId = localConnected.registration.clientId;
+  assert.notEqual(localRegistrationId, registered.client_id);
+  assert.equal((await verification.verifyToken(await localOAuth.accessToken())).clientId, localRegistrationId);
+  await localState.updateCredentials(state => ({...state.credentials, expiresAt: 0}));
+  assert.equal((await verification.verifyToken(await localOAuth.accessToken())).clientId, localRegistrationId, 'refresh reuses the persisted DCR client');
+  await localOAuth.disconnect();
+  assert.equal((await localState.inspect()).registration.clientId, localRegistrationId);
+  const localReconnect = await localOAuth.connect();
+  assert.equal(new URL(localReconnect.authorizationUrl).searchParams.get('client_id'), localRegistrationId);
+  await localOAuth.close();
 
   const undo = {
     schemaVersion: 2,
@@ -466,6 +523,22 @@ try {
   const retained = await fixture.admin.query('SELECT status FROM state.actions WHERE user_id = $1', ['integration-user']);
   assert.deepEqual(retained.rows.map(row => row.status), ['dropped']);
 
+  const dynamicWrite = {schemaVersion: 2, operationId: randomUUID(), expectedRevision: 2, kind: 'add', payload: {title: 'DCR authorized MCP write'}};
+  const mcpHeaders = {'content-type': 'application/json', authorization: 'Bearer ' + mcpTokens.access_token};
+  const callMcp = (name, args) => apiRequest(apiPort, '/mcp', {
+    method: 'POST', headers: mcpHeaders,
+    body: {jsonrpc: '2.0', id: 2, method: 'tools/call', params: {name, arguments: args}},
+  });
+  const dynamicSaved = await callMcp('apply_change', dynamicWrite);
+  assert.equal(dynamicSaved.status, 200, dynamicSaved.text);
+  assert.equal(json(dynamicSaved).result.structuredContent.revision, 3, dynamicSaved.text);
+  const dynamicReplayed = await callMcp('apply_change', dynamicWrite);
+  assert.equal(dynamicReplayed.status, 200, dynamicReplayed.text);
+  assert.equal(json(dynamicReplayed).result.structuredContent.revision, 3, dynamicReplayed.text);
+  const dynamicUndone = await callMcp('undo_change', {schemaVersion: 2, operationId: randomUUID(), expectedRevision: 3, undoOf: dynamicWrite.operationId});
+  assert.equal(dynamicUndone.status, 200, dynamicUndone.text);
+  assert.equal(json(dynamicUndone).result.structuredContent.revision, 4, dynamicUndone.text);
+
   gateAvailable = false;
   try {
     const outage = await apiRequest(apiPort, '/api/session', {headers: {origin: appOrigin, cookie}});
@@ -485,6 +558,18 @@ try {
   })).status, 200, 'browser logout leaves the independently approved MCP connection intact');
   assert.equal((await fixture.admin.query('SELECT count(*)::int AS count FROM identity.sessions')).rows[0].count, 0);
 
+  await fixture.admin.query('UPDATE identity.subjects SET enabled=false WHERE issuer=$1 AND subject=$2', [issuer, subject]);
+  assert.equal((await apiRequest(apiPort, '/mcp', {
+    method: 'POST', headers: {'content-type': 'application/json', authorization: 'Bearer ' + mcpTokens.access_token}, body: mcpPayload,
+  })).status, 403, 'an approved DCR client cannot bypass disabled local subject admission');
+  await fixture.admin.query('UPDATE identity.subjects SET enabled=true WHERE issuer=$1 AND subject=$2', [issuer, subject]);
+  const verifiedMcp = await verification.verifyToken(mcpTokens.access_token);
+  assert.equal(verifiedMcp.clientId, registered.client_id);
+  await storage.revoke(verifiedMcp.connectionId, subject);
+  assert.equal((await apiRequest(apiPort, '/mcp', {
+    method: 'POST', headers: {'content-type': 'application/json', authorization: 'Bearer ' + mcpTokens.access_token}, body: mcpPayload,
+  })).status, 401, 'revoked DCR connection cannot access Weave');
+
   console.log(JSON.stringify({
     actual_gate_firestore_weave_postgres: 'passed',
     explicit_browser_device_approval: true,
@@ -495,12 +580,15 @@ try {
     wrong_resource: true,
     write_replay_undo_and_corrected_replay: true,
     gate_outage_and_revocation: true,
-    independent_mcp_pkce_and_bearer: true,
+    independent_mcp_dcr_pkce_refresh_and_bearer: true,
+    dynamic_client_subject_admission_and_revoke: true,
+    maintained_local_consumer_dcr_exchange_refresh_reuse: true,
     weave_session_persistence: false,
     external_github_login: false,
     hosted_neon_browser_and_cloud_run: false,
   }));
 } finally {
+  await localOAuth?.close();
   await weave?.close();
   if (gateServer?.listening) await new Promise(resolve => gateServer.close(resolve));
   await fixture?.close();

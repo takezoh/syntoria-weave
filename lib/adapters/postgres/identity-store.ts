@@ -1,16 +1,16 @@
 import type {Pool,PoolClient} from 'pg';
 import {fail} from '../../domain/core';
 
-export type IdentityBinding=Readonly<{issuer:string;subject:string;clientId:string}>;
+export type IdentityBinding=Readonly<{issuer:string;subject:string}>;
 
-/** Resolve only an explicitly enabled subject and resource-client grant. */
+/** Resolve only an explicitly enabled issuer and subject mapping. */
 export function createIdentityStore(pool:Pool) {
- async function grant(binding:IdentityBinding,client:Pool|PoolClient=pool){
-  const row=(await client.query('SELECT s.user_id,g.scopes FROM identity.subjects s JOIN identity.client_grants g USING(issuer,subject) WHERE s.issuer=$1 AND s.subject=$2 AND g.client_id=$3 AND s.enabled AND g.enabled',[binding.issuer,binding.subject,binding.clientId])).rows[0];
-  if(!row)fail('forbidden','This identity or client is not authorized.',403);
-  return {user:String(row.user_id),scopes:row.scopes as string[]};
+ async function resolveSubject(binding:IdentityBinding,client:Pool|PoolClient=pool){
+  const row=(await client.query('SELECT user_id FROM identity.subjects WHERE issuer=$1 AND subject=$2 AND enabled',[binding.issuer,binding.subject])).rows[0];
+  if(!row)fail('forbidden','This identity is not authorized.',403);
+  return {user:String(row.user_id)};
  }
- return {grant};
+ return {resolveSubject};
 }
 
 export type IdentityStore=ReturnType<typeof createIdentityStore>;

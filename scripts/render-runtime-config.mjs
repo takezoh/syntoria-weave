@@ -7,7 +7,7 @@ const outputRoot=resolve('.local'),spaOutput=resolve(outputRoot,'spa'),cloudRunO
 const settings=validateRuntimeSettings(JSON.parse(await readFile(inputPath,'utf8')));
 const template=JSON.parse(await readFile(resolve('infra/cloud-run/production.json'),'utf8'));
 const env=template.spec.template.spec.containers[0].env;
-const values={PUBLIC_ORIGIN:settings.apiOrigin,OAUTH_ISSUER:settings.gateOrigin,OAUTH_RESOURCE:settings.apiOrigin+'/mcp',SHARED_COOKIE_DOMAIN:settings.sharedCookieDomain,SPA_ORIGINS:JSON.stringify(settings.spaOrigins),GATE_BROWSER_CLIENT_ID:settings.browserClientId,GATE_RESOURCE_CLIENT_ID:settings.gateResourceClientId,GATE_ALLOWED_CLIENT_IDS:settings.gateAllowedClientIds.join(',')};
+const values={PUBLIC_ORIGIN:settings.apiOrigin,OAUTH_ISSUER:settings.gateOrigin,OAUTH_RESOURCE:settings.apiOrigin+'/mcp',SHARED_COOKIE_DOMAIN:settings.sharedCookieDomain,SPA_ORIGINS:JSON.stringify(settings.spaOrigins),GATE_BROWSER_CLIENT_ID:settings.browserClientId,GATE_RESOURCE_CLIENT_ID:settings.gateResourceClientId};
 for(const [name,value] of Object.entries(values)){
  const matches=env.filter(entry=>entry.name===name);
  if(matches.length!==1)throw new Error('Cloud Run template must contain exactly one '+name+' entry.');
