@@ -4,17 +4,30 @@ Syntoria Weave is installed as a private plugin package that requires a Remote M
 
 Backend provisioning is independent of plugin installation. The service runs on Cloud Run with Neon PostgreSQL; follow [deployment](docs/technical/deployment.md) only when cloud infrastructure work is requested.
 
-## Register the Remote MCP app
+## Resolve the registered Remote MCP app
 
-Use the deployed HTTPS MCP endpoint, Gate issuer and registered public OAuth client ID supplied by the deployment operator. Do not infer a production URL or place these values in tracked source. The provided public client uses PKCE S256 and `tokenEndpointAuthMethod: none`; the same issuer, verified subject and client ID need an enabled Weave `identity.client_grants` entry. Gate client registration alone does not grant Weave access. See [identity and access](docs/technical/infrastructure.md#identity-and-access).
+The package identity is fixed: `syntoria-weave`, displayed as `Syntoria Weave`, installed as `syntoria-weave@syntoria-weave-personal-marketplace`. These package names are not the registered Remote MCP app ID. Use the deployment's known HTTPS MCP endpoint, Gate issuer and registered public OAuth client ID; do not infer a production URL or place these values in tracked source. The provided public client uses PKCE S256 and `tokenEndpointAuthMethod: none`; the same issuer, verified subject and client ID need an enabled Weave `identity.client_grants` entry. Gate client registration alone does not grant Weave access. See [identity and access](docs/technical/infrastructure.md#identity-and-access).
 
-In ChatGPT, first inspect the [Plugins page](https://chatgpt.com/plugins) for an existing registered app with the same Remote MCP endpoint, issuer and public client ID. Reuse that app and retain its actual ID. Create a custom MCP app only if no matching registration exists. If a creation attempt has an uncertain result, inspect ChatGPT's registrations and resolve it before retrying; do not create a duplicate. For a new registration, choose **Add custom MCP server**, enter the supplied endpoint, issuer and public client ID, copy the exact callback URI shown by ChatGPT into the Gate client's redirect allowlist, and retain the actual app ID shown by the host. It starts with `plugin_asdk_app`; copy the full value exactly. The callback shown by ChatGPT is authoritative. Do not use the standalone local consumer's `http://127.0.0.1:55437/callback` URI.
+Resolve the registered app ID from available host information; do not ask the user to look it up or paste it:
+
+1. Run the supported inventory command and locate the installed package by its fixed name. Inspect its reported installation/cache location, then read `plugin.json`. If `extensions.com.openai.apps` points to `./.app.json`, read that file and take the required `apps.actions.id` as the candidate registered app ID. Do not treat the package name, display name or any local wrapper `pluginId` as this ID.
+
+   ```sh
+   codex plugin list --json
+   ```
+
+2. Inspect existing ignored renderer settings and installation records, including `.local/dist/action-tools/plugin-settings.json`. Reuse `registeredPluginId` only when its endpoint, issuer and client ID match the deployment values.
+3. Verify the candidate against the actual registered ChatGPT connection: match its name (`Syntoria Weave`) and the exact known Remote MCP endpoint, issuer and public client ID. A legacy local stdio package may not contain `.app.json`; in that case continue to the host's registered-app management view and resolve the matching connection there.
+4. Public plugin search and dependency listings are global listings. A missing result from search or `get_plugin_dependencies` does not establish that a private registered app is absent. Do not ask the user to paste an app ID or choose between an ID and “unregistered.”
+5. If inspection confirms there is no matching registration, create it through the supported ChatGPT host flow and consume the ID returned by that flow. If the creation result is uncertain, inspect registrations and resolve the outcome before retrying; do not create a duplicate or fabricate an ID from the package name. If the host does not expose a capability needed to inspect or create the registration, report that specific limitation instead of asking the user for the ID.
+
+For a new registration, choose **Add custom MCP server**, enter the known endpoint, issuer and public client ID, and copy the exact callback URI shown by ChatGPT into the Gate client's redirect allowlist. The callback shown by ChatGPT is authoritative. Do not use the standalone local consumer's `http://127.0.0.1:55437/callback` URI. Keep the resolved full `plugin_asdk_app…` ID as an installer value; do not request it from the user.
 
 Gate currently supports issuer identification, PKCE S256 and token endpoint authentication method `none`; it does not provide dynamic client registration or CIMD. Reuse the existing registered public client. Do not claim that registration, authentication or Weave access succeeded until the host confirms each one.
 
 ## Generate the personal package
 
-Use Node.js 24 LTS and the package manager pinned in `package.json`. Keep actual deployment values and the host-issued app ID in the ignored renderer output only.
+Use Node.js 24 LTS and the package manager pinned in `package.json`. Keep actual deployment values and the resolved host-issued app ID in the ignored renderer output only. The installer must populate `REGISTERED_PLUGIN_ID` from the resolution steps above; it is not a user-provided setting.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -29,7 +42,7 @@ pnpm build:plugin --config .local/dist/action-tools/plugin-settings.json
 pnpm verify:plugin
 ```
 
-Set the shell variables from the authorized deployment and the exact ChatGPT app ID. The renderer writes `.local/dist/action-tools/plugin-settings.json` with private file permissions. A configured build requires a host-shaped `plugin_asdk_app…` ID and fails if it is missing or is the template marker. `pnpm build` without this renderer output creates a noninstallable template with no marketplace entry; never install it.
+Set the endpoint, issuer and client ID shell variables from the authorized deployment, then set `REGISTERED_PLUGIN_ID` from the installer-resolved matching ChatGPT connection. The renderer writes `.local/dist/action-tools/plugin-settings.json` with private file permissions. A configured build requires a host-shaped `plugin_asdk_app…` ID and fails if it is missing or is the template marker. `pnpm build` without this renderer output creates a noninstallable template with no marketplace entry; never install it.
 
 The configured `dist/plugin` directory is the private marketplace root:
 
