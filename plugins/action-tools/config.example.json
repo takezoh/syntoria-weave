@@ -1,6 +1,0 @@
-{
-  "issuer": "https://gate.example.invalid",
-  "resourceEndpoint": "https://api.example.invalid/mcp",
-  "clientId": "action-tools-client",
-  "dataDirectory": "/absolute/private/action-tools-data"
-}

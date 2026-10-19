@@ -35,8 +35,6 @@ Use `open_actions` for the shared UI. Opening the UI or retrieving schemas does 
 
 Saved perspectives are versioned user-scoped definitions. Read the exact variant from `list_perspectives` or `query_perspective`; version 1 uses the legacy filter and version 2 uses a structured query with optional global ordering. The shared UI displays the definition summary but has no query editor. See [perspective operation details](references/operations.md#saved-perspectives) before creating or replacing one.
 
-## Connect the local MCP consumer
+## Use the shared UI context
 
-When the discovered server offers `connect_action_service`, `get_connection_status` and `disconnect_action_service`, these manage its local OAuth connection to the configured action service. Call them with `{}`. To connect, open the authorization URL returned by `connect_action_service` and complete the user's sign-in/connection approval. Valid authorization is reused across calls and restarts. Do not invent endpoints, identity headers or client credentials.
-
-Status can report locally stored authorization without proving remote acceptance; business calls are validated by the service. Follow a reported connect requirement after a rejected token. Permission denial is distinct from expired authentication. Disconnect clears local authorization; remote connection revocation follows Gate's connection controls. Keep exact pending write arguments across reauthentication and never replace an unknown operation's ID.
+Follow the MCP host's authentication and account-selection flow. When the shared UI is open and the user refers to selected actions, call the UI-local `get_selection_context` and use its selected action IDs and titles. Treat `active` as separate focus context; do not substitute it for an empty `selected` list. If explicit selection is cleared, report or act on no selected actions even when an active action remains. This tool reads UI context and does not call the backend. Before any authorized write, read current saved state and its user-wide revision as described above.
