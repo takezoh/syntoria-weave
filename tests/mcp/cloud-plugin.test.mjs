@@ -23,7 +23,6 @@ const mcp = JSON.parse(readFileSync(join(repository, 'plugins/action-tools/mcp.j
 const settings = Object.freeze({
   issuer: 'https://identity.example.test',
   resourceEndpoint: 'https://api.example.test/mcp',
-  clientId: 'registered-public-test-client',
   registeredPluginId: 'plugin_asdk_app-test-registered-001',
 });
 
@@ -47,6 +46,7 @@ test('package MCP manifest has no server and cannot duplicate the registered app
 test('private renderer settings retain registration details and require the actual host ID', () => {
   assert.deepEqual(validateCloudPluginSettings(settings), settings);
   assert.deepEqual(renderPersonalPluginSettings(settings), settings);
+  assert.throws(() => validateCloudPluginSettings({...settings, clientId: 'static-public-client'}), /exactly/);
   assert.throws(() => validateCloudPluginSettings({...settings, registeredPluginId: TEMPLATE_REGISTERED_PLUGIN_ID}), /host-issued/);
   assert.throws(() => validateCloudPluginSettings({...settings, registeredPluginId: 'invented-id'}), /host-issued/);
   assert.throws(() => validateCloudPluginSettings({...settings, registeredPluginId: undefined}), /host-issued/);
@@ -134,7 +134,6 @@ test('renderer and package CLIs build a noninstallable template and a configured
     'render:plugin-config',
     '--issuer', settings.issuer,
     '--resource-endpoint', settings.resourceEndpoint,
-    '--client-id', settings.clientId,
     '--registered-plugin-id', settings.registeredPluginId,
   ]);
   assert.equal(rendered.status, 0, rendered.stderr);
@@ -157,7 +156,17 @@ test('renderer and package CLIs build a noninstallable template and a configured
     ['artifact-manifest.json', '.agents/plugins/marketplace.json', 'syntoria-weave/.app.json', 'syntoria-weave/mcp.json', 'syntoria-weave/plugin.json']
       .map(path => [path, JSON.parse(readFileSync(join(artifact, path), 'utf8'))]),
   ));
-  for (const value of [settings.issuer, settings.resourceEndpoint, settings.clientId]) assert.equal(artifactText.includes(value), false);
+  for (const value of [settings.issuer, settings.resourceEndpoint]) assert.equal(artifactText.includes(value), false);
+
+  const fixedClientRenderer = runPnpm([
+    'render:plugin-config',
+    '--issuer', settings.issuer,
+    '--resource-endpoint', settings.resourceEndpoint,
+    '--client-id', 'static-public-client',
+    '--registered-plugin-id', settings.registeredPluginId,
+  ]);
+  assert.notEqual(fixedClientRenderer.status, 0);
+  assert.match(fixedClientRenderer.stderr, /Usage:/);
 
   writeFileSync(join(packageRoot, 'launcher.mjs'), 'process.exit(1);');
   const staleArtifact = run(['scripts/testing/verify-plugin-artifact.mjs']);

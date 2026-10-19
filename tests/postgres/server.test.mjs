@@ -25,14 +25,12 @@ function rawHttp(port,request){
 test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth for MCP',async t=>{
  const f=await postgresFixture();t.after(()=>f.close());
  const gate=await gateFixture();t.after(()=>gate.close());
- const config={origin:'https://api.example.com',issuer:gate.issuer,resource:'https://api.example.com/mcp',browserClientId:'web',spaOrigins:['https://app.example.com','https://other-app.example.com'],sharedCookieDomain:'example.com',gateClientId:'resource',gateClientSecret:'synthetic-secret',allowedClientIds:['web','mcp','unregistered'],databaseUrl:f.url,cursorEpoch:crypto.randomUUID(),writeMode:'enabled',port:8080,localDatabase:true};
+ const config={origin:'https://api.example.com',issuer:gate.issuer,resource:'https://api.example.com/mcp',browserClientId:'web',spaOrigins:['https://app.example.com','https://other-app.example.com'],sharedCookieDomain:'example.com',gateClientId:'resource',gateClientSecret:'synthetic-secret',databaseUrl:f.url,cursorEpoch:crypto.randomUUID(),writeMode:'enabled',port:8080,localDatabase:true};
  const verification=createGateVerification(config,{fetch:gate.fetch});
  const identityStore=createIdentityStore(f.pool),auth=createAuthentication(config,identityStore,verification);
  const bearer=gate.token({client:'mcp'}),browser=gate.session({client:'web'}),cookie=sessionCookie+'='+browser;
  await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'person','user']);
- for(const client of ['mcp','web'])await f.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)',[config.issuer,'person',client,['state:read','state:write']]);
  await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'other-person','other-user']);
- await f.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)',[config.issuer,'other-person','web',['state:read','state:write']]);
  const logs=[];const server=createServer({config,authentication:auth,log:value=>logs.push(value),invoke:(principal,name,args,signal)=>actionCall({store:createPostgresActionStore(f.pool,principal,{revalidate:client=>auth.revalidate(principal,client),signal}),clock:()=>new Date().toISOString(),newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope(principal.user,config.cursorEpoch)},name,args)});
  t.after(()=>server.close());
  const address=await server.listen({host:'127.0.0.1',port:0});const port=Number(new URL(address).port);
@@ -43,6 +41,8 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   const headers={...base,cookie:sessionCookie+'='+session,'x-csrf-token':csrf};if(origin)headers.origin=origin;
   return server.inject({method:'POST',url:'/api/actions',headers,payload:args});
  };
+
+ assert.equal((await f.admin.query("SELECT to_regclass('identity.client_grants') IS NULL AS absent")).rows[0].absent,true);
 
  await t.test('API host and route split retain protocol-owned MCP UI resources',async()=>{
   const meta=await server.inject({url:'/.well-known/oauth-protected-resource/mcp',headers:base});assert.equal(meta.statusCode,200);assert.equal(meta.json().resource,config.resource);
@@ -96,6 +96,7 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   assert.equal((await readSession(browser,{authorization:'Bearer '+bearer})).statusCode,401);
   assert.equal((await readSession(browser,{cookie:cookie+'; '+sessionCookie+'=other'})).statusCode,401);
   assert.equal((await readSession(browser,{authorization:['Bearer '+bearer,'Bearer '+bearer]})).statusCode,401);
+  const wrongBrowserClient=gate.session({client:'mcp'});assert.equal((await readSession(wrongBrowserClient)).statusCode,401);
   const wrongAudience=gate.session({audience:'https://other.example.com/mcp'});assert.equal((await readSession(wrongAudience)).statusCode,503);
   const expired=gate.session({expiry:Math.floor(Date.now()/1000)-1});assert.equal((await readSession(expired)).statusCode,401);
   gate.revokeSession(browser);assert.equal((await readSession()).statusCode,401);
@@ -127,12 +128,16 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   assert.equal((await server.inject({method:'POST',url:'/api/actions',headers:{...base,authorization:'Bearer '+bearer},payload:{name:'list_actions'}})).json().actions[0].title,'MCP remains independent');
   assert.equal((await rpc('notifications/initialized')).statusCode,202);
   assert.equal((await rpc('ping',{}, {'mcp-protocol-version':'future'})).statusCode,400);
-  assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+await gate.token({client:'unregistered'})})).statusCode,403);
+  const dynamicClient=await rpc('tools/list',{}, {authorization:'Bearer '+gate.token({client:'dcr-client-43'})});assert.equal(dynamicClient.statusCode,200,dynamicClient.body);
+  const inconsistentClient=gate.token({client:'dcr-client-44'});gate.tokens.get(inconsistentClient).azp='different-client';
+  assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+inconsistentClient})).statusCode,401);
+  const azpOnlyClient=gate.token({client:'dcr-client-45'}),azpOnlyRecord=gate.tokens.get(azpOnlyClient);delete azpOnlyRecord.client_id;azpOnlyRecord.azp='dcr-client-45';
+  assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+azpOnlyClient})).statusCode,401);
+  assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+gate.token({subject:'unmapped-person',client:'another-dcr-client'})})).statusCode,403);
  });
 
- await t.test('Gate and local grants are rechecked online inside locked writes',async()=>{
+ await t.test('Gate and subject mapping are rechecked online inside locked writes',async()=>{
   await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'lock-person','lock-user']);
-  await f.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)',[config.issuer,'lock-person','web',['state:read','state:write']]);
   const owner=gate.session({subject:'lock-person'});
   const locked=await f.admin.connect();await locked.query('BEGIN');await locked.query('SELECT pg_advisory_xact_lock($1::bigint)',[userLockKey('lock-user')]);
   let pending;
@@ -144,14 +149,14 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
    assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM state.operations WHERE user_id=$1',['lock-user'])).rows[0].count,0);
   }finally{await locked.query('ROLLBACK');locked.release();await pending;}
 
-  const grantLock=await f.admin.connect();await grantLock.query('BEGIN');await grantLock.query('SELECT pg_advisory_xact_lock($1::bigint)',[userLockKey('lock-user')]);
-  const grantSession=gate.session({subject:'lock-person'});let grantPending;
+  const subjectLock=await f.admin.connect();await subjectLock.query('BEGIN');await subjectLock.query('SELECT pg_advisory_xact_lock($1::bigint)',[userLockKey('lock-user')]);
+  const subjectSession=gate.session({subject:'lock-person'});let subjectPending;
   try{
-   grantPending=browserWrite(grantSession,'synthetic-csrf','https://app.example.com',{name:'apply_change',arguments:{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'Grant revoked while waiting'}}});
+   subjectPending=browserWrite(subjectSession,'synthetic-csrf','https://app.example.com',{name:'apply_change',arguments:{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'Subject disabled while waiting'}}});
    let waiting=false;for(let attempt=0;attempt<100;attempt++){waiting=!!(await f.admin.query("SELECT 1 FROM pg_stat_activity WHERE wait_event='advisory' AND pid<>pg_backend_pid()")).rowCount;if(waiting)break;await new Promise(resolve=>setTimeout(resolve,5));}assert(waiting);
-   await f.admin.query('UPDATE identity.client_grants SET enabled=false WHERE issuer=$1 AND subject=$2 AND client_id=$3',[config.issuer,'lock-person','web']);
-   await grantLock.query('COMMIT');assert.equal((await grantPending).json().error,'forbidden');
-  }finally{await grantLock.query('ROLLBACK');grantLock.release();await grantPending;await f.admin.query('UPDATE identity.client_grants SET enabled=true WHERE issuer=$1 AND subject=$2 AND client_id=$3',[config.issuer,'lock-person','web']);}
+   await f.admin.query('UPDATE identity.subjects SET enabled=false WHERE issuer=$1 AND subject=$2',[config.issuer,'lock-person']);
+   await subjectLock.query('COMMIT');assert.equal((await subjectPending).json().error,'forbidden');
+  }finally{await subjectLock.query('ROLLBACK');subjectLock.release();await subjectPending;await f.admin.query('UPDATE identity.subjects SET enabled=true WHERE issuer=$1 AND subject=$2',[config.issuer,'lock-person']);}
  });
 
  await t.test('Gate outage fails closed and online verification is not cached',async()=>{
@@ -177,7 +182,7 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
 
 test('configuration binds API, Gate issuer and SPA origins to an explicit shared cookie parent',()=>{
  assert.throws(()=>readConfig({}),/Missing configuration/);
- const env={PUBLIC_ORIGIN:'https://api.example.com',OAUTH_ISSUER:'https://gate.example.com',OAUTH_RESOURCE:'https://api.example.com/mcp',GATE_BROWSER_CLIENT_ID:'web',SPA_ORIGINS:'["https://app.example.com"]',SHARED_COOKIE_DOMAIN:'example.com',GATE_RESOURCE_CLIENT_ID:'resource',GATE_RESOURCE_CLIENT_SECRET:'secret',GATE_ALLOWED_CLIENT_IDS:'web,mcp',DATABASE_URL:'postgresql://user:secret@db.example.com/db',CURSOR_EPOCH:crypto.randomUUID()};
+ const env={PUBLIC_ORIGIN:'https://api.example.com',OAUTH_ISSUER:'https://gate.example.com',OAUTH_RESOURCE:'https://api.example.com/mcp',GATE_BROWSER_CLIENT_ID:'web',SPA_ORIGINS:'["https://app.example.com"]',SHARED_COOKIE_DOMAIN:'example.com',GATE_RESOURCE_CLIENT_ID:'resource',GATE_RESOURCE_CLIENT_SECRET:'secret',DATABASE_URL:'postgresql://user:secret@db.example.com/db',CURSOR_EPOCH:crypto.randomUUID()};
  assert.equal(readConfig(env).writeMode,'blocked');
  assert.throws(()=>readConfig({...env,PUBLIC_ORIGIN:'http://api.example.com'}));
  assert.throws(()=>readConfig({...env,PUBLIC_ORIGIN:'https://api.example.com/path'}));
@@ -186,6 +191,6 @@ test('configuration binds API, Gate issuer and SPA origins to an explicit shared
  assert.throws(()=>readConfig({...env,SHARED_COOKIE_DOMAIN:'example.com/'}));
  assert.throws(()=>readConfig({...env,SPA_ORIGINS:'["https://app.example.com","https://app.example.com"]'}));
  assert.throws(()=>readConfig({...env,SPA_ORIGINS:'["http://app.example.com"]'}));
- assert.throws(()=>readConfig({...env,GATE_BROWSER_CLIENT_ID:'not-allowed'}));
+ assert.equal('allowedClientIds' in readConfig(env),false);
  assert.throws(()=>readConfig({...env,LOCAL_DATABASE:'true',NODE_ENV:'production'}));
 });

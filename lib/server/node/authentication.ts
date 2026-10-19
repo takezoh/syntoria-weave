@@ -43,7 +43,7 @@ function verifiedCall<T>(call:()=>Promise<T>){
 
 /** Create uncached online Gate verification calls for bearer tokens and browser sessions. */
 export function createGateVerification(config:ServiceConfig,dependencies:GateDependencies={}){
- const verifier=createGateVerifier({issuer:config.issuer,audience:config.resource,clientId:config.gateClientId,clientSecret:config.gateClientSecret,allowedClientIds:config.allowedClientIds},dependencies);
+ const verifier=createGateVerifier({issuer:config.issuer,audience:config.resource,clientId:config.gateClientId,clientSecret:config.gateClientSecret,browserClientId:config.browserClientId},dependencies);
  return Object.freeze({
   verifyToken:(token:string)=>verifiedCall(()=>verifier.verifyToken(token)),
   verifySession:(session:string)=>verifiedCall(()=>verifier.verifySession(session)),
@@ -60,9 +60,9 @@ function principalMatches(principal:Principal,verified:GatePrincipal){
 export function createAuthentication(config:ServiceConfig,store:IdentityStore,verification:GateVerification=createGateVerification(config)) {
  const credentials=new WeakMap<Principal,Credential>();
 
- async function bind(binding:IdentityBinding,connectionId:string,credential:Credential,csrf?:string,client?:Parameters<IdentityStore['grant']>[1]){
-  const grant=await store.grant(binding,client);
-  const principal=issuePrincipal({...binding,connectionId,user:grant.user,scopes:['state:read','state:write']});
+ async function bind(binding:IdentityBinding,clientId:string,connectionId:string,credential:Credential,csrf?:string,client?:Parameters<IdentityStore['resolveSubject']>[1]){
+  const identity=await store.resolveSubject(binding,client);
+  const principal=issuePrincipal({...binding,clientId,connectionId,user:identity.user,scopes:['state:read','state:write']});
   credentials.set(principal,{...credential,csrfToken:csrf});
   return principal;
  }
@@ -78,8 +78,8 @@ export function createAuthentication(config:ServiceConfig,store:IdentityStore,ve
     const match=authorization.match(/^Bearer ([A-Za-z0-9._~+/-]+=*)$/);
     if(!match)fail('unauthenticated','A bearer token is required.',401);
     const verified=await verification.verifyToken(match[1]!);
-    const binding={issuer:verified.issuer,subject:verified.userId,clientId:verified.clientId};
-    return bind(binding,verified.connectionId,{kind:'bearer',value:match[1]!});
+    const binding={issuer:verified.issuer,subject:verified.userId};
+    return bind(binding,verified.clientId,verified.connectionId,{kind:'bearer',value:match[1]!});
    }
 
    if(token===null)fail('unauthenticated','Authentication is required.',401);
@@ -88,10 +88,10 @@ export function createAuthentication(config:ServiceConfig,store:IdentityStore,ve
    const verified=await verification.verifySession(token);
    if(verified.sessionType!=='browser'||verified.clientId!==config.browserClientId||!Number.isSafeInteger(verified.expiresAt)||verified.expiresAt<=Date.now()/1000||!verified.csrfToken)fail('unauthenticated','Browser session is invalid.',401);
    if(write&&!constantTimeEqual(headers.csrf??'',verified.csrfToken))fail('forbidden','CSRF validation failed.',403);
-   return bind({issuer:verified.issuer,subject:verified.userId,clientId:verified.clientId},verified.connectionId,{kind:'session',value:token},verified.csrfToken);
+   return bind({issuer:verified.issuer,subject:verified.userId},verified.clientId,verified.connectionId,{kind:'session',value:token},verified.csrfToken);
   },
 
-  async revalidate(principal:Principal,client:Parameters<IdentityStore['grant']>[1]){
+  async revalidate(principal:Principal,client:Parameters<IdentityStore['resolveSubject']>[1]){
    const verifiedPrincipal=verifyPrincipal(principal),credential=credentials.get(principal);
    if(!credential||!verifiedPrincipal.connectionId)fail('unauthenticated','Verified connection is required.',401);
    if(credential.kind==='session'){
@@ -101,8 +101,8 @@ export function createAuthentication(config:ServiceConfig,store:IdentityStore,ve
     const verified=await verification.verifyToken(credential.value);
     if(!principalMatches(verifiedPrincipal,verified))fail('unauthenticated','Connection identity changed.',401);
    }
-   const grant=await store.grant({issuer:verifiedPrincipal.issuer,subject:verifiedPrincipal.subject,clientId:verifiedPrincipal.clientId},client);
-   if(grant.user!==verifiedPrincipal.user)fail('forbidden','Access has been revoked.',403);
+   const identity=await store.resolveSubject({issuer:verifiedPrincipal.issuer,subject:verifiedPrincipal.subject},client);
+   if(identity.user!==verifiedPrincipal.user)fail('forbidden','Access has been revoked.',403);
   },
 
   sessionInfo(principal:Principal){

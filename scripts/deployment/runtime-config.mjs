@@ -17,6 +17,8 @@ function parentDomain(value){
 function underParent(host,parent,proper=false){return proper?host!==parent&&host.endsWith('.'+parent):host===parent||host.endsWith('.'+parent);}
 
 export function validateRuntimeSettings(value){
+ const keys=['apiOrigin','gateOrigin','sharedCookieDomain','spaOrigins','appId','loginRedirectUri','browserClientId','gateResourceClientId'];
+ if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!keys.includes(key)))throw new Error('Runtime settings contain unsupported configuration.');
  const api=exactHttpsOrigin('apiOrigin',value.apiOrigin),gate=exactHttpsOrigin('gateOrigin',value.gateOrigin),parent=parentDomain(value.sharedCookieDomain);
  if(!underParent(api.hostname,parent)||!underParent(gate.hostname,parent,true))throw new Error('API and Gate origins must use the configured cookie parent; Gate must be a subdomain.');
  if(!Array.isArray(value.spaOrigins)||value.spaOrigins.length===0||!value.spaOrigins.every(origin=>typeof origin==='string'))throw new Error('spaOrigins must be a nonempty array of exact HTTPS origins.');
@@ -32,6 +34,5 @@ export function validateRuntimeSettings(value){
  if(redirect.protocol!=='https:'||redirect.username||redirect.password||redirect.search||redirect.hash||redirect.href!==value.loginRedirectUri||!spaOrigins.includes(redirect.origin)||redirect.pathname!=='/auth-return.html')throw new Error('loginRedirectUri must be an exact registered SPA /auth-return.html URI.');
  if(typeof value.browserClientId!=='string'||!value.browserClientId.trim()||value.browserClientId!==value.browserClientId.trim())throw new Error('browserClientId is required.');
  if(typeof value.gateResourceClientId!=='string'||!value.gateResourceClientId.trim()||value.gateResourceClientId!==value.gateResourceClientId.trim())throw new Error('gateResourceClientId is required.');
- if(!Array.isArray(value.gateAllowedClientIds)||!value.gateAllowedClientIds.length||!value.gateAllowedClientIds.every(id=>typeof id==='string'&&id.trim()===id)||new Set(value.gateAllowedClientIds).size!==value.gateAllowedClientIds.length||!value.gateAllowedClientIds.includes(value.browserClientId))throw new Error('gateAllowedClientIds must be unique and include browserClientId.');
- return Object.freeze({apiOrigin:api.origin,gateOrigin:gate.origin,sharedCookieDomain:parent,spaOrigins:Object.freeze(spaOrigins),appId:value.appId,loginRedirectUri:redirect.href,browserClientId:value.browserClientId,gateResourceClientId:value.gateResourceClientId,gateAllowedClientIds:Object.freeze([...value.gateAllowedClientIds])});
+ return Object.freeze({apiOrigin:api.origin,gateOrigin:gate.origin,sharedCookieDomain:parent,spaOrigins:Object.freeze(spaOrigins),appId:value.appId,loginRedirectUri:redirect.href,browserClientId:value.browserClientId,gateResourceClientId:value.gateResourceClientId});
 }

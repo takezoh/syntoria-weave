@@ -85,10 +85,6 @@
                 "value": "weave-api"
               },
               {
-                "name": "GATE_ALLOWED_CLIENT_IDS",
-                "value": "weave-web,weave-mcp"
-              },
-              {
                 "name": "CURSOR_EPOCH",
                 "value": "2dc1ecc6-3bd5-4dd1-908a-af7d3e7a698a"
               },

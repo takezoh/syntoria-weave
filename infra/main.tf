@@ -14,7 +14,6 @@ locals {
     SPA_ORIGINS             = jsonencode(var.spa_origins)
     GATE_BROWSER_CLIENT_ID  = var.gate_browser_client_id
     GATE_RESOURCE_CLIENT_ID = var.gate_resource_client_id
-    GATE_ALLOWED_CLIENT_IDS = join(",", var.gate_allowed_client_ids)
     CURSOR_EPOCH            = var.cursor_epoch
     WRITE_MODE              = var.writes_enabled ? "enabled" : "blocked"
     NODE_ENV                = "production"

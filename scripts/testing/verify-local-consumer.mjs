@@ -25,7 +25,6 @@ const config = {
   sharedCookieDomain: 'example.com',
   gateClientId: 'resource',
   gateClientSecret: 'synthetic-secret',
-  allowedClientIds: ['mcp', 'web'],
   databaseUrl: '',
   cursorEpoch: randomUUID(),
   writeMode: 'enabled',
@@ -62,6 +61,12 @@ async function call(server, id, name, args = {}) {
   return response;
 }
 
+function authorizeWithIssuer(gate, authorizationUrl, options) {
+  const callback = new URL(gate.authorize(authorizationUrl, options));
+  callback.searchParams.set('iss', gate.issuer);
+  return callback;
+}
+
 async function waitFor(predicate, message) {
   for (let attempt = 0; attempt < 200; attempt++) {
     const value = await predicate();
@@ -76,6 +81,7 @@ let database;
 let gate;
 let api;
 const localServers = [];
+  let registrationCount = 0;
 
 try {
   database = await postgresFixture();
@@ -87,9 +93,7 @@ try {
   const authentication = createAuthentication(config, identity, verification);
 
   await database.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)', [config.issuer, 'person', 'user-one']);
-  await database.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)', [config.issuer, 'person', 'mcp', ['state:read', 'state:write']]);
   await database.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)', [config.issuer, 'other-person', 'user-two']);
-  await database.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes) VALUES($1,$2,$3,$4)', [config.issuer, 'other-person', 'mcp', ['state:read', 'state:write']]);
 
   api = createServer({
     config,
@@ -107,7 +111,28 @@ try {
 
   const localFetcher = async (input, options = {}) => {
     const target = new URL(input);
-    if (target.origin === new URL(config.issuer).origin) return gate.fetch(target, options);
+    if (target.origin === new URL(config.issuer).origin) {
+      if (target.pathname === '/.well-known/openid-configuration' && (options.method ?? 'GET') === 'GET') {
+        const response = await gate.fetch(target, options);
+        const metadata = await response.json();
+        return new Response(JSON.stringify({...metadata, registration_endpoint: `${gate.issuer}/register`, authorization_response_iss_parameter_supported: true}), {status: response.status, headers: {'content-type': 'application/json'}});
+      }
+      if (target.pathname === '/register' && options.method === 'POST') {
+        registrationCount++;
+        const request = JSON.parse(options.body);
+        return new Response(JSON.stringify({
+          client_id: `dynamic-local-client-${registrationCount}`,
+          client_id_issued_at: Math.floor(Date.now() / 1000),
+          application_type: request.application_type,
+          redirect_uris: request.redirect_uris,
+          response_types: request.response_types,
+          grant_types: request.grant_types,
+          scope: request.scope,
+          token_endpoint_auth_method: request.token_endpoint_auth_method,
+        }), {status: 201, headers: {'content-type': 'application/json'}});
+      }
+      return gate.fetch(target, options);
+    }
     assert.equal(target.origin, origin, 'local MCP may only reach the configured issuer and action resource');
     const response = await requestHttp(port, target.pathname + target.search, {
       method: options.method ?? 'GET',
@@ -120,7 +145,7 @@ try {
   const makeLocalServer = async (subject, dataDirectory) => {
     const installRoot = join(root, `install-${subject}`);
     await mkdir(installRoot, {recursive: true, mode: 0o700});
-    const rendered = validateLocalConfiguration({issuer: gate.issuer, resourceEndpoint: resource, clientId: 'mcp', dataDirectory});
+    const rendered = validateLocalConfiguration({issuer: gate.issuer, resourceEndpoint: resource, dataDirectory});
     const configPath = join(installRoot, 'config.json');
     await writeFile(configPath, `${JSON.stringify(rendered)}\n`, {mode: 0o600});
     const local = new LocalMcpServer({configPath, pluginRoot: installRoot, fetcher: localFetcher});
@@ -128,7 +153,8 @@ try {
     return local;
   };
 
-  const first = await makeLocalServer('person', join(root, 'user-one-private'));
+  const firstDataDirectory = join(root, 'user-one-private');
+  const first = await makeLocalServer('person', firstDataDirectory);
   const initialization = await first.handle({jsonrpc: '2.0', id: 1, method: 'initialize', params: {protocolVersion: '2025-11-25'}});
   assert.equal(initialization.result.serverInfo.name, 'action-tools-local');
   const listed = await first.handle({jsonrpc: '2.0', id: 2, method: 'tools/list'});
@@ -139,10 +165,10 @@ try {
   assert.equal(connection.result.structuredContent.authorizationUrl !== undefined, true);
   const authorizationUrl = connection.result.structuredContent.authorizationUrl;
   const authorization = new URL(authorizationUrl);
-  assert.equal(authorization.searchParams.get('client_id'), 'mcp');
+  assert.equal(authorization.searchParams.get('client_id'), 'dynamic-local-client-1');
   assert.equal(authorization.searchParams.get('redirect_uri'), 'http://127.0.0.1:55437/callback');
   assert.equal(authorization.searchParams.get('resource'), resource);
-  const callback = new URL(gate.authorize(authorizationUrl, {subject: 'person'}));
+  const callback = authorizeWithIssuer(gate, authorizationUrl, {subject: 'person'});
   const callbackReply = await requestHttp(callback.port, callback.pathname + callback.search, {headers: {host: '127.0.0.1:55437'}});
   assert.equal(callbackReply.status, 200);
   assert(!callbackReply.text.includes(callback.searchParams.get('code')));
@@ -181,15 +207,22 @@ try {
   assert.equal((await database.admin.query('SELECT count(*)::int AS count FROM state.actions WHERE user_id=$1 AND status<>$2', ['user-one', 'dropped'])).rows[0].count, 0);
 
   await first.stop();
+  const restarted = await makeLocalServer('person', firstDataDirectory);
+  assert.equal((await call(restarted, 11, 'get_connection_status')).result.structuredContent.connected, true);
+  assert.equal((await call(restarted, 12, 'list_actions')).result.structuredContent.revision, 2);
+  assert.equal(registrationCount, 1, 'registration must survive a process restart');
+  await restarted.stop();
+
   const second = await makeLocalServer('other-person', join(root, 'user-two-private'));
-  const secondConnection = await call(second, 11, 'connect_action_service');
+  const secondConnection = await call(second, 13, 'connect_action_service');
   const secondAuthorizationUrl = secondConnection.result.structuredContent.authorizationUrl;
-  const secondCallback = new URL(gate.authorize(secondAuthorizationUrl, {subject: 'other-person'}));
+  assert.equal(new URL(secondAuthorizationUrl).searchParams.get('client_id'), 'dynamic-local-client-2');
+  const secondCallback = authorizeWithIssuer(gate, secondAuthorizationUrl, {subject: 'other-person'});
   assert.equal(secondCallback.searchParams.get('state'), new URL(secondAuthorizationUrl).searchParams.get('state'));
   const secondCallbackReply = await requestHttp(secondCallback.port, secondCallback.pathname + secondCallback.search, {headers: {host: '127.0.0.1:55437'}});
   assert.equal(secondCallbackReply.status, 200, secondCallbackReply.text);
-  await waitFor(async () => (await call(second, 12, 'get_connection_status')).result.structuredContent.connected, 'second user OAuth callback did not persist authorization');
-  const secondList = await call(second, 13, 'list_actions');
+  await waitFor(async () => (await call(second, 14, 'get_connection_status')).result.structuredContent.connected, 'second user OAuth callback did not persist authorization');
+  const secondList = await call(second, 15, 'list_actions');
   assert.equal(secondList.result.structuredContent.revision, 0);
   assert.deepEqual(secondList.result.structuredContent.actions, []);
   assert.equal((await database.admin.query('SELECT count(*)::int AS count FROM state.actions WHERE user_id=$1', ['user-two'])).rows[0].count, 0);

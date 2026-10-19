@@ -16,7 +16,7 @@ POST /mcp uses JSON-RPC 2.0 with initialize, ping, tools/list, tools/call, resou
 
 POST /api/actions accepts application/json with `{name, arguments}` and invokes the same service for HTTP clients and the Web UI. Browser-cookie writes require an exact registered SPA Origin and the Gate-verified CSRF token. Browser requests use credentialed CORS for the registered static SPA origins; mixed-cookie-and-bearer credentials are rejected. Configured origin/host validation applies as defined in [infrastructure](infrastructure.md#http-boundaries).
 
-Business reads and writes obtain user from a verified OAuth subject or current Gate browser session and an enabled client grant. Approved connections receive full product access; the adapter applies its read/write capability checks to the request. Arguments cannot select user. SQL and receipts are user-scoped. Public initialization and UI resource metadata do not authorize business-data access.
+Business reads and writes obtain user from a verified OAuth subject or current Gate browser session and an enabled issuer/subject mapping. Approved connections receive full product access; the adapter applies its read/write capability checks to the request. Arguments cannot select user. SQL and receipts are user-scoped. Public initialization and UI resource metadata do not authorize business-data access.
 
 ## Tool and schema discovery
 
@@ -164,6 +164,6 @@ Forward migration `0016_tag_order.sql` adds the constrained column with SQL defa
 
 ## Authentication discovery and cursor epochs
 
-Public protected-resource metadata at /.well-known/oauth-protected-resource/mcp (with root fallback) identifies the canonical HTTPS /mcp resource, configured Gate issuer. Missing/invalid credentials receive 401 with resource_metadata in WWW-Authenticate; unregistered or disabled local identity/client mappings receive 403. Standard OAuth registration/authorization belongs to the issuer. All /mcp calls, including discovery, require a valid online-approved Gate connection and explicit local identity/client mapping. Approval grants full access; no OAuth feature scopes are required. Public metadata does not authorize data access.
+Public protected-resource metadata at /.well-known/oauth-protected-resource/mcp (with root fallback) identifies the canonical HTTPS /mcp resource, configured Gate issuer. Missing/invalid credentials receive 401 with resource_metadata in WWW-Authenticate; unregistered or disabled local issuer/subject mappings receive 403. Standard OAuth registration/authorization belongs to the issuer. All /mcp calls, including discovery, require a valid online-approved Gate connection and explicit local issuer/subject mapping. Approval grants full access; no OAuth feature scopes are required. Public metadata does not authorize data access.
 
 Cursor shape remains v1; its scope binds the stable user and CURSOR_EPOCH as specified in [data model](data-model.md#failure-replay-undo-and-feed). A scope invalidated by cutover or timeline restoration returns invalid_cursor and requires a full snapshot. A normal release preserves the epoch. Clients retain proposals and exact pending requests across resync and isolate them on account change.

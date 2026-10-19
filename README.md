@@ -44,7 +44,7 @@ Ask ChatGPT Work to read [INSTALL.md](INSTALL.md) and perform the installation:
 Read https://github.com/takezoh/syntoria-weave/blob/main/INSTALL.md and install Syntoria Weave for me.
 ```
 
-Provide the deployment's HTTPS MCP endpoint, Gate issuer and registered public client ID when requested. Register the exact OAuth callback shown by ChatGPT with Gate. After connecting, use ChatGPT to show your actions and open the list.
+Provide the deployment's HTTPS MCP endpoint and Gate issuer when requested. ChatGPT uses Gate's dynamic client registration during its OAuth connection; no public client ID or callback preregistration is needed. After connecting, use ChatGPT to show your actions and open the list.
 
 For other MCP clients, follow [MCP client setup](docs/technical/mcp-installation.md). The dedicated browser UI reads and updates the same saved state.
 

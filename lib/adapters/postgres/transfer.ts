@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {readSnapshotInTransaction} from './action-store';
 import {parseReceiptResult} from '../../data/model/storage';
 import {validateGraph} from '../../domain/core';
-export const transferTables=['state.projects','state.tags','state.actions','state.action_tags','state.perspectives','state.catalog_identity_ledger','state.operations','identity.subjects','identity.client_grants'] as const;
+export const transferTables=['state.projects','state.tags','state.actions','state.action_tags','state.perspectives','state.catalog_identity_ledger','state.operations','identity.subjects'] as const;
 const columns:Record<typeof transferTables[number],readonly string[]>={
  'state.projects':['user_id','id','name','description','parent_id','order','revision','created_at','updated_at'],
  'state.tags':['user_id','id','name','description','parent_id','order','revision','created_at','updated_at'],
@@ -13,9 +13,8 @@ const columns:Record<typeof transferTables[number],readonly string[]>={
  'state.catalog_identity_ledger':['user_id','kind','identity','revision'],
  'state.operations':['user_id','operation_id','canonical_payload','result','delta','revision_before','revision_after','undo_of','created_at'],
  'identity.subjects':['issuer','subject','user_id','enabled'],
- 'identity.client_grants':['issuer','subject','client_id','scopes','enabled'],
 };
-export type Transfer=Readonly<{version:2;tables:Record<string,Record<string,unknown>[]>}>;
+export type Transfer=Readonly<{version:3;tables:Record<string,Record<string,unknown>[]>}>;
 export function transferDigest(value:Transfer){return createHash('sha256').update(JSON.stringify(value)).digest('hex');}
 export async function assertTransferPrivilege(client:PoolClient){
  const privilege=(await client.query("SELECT rolsuper OR EXISTS(SELECT 1 FROM pg_roles e WHERE e.rolname='action_export' AND pg_has_role(current_user,e.oid,'member')) AS allowed FROM pg_roles WHERE rolname=current_user")).rows[0];
@@ -25,11 +24,11 @@ export async function exportData(pool:Pool):Promise<Transfer>{
  const client=await pool.connect();try{
   await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');await assertTransferPrivilege(client);
   const tables:Transfer['tables']={};for(const table of transferTables)tables[table]=(await client.query('SELECT * FROM '+table+' ORDER BY '+(table.startsWith('state.')?'user_id':'issuer'))).rows;
-  await client.query('COMMIT');return {version:2,tables};
+  await client.query('COMMIT');return {version:3,tables};
  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
 }
 export async function importData(pool:Pool,value:Transfer,expectedDigest:string){
- if(value.version!==2||transferDigest(value)!==expectedDigest||Object.keys(value.tables).sort().join()!==[...transferTables].sort().join())throw new Error('Invalid transfer manifest or digest.');
+ if(value.version!==3||transferDigest(value)!==expectedDigest||Object.keys(value.tables).sort().join()!==[...transferTables].sort().join())throw new Error('Invalid transfer manifest or digest.');
  const client=await pool.connect();try{
   await client.query('BEGIN');await assertTransferPrivilege(client);await client.query('SELECT pg_advisory_xact_lock(7247027267111031::bigint)');
   for(const table of transferTables){
