@@ -38,7 +38,11 @@ Weave supports personal workflows over your own saved state. Calendar planning, 
 
 ## Add Syntoria Weave to ChatGPT
 
-Follow [INSTALL.md](INSTALL.md) to register the deployed Remote MCP app in ChatGPT, generate the private Syntoria Weave package that requires that app, and install both operation skills with the shared UI. Package installation does not replace the host's OAuth and access checks.
+Ask ChatGPT Work to read [INSTALL.md](INSTALL.md) and perform the installation:
+
+```text
+Read https://github.com/takezoh/syntoria-weave/blob/main/INSTALL.md and install Syntoria Weave for me.
+```
 
 Provide the deployment's HTTPS MCP endpoint, Gate issuer and registered public client ID when requested. Register the exact OAuth callback shown by ChatGPT with Gate. After connecting, use ChatGPT to show your actions and open the list.
 
