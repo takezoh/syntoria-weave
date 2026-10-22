@@ -32,6 +32,7 @@ lib/ui/
 │   └── controller.ts                 state transitions, normalization, orchestration
 ├── components/
 │   ├── inspector-panel.ts            inspector rendering from typed view data
+│   ├── rich-text.ts                  Title/Notes rich text rendering from typed nodes
 │   └── outline-list.ts               outline rendering from typed row data
 ├── effects/
 │   ├── diagnostics.ts                optional diagnostics port
@@ -56,6 +57,7 @@ lib/ui/
     ├── operations.ts                 pure operation and recovery state
     ├── picker.ts                     pure picker filtering and ranking
     ├── presentation.ts               pure text and presentation helpers
+    ├── rich-text.ts                  pure Markdown-subset parsing and link safety
     ├── selection-context.ts          confirmed selection projection and Action eligibility
     ├── save-status.ts                pure save-status projection
     ├── transient-create.ts           pure temporary creation state

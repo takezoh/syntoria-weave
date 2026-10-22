@@ -3,6 +3,7 @@ import type {Draft,DraftAction} from './drafts';
 import type {CatalogRecord,CatalogDraft} from './catalog-drafts';
 import {savedValue} from './autosave';
 import {displayTitle} from './presentation';
+import type {RichBlock,RichInline} from './rich-text';
 
 export interface DateInputProjection {
  due:DatePair;
@@ -87,14 +88,17 @@ function catalogPath(catalog:readonly (CatalogRecord&{path?:string})[],id:string
  return parts.join(' / ');
 }
 
-export interface ActionInspectorProjection {targetAvailable:boolean;title:string;notes:string;flagged:boolean;status:string;dates:DateInputProjection;lifecycle:string;timestamps?:{created:string;updated:string};missingMessage:string;savedCompare:string;dateSummary:string;releases:{id:string;label:string}[];projectValue?:string;tags:{id:string;label:string;focusKey:string}[]}
-export function projectActionInspector(input:{id:string;draft:Draft;action?:UiActionRecord;savedAction?:{created_at?:string;updated_at?:string};targetAvailable:boolean;conflicts:readonly string[];projects:readonly (CatalogRecord&{path?:string})[];tags:readonly (CatalogRecord&{path?:string})[];dates:DateInputProjection;projectPickerFocused:boolean;formatInstant:(value:string)=>string}):ActionInspectorProjection {
+/** View mode renders saved-text structure; edit mode exposes the raw inputs without parsing. */
+export interface ActionTextProjection {mode:'view'|'edit';title:RichInline[];notes:RichBlock[];toggleDisabled:boolean}
+export interface ActionInspectorProjection {targetAvailable:boolean;title:string;notes:string;text:ActionTextProjection;flagged:boolean;status:string;dates:DateInputProjection;lifecycle:string;timestamps?:{created:string;updated:string};missingMessage:string;savedCompare:string;dateSummary:string;releases:{id:string;label:string}[];projectValue?:string;tags:{id:string;label:string;focusKey:string}[]}
+export function projectActionInspector(input:{id:string;draft:Draft;action?:UiActionRecord;savedAction?:{created_at?:string;updated_at?:string};targetAvailable:boolean;conflicts:readonly string[];projects:readonly (CatalogRecord&{path?:string})[];tags:readonly (CatalogRecord&{path?:string})[];dates:DateInputProjection;projectPickerFocused:boolean;formatInstant:(value:string)=>string;textEditing:boolean;richText:{inline(text:string):RichInline[];blocks(text:string):RichBlock[]}}):ActionInspectorProjection {
  const {id,draft,action}=input,project=draft.project_id?input.projects.find(item=>item.id===draft.project_id):undefined;
  const dateSummary=(action?.defer_reasons||[]).filter(reason=>reason.ancestor).map(reason=>'Parent '+displayTitle(reason.title)+' · Deferred until: '+input.formatInstant(reason.until)).join(' / ');
  const releases=(action?.defer_reasons||[]).map(reason=>({id:reason.id,label:reason.ancestor?'Parent '+displayTitle(reason.title)+' · Clear Defer':'Clear Defer'}));
  const projectValue=!input.projectPickerFocused?draft.project_id?(project?catalogPath(input.projects,project.id,'project'):'Unassigned'):'':undefined;
  const tags=draft.tag_ids.map(tagId=>{const tag=input.tags.find(item=>item.id===tagId);return {id:tagId,label:tag?catalogPath(input.tags,tag.id,'tag'):'Unavailable Tag',focusKey:'tag:'+id+':'+tagId};});
- return {targetAvailable:input.targetAvailable,title:draft.title,notes:draft.notes,flagged:draft.flagged,status:draft.status,dates:input.dates,lifecycle:action?.status==='on-hold'?'On hold':action?.status==='completed'?'Completed':action?.status==='dropped'?'Dropped':'Active',missingMessage:'This action is no longer available. Your unsaved changes are retained. Refresh before saving.',timestamps:input.savedAction?{created:input.formatInstant(input.savedAction.created_at||''),updated:input.formatInstant(input.savedAction.updated_at||'')}:undefined,savedCompare:projectSavedComparison(input.conflicts,action,input.projects,input.tags,input.formatInstant),dateSummary,releases,projectValue,tags};
+ const mode=input.textEditing?'edit':'view',text:ActionTextProjection={mode,title:mode==='view'?input.richText.inline(draft.title):[],notes:mode==='view'?input.richText.blocks(draft.notes):[],toggleDisabled:mode==='view'&&!input.targetAvailable};
+ return {targetAvailable:input.targetAvailable,title:draft.title,notes:draft.notes,text,flagged:draft.flagged,status:draft.status,dates:input.dates,lifecycle:action?.status==='on-hold'?'On hold':action?.status==='completed'?'Completed':action?.status==='dropped'?'Dropped':'Active',missingMessage:'This action is no longer available. Your unsaved changes are retained. Refresh before saving.',timestamps:input.savedAction?{created:input.formatInstant(input.savedAction.created_at||''),updated:input.formatInstant(input.savedAction.updated_at||'')}:undefined,savedCompare:projectSavedComparison(input.conflicts,action,input.projects,input.tags,input.formatInstant),dateSummary,releases,projectValue,tags};
 }
 
 export interface CatalogInspectorProjection {kind:'project'|'tag';temporary:boolean;exists:boolean;draft?:{name:string;description:string};missingMessage:string;parentText:string;nameErrorText:string;descriptionErrorText:string;conflict:boolean;problemText:string;savedCompare:string;showRetry:boolean;retryDisabled:boolean}

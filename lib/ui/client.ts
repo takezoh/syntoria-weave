@@ -7,6 +7,7 @@ import {createCatalogDraftModel} from './model/catalog-drafts';
 import {createDateInputModel} from './model/date-input';
 import {createMovementModel} from './model/movement';
 import {createAutosaveModel} from './model/autosave';
+import {createRichTextModel} from './model/rich-text';
 import {createUiController} from './application/controller';
 import {createDiscardingEffects} from './effects/verification';
 import {mutationBlocked,hasUnsavedChanges,editorSelection} from './model/controls';
@@ -43,7 +44,7 @@ const transport=createHostTransport(effects);
 const model={
  transient:createTransientModel(),saveStatus:createSaveStatusModel(),treeDrop:createTreeDropModel(),picker:createPickerModel(),
  catalogTree:createCatalogTreeModel(),catalogDrafts:createCatalogDraftModel(),dateInput:createDateInputModel(),
- movement:createMovementModel(),autosave:createAutosaveModel(),createdActionId,displayTitle,formatTimestamp,navigation:createNavigationModel(),
+ movement:createMovementModel(),autosave:createAutosaveModel(),richText:createRichTextModel(),createdActionId,displayTitle,formatTimestamp,navigation:createNavigationModel(),
  errorMessage,warningMessage,actionDepth,reviewChangeSummary,iconSvg,visibleActions,scopeTitle,mergeHostContext,
  editorSelection,acknowledgeDraft,draftPayload,mutationBlocked,hasUnsavedChanges,operationSucceeded,retainRequest,
  editDraft,discardDraft,mergeDrafts,

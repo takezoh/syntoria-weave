@@ -88,6 +88,12 @@ async function performLogout(){
  }catch{showState('Gate authorization is unavailable. Try again shortly.','retry');}
 }
 
+/** Only web and mail destinations leave the workspace, always in a separate browsing context. */
+function linkTarget(value:unknown){
+ if(typeof value!=='string')return null;
+ try{const url=new URL(value);return ['http:','https:','mailto:'].includes(url.protocol)?url.href:null;}catch{return null;}
+}
+
 function idKey(id:unknown){
  if(typeof id==='string')return 's:'+id;
  if(typeof id==='number'&&Number.isFinite(id))return 'n:'+id;
@@ -110,6 +116,7 @@ window.addEventListener('message',async event=>{
  try{
   if(call.method==='ui/initialize')result={protocolVersion:'2026-01-26',hostInfo:{name:'web',version:'0.3.0'},hostCapabilities:{},hostContext:{displayMode:'fullscreen',availableDisplayModes:['fullscreen'],platform:'web'}};
   else if(call.method==='ui/request-display-mode')result={mode:'fullscreen'};
+  else if(call.method==='ui/open-link'){const url=linkTarget((call.params as {url?:unknown}|undefined)?.url);if(url)window.open(url,'_blank','noopener,noreferrer');result=url?{}:{isError:true};}
   else if(call.method==='tools/call'){
    if(blocked||!session||!runtime)result={isError:true,structuredContent:{error:{code:'unauthenticated',message:'Sign into the original account. Your proposal is retained.'}}};
    else{

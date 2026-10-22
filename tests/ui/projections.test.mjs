@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createRichTextModel} from '../../lib/ui/model/rich-text.ts';
 import {normalizePickerIndex,projectActionInspector,projectActionRow,projectCatalogInspector,projectCatalogMoveDestinations,projectCatalogRow,projectDateInputs,projectMoveDestinations,projectPickerOptions,projectSavedComparison,resolveChoice} from '../../lib/ui/model/ui-projections.ts';
 
 const pair=(date,time='',extra={})=>({date,time,value:date?date+'T'+time:'',error:'',timeEdited:false,badDate:false,badTime:false,...extra});
@@ -65,19 +66,20 @@ test('catalog row projection reflects draft, collapsed state, and selection as p
 });
 
 test('action inspector projection joins saved labels, retained edits, date state, and ancestor controls',()=>{
+ const richText=createRichTextModel();
  const action={id:'a',title:'Saved',notes:'saved notes',order:1,flagged:false,revision:3,status:'active',project_id:'p',tags:[{id:'t'}],due_at:'2026-10-14T09:00:00Z',defer_reasons:[{id:'parent',title:'Release',until:'2026-10-20T09:00:00Z',ancestor:true}]};
  const draft={title:'Edited',notes:'unsaved notes',flagged:true,status:'active',project_id:'p',tag_ids:['t'],due_at:'2026-10-15T09:00:00Z',defer_until:null};
  const projects=[{id:'p',name:'Plan',parent_id:null}],tags=[{id:'t',name:'Urgent',parent_id:null}];
  const dates={due:pair('2026-10-15','09:00'),defer:pair('','')},before=structuredClone({action,draft,projects,tags,dates});
- const view=projectActionInspector({id:'a',draft,action,targetAvailable:true,conflicts:['title','project_id'],projects,tags,dates,projectPickerFocused:false,formatInstant:value=>'formatted '+value});
+ const view=projectActionInspector({id:'a',draft,action,targetAvailable:true,conflicts:['title','project_id'],projects,tags,dates,projectPickerFocused:false,formatInstant:value=>'formatted '+value,textEditing:false,richText});
  assert.equal(view.title,'Edited');assert.equal(view.notes,'unsaved notes');assert.equal(view.flagged,true);assert.equal(view.lifecycle,'Active');
  assert.equal(view.projectValue,'Plan');assert.deepEqual(view.tags,[{id:'t',label:'Urgent',focusKey:'tag:a:t'}]);
  assert.equal(view.dateSummary,'Parent Release · Deferred until: formatted 2026-10-20T09:00:00Z');
  assert.deepEqual(view.releases,[{id:'parent',label:'Parent Release · Clear Defer'}]);
  assert.equal(view.savedCompare,'Saved Title: Saved\nSaved Project: Plan');
  assert.deepEqual({action,draft,projects,tags,dates},before);
- assert.equal(projectActionInspector({id:'a',draft,action,targetAvailable:false,conflicts:[],projects,tags,dates,projectPickerFocused:true,formatInstant:String}).projectValue,undefined);
- const missing=projectActionInspector({id:'a',draft:{...draft,project_id:'missing'},action,targetAvailable:true,conflicts:[],projects,tags,dates,projectPickerFocused:false,formatInstant:String});assert.equal(missing.projectValue,'Unassigned');
+ assert.equal(projectActionInspector({id:'a',draft,action,targetAvailable:false,conflicts:[],projects,tags,dates,projectPickerFocused:true,formatInstant:String,textEditing:false,richText}).projectValue,undefined);
+ const missing=projectActionInspector({id:'a',draft:{...draft,project_id:'missing'},action,targetAvailable:true,conflicts:[],projects,tags,dates,projectPickerFocused:false,formatInstant:String,textEditing:false,richText});assert.equal(missing.projectValue,'Unassigned');
 });
 
 test('catalog inspector projection keeps edit state while exposing validation and retry decisions',()=>{
@@ -98,4 +100,17 @@ test('picker and move projections preserve deterministic choices and display lab
  const actions=[{id:'a',title:'Saved',status:'active'},{id:'b',title:'Second',status:'active'},{id:'a',title:'Duplicate',status:'active'}];
  assert.deepEqual(projectMoveDestinations(actions,{a:{title:'Edited'},b:{title:'Second'}}),[{id:'a',label:'Edited'},{id:'b',label:'Second'}]);
  assert.deepEqual(projectCatalogMoveDestinations([{id:'p',name:'Plan',path:'Work / Plan'}]),[{id:'p',label:'Work / Plan'}]);
+});
+
+test('action inspector text mode renders unsaved proposals in view and parses nothing while editing',()=>{
+ const action={id:'a',title:'Saved',notes:'saved',order:1,flagged:false,revision:1,status:'active',project_id:null,tags:[],defer_reasons:[]};
+ const draft={title:'See https://example.com',notes:'- **unsaved**',flagged:false,status:'active',project_id:null,tag_ids:[]};
+ const dates={due:pair('',''),defer:pair('','')},parsed=[],richText={inline:text=>{parsed.push(['inline',text]);return [{kind:'text',text}];},blocks:text=>{parsed.push(['blocks',text]);return [{kind:'paragraph',children:[{kind:'text',text}]}];}};
+ const project=(textEditing,targetAvailable=true)=>projectActionInspector({id:'a',draft,action,targetAvailable,conflicts:[],projects:[],tags:[],dates,projectPickerFocused:false,formatInstant:String,textEditing,richText});
+ assert.deepEqual(project(false).text,{mode:'view',title:[{kind:'text',text:'See https://example.com'}],notes:[{kind:'paragraph',children:[{kind:'text',text:'- **unsaved**'}]}],toggleDisabled:false});
+ assert.deepEqual(parsed,[['inline',draft.title],['blocks',draft.notes]]);
+ parsed.length=0;assert.deepEqual(project(true,false).text,{mode:'edit',title:[],notes:[],toggleDisabled:false});assert.deepEqual(parsed,[]);
+ assert.equal(project(false,false).text.toggleDisabled,true);
+ const real=projectActionInspector({id:'a',draft,action,targetAvailable:true,conflicts:[],projects:[],tags:[],dates,projectPickerFocused:false,formatInstant:String,textEditing:false,richText:createRichTextModel()});
+ assert.equal(real.text.title[1].kind,'link');assert.equal(real.text.notes[0].kind,'list');assert.equal(real.title,draft.title);assert.equal(real.notes,draft.notes);
 });
