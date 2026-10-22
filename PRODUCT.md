@@ -75,7 +75,7 @@ Completing all children never automatically completes the parent. A descendant c
 
 ## Conversation, UI and reliability
 
-Conversation accepts uncertainty, helps organize relationships and explains candidate choices. The dedicated UI provides the saved list, notes, dates, order and Flag controls for direct correction. Conversations and UI use one durable state for the authenticated user.
+Conversation accepts uncertainty, helps organize relationships and explains candidate choices. The dedicated UI provides the saved list, notes, dates, order and Flag controls for direct correction. Titles and notes are shown formatted with clickable links; choose Edit to change the original text. Conversations and UI use one durable state for the authenticated user.
 
 For example, correct a trip action's title in the UI, then ask ChatGPT in another conversation to read the current action before planning the next step. That read retrieves the saved correction even if the conversation still contains the old title. An authorized AI workflow can use the same state to continue its own work. Weave preserves the shared records; each caller decides what the correction means for its recommendations or actions.
 

@@ -31,6 +31,7 @@ export interface InteractionViewState {
  dateErrors:Record<string,Record<string,string>>;
  duePairs:Record<string,DatePair>;
  deferPairs:Record<string,DatePair>;
+ textEditing:string|null;
 }
 export type ViewEvent=
  |{[K in keyof InteractionViewState]:{type:'view.set';field:K;value:InteractionViewState[K]}}[keyof InteractionViewState]
@@ -47,7 +48,7 @@ export type ViewEvent=
  |{type:'date.pair';id:string;kind:'due'|'defer';pair:DatePair}
  |{type:'view.remap';from:string;to:string};
 const navigation=createNavigationModel(),transient=createTransientModel();
-export function initialViewState():InteractionViewState{return {navigation:navigation.initial(),collapsed:[],pickerOpen:null,pickerTarget:null,projectQuery:'',tagQuery:'',pickerIndex:-1,headerMenu:null,activeCatalogSelection:null,selectionVersion:0,creationReveal:null,catalogContext:null,catalogSequence:0,catalogToken:0,catalogSubmissions:{},catalogName:'',catalogComposerOpen:false,moveChooserOpen:false,movePlacement:'inside',moveDestination:'',catalogMoveSource:null,dateErrors:{},duePairs:{},deferPairs:{}};}
+export function initialViewState():InteractionViewState{return {navigation:navigation.initial(),collapsed:[],pickerOpen:null,pickerTarget:null,projectQuery:'',tagQuery:'',pickerIndex:-1,headerMenu:null,activeCatalogSelection:null,selectionVersion:0,creationReveal:null,catalogContext:null,catalogSequence:0,catalogToken:0,catalogSubmissions:{},catalogName:'',catalogComposerOpen:false,moveChooserOpen:false,movePlacement:'inside',moveDestination:'',catalogMoveSource:null,dateErrors:{},duePairs:{},deferPairs:{},textEditing:null};}
 /** Semantic view state changes are pure; DOM measurements and focus effects stay outside. */
 export function viewTransition(state:InteractionViewState,event:ViewEvent):InteractionViewState {
  switch(event.type){
@@ -65,9 +66,15 @@ export function viewTransition(state:InteractionViewState,event:ViewEvent):Inter
   case 'date.pair':{const field=event.kind==='due'?'duePairs':'deferPairs';return {...state,[field]:{...state[field],[event.id]:{...event.pair}}};}
   case 'view.remap':{
    const remap=<T>(records:Record<string,T>)=>{if(!Object.hasOwn(records,event.from))return records;const next={...records,[event.to]:records[event.from]};delete next[event.from];return next;};
-   return {...state,dateErrors:remap(state.dateErrors),duePairs:remap(state.duePairs),deferPairs:remap(state.deferPairs),creationReveal:state.creationReveal?.id===event.from?{...state.creationReveal,id:event.to}:state.creationReveal,activeCatalogSelection:state.activeCatalogSelection?.endsWith(':'+event.from)?state.activeCatalogSelection.slice(0,-event.from.length)+event.to:state.activeCatalogSelection,navigation:transient.replace(state.navigation,event.from,event.to)};
+   return {...state,dateErrors:remap(state.dateErrors),duePairs:remap(state.duePairs),deferPairs:remap(state.deferPairs),creationReveal:state.creationReveal?.id===event.from?{...state.creationReveal,id:event.to}:state.creationReveal,textEditing:state.textEditing===event.from?event.to:state.textEditing,activeCatalogSelection:state.activeCatalogSelection?.endsWith(':'+event.from)?state.activeCatalogSelection.slice(0,-event.from.length)+event.to:state.activeCatalogSelection,navigation:transient.replace(state.navigation,event.from,event.to)};
   }
  }
+}
+
+/** Title/Notes editing belongs only to the selected Action; an invalid text proposal stays editable. */
+export function normalizeTextEditing(current:string|null,selectedId:string|null,invalidText:boolean):string|null {
+ if(!selectedId)return null;
+ return current===selectedId||invalidText?selectedId:null;
 }
 
 export interface CatalogAcknowledgment {type:'project'|'tag';id:string;sequence:number;token:number;available?:boolean}

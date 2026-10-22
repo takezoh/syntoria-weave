@@ -41,3 +41,25 @@ test('independent SPA keeps its mounted proposal across expiry, account mismatch
   window.dispatchEvent(new window.MessageEvent('message',{source:null,origin:window.location.origin,data:request}));await settle();assert.equal(writes.length,2);
  }finally{window.close();}
 });
+
+test('independent SPA opens only web and mail links requested by its workspace',async()=>{
+ const dom=new JSDOM('<header id="access"><span id="message"></span><button id="login"></button><button id="retry"></button><button id="logout"></button></header><iframe id="workspace"></iframe>',{url:'https://app.example.com',runScripts:'outside-only'});
+ const {window}=dom,opens=[],replies=[];
+ window.BroadcastChannel=class{set onmessage(_fn){}};
+ window.open=(url,target,features)=>{opens.push({url,target,features});return null;};
+ window.fetch=async path=>{
+  const url=String(path);
+  if(url==='/runtime-config.json')return {ok:true,json:async()=>({apiOrigin:'https://api.example.com',gateOrigin:'https://gate.example.com',appId:'weave-spa',loginRedirectUri:'https://app.example.com/auth-return.html'})};
+  if(url==='https://api.example.com/api/session')return {ok:true,status:200,json:async()=>({account_scope:'original',csrf_token:'gate-csrf'})};
+  throw new Error('Unexpected request.');
+ };
+ try{
+  window.eval(ts.transpileModule(await readFile('web/client.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}}).outputText);
+  const settle=()=>new Promise(resolve=>setImmediate(resolve));await settle();
+  const frame=window.document.querySelector('iframe').contentWindow;frame.postMessage=(message,origin)=>replies.push({message,origin});
+  const send=(id,url,source=frame)=>window.dispatchEvent(new window.MessageEvent('message',{source,origin:window.location.origin,data:{jsonrpc:'2.0',id,method:'ui/open-link',params:{url}}}));
+  send(1,'https://example.com/docs?a=1');send(2,'javascript:alert(1)');send(3,'mailto:me@example.com');send(4,'/relative');send(5,'https://example.com/other',null);await settle();
+  assert.deepEqual(opens,[{url:'https://example.com/docs?a=1',target:'_blank',features:'noopener,noreferrer'},{url:'mailto:me@example.com',target:'_blank',features:'noopener,noreferrer'}]);
+  assert.deepEqual(replies.map(reply=>[reply.message.id,JSON.parse(JSON.stringify(reply.message.result)),reply.origin]),[[1,{},'https://app.example.com'],[2,{isError:true},'https://app.example.com'],[3,{},'https://app.example.com'],[4,{isError:true},'https://app.example.com']]);
+ }finally{window.close();}
+});

@@ -3,7 +3,7 @@ import type {GestureState} from './gesture';
 export type OccurrenceKind='action'|'project'|'tag';
 export interface Occurrence {key:string;id:string;kind:OccurrenceKind;catalogId?:string|null;localUnsaved?:boolean;opaqueKey?:string}
 export interface OccurrenceSelection {keys:string[];ids:string[];occurrences:Occurrence[];anchor:string|null;active:string|null;activeOccurrence:Occurrence|null}
-export type DeferredInteraction={kind:'select-action';id:string|null}|{kind:'select-catalog';catalogKind:'project'|'tag';id:string;toggle?:boolean}|{kind:'create';entity:'action'|'project'|'tag';payload?:Record<string,unknown>;parent?:string|null};
+export type DeferredInteraction={kind:'select-action';id:string|null}|{kind:'select-catalog';catalogKind:'project'|'tag';id:string;toggle?:boolean}|{kind:'create';entity:'action'|'project'|'tag';payload?:Record<string,unknown>;parent?:string|null}|{kind:'finish-text'};
 export interface CompositionState {key:string;field:string;deferred:DeferredInteraction|null}
 export interface UiInteractionState {selection:OccurrenceSelection;gesture:GestureState|null;composition:CompositionState|null;view:InteractionViewState}
 export type InteractionEvent=

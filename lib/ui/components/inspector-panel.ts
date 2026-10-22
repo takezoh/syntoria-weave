@@ -1,5 +1,6 @@
 import type {ActionInspectorProjection,CatalogInspectorProjection,DateInputProjection} from '../model/ui-projections';
 import type {DeepReadonly} from '../model/types';
+import {RichBlockText,RichInlineText} from './rich-text';
 
 export type ActionDateValues=DeepReadonly<Pick<DateInputProjection,'dueDate'|'dueTime'|'deferDate'|'deferTime'>>;
 export type ActionRelease=DeepReadonly<ActionInspectorProjection['releases'][number]>;
@@ -15,6 +16,13 @@ export interface ActionDetailsElements {
   readonly updatedTimestamp?: HTMLElement;
   readonly flagged: HTMLButtonElement;
   readonly statusChoices: readonly HTMLButtonElement[];
+  readonly text: {
+    readonly toggle: HTMLButtonElement;
+    readonly view: HTMLElement;
+    readonly edit: HTMLElement;
+    readonly titleView: HTMLElement;
+    readonly notesView: HTMLElement;
+  };
   readonly fields: {
     readonly title: HTMLInputElement;
     readonly notes: HTMLTextAreaElement;
@@ -38,6 +46,7 @@ export interface ActionDetailsProps {
   readonly renderClock: (input: HTMLInputElement) => void;
   readonly onRelease: (id: string) => void;
   readonly onRemoveTag: (id: string) => void;
+  readonly onOpenLink: (href: string) => void;
 }
 
 export interface CatalogDetailsElements {
@@ -95,6 +104,27 @@ function button(
   return node;
 }
 
+function renderText(props: ActionDetailsProps): void {
+  const {text} = props.elements;
+  const {mode, toggleDisabled, title, notes} = props.view.text;
+  const editing = mode === 'edit';
+  text.view.hidden = editing;
+  text.edit.hidden = !editing;
+  text.toggle.disabled = toggleDisabled;
+  if (text.toggle.dataset.mode !== mode) {
+    text.toggle.dataset.mode = mode;
+    text.toggle.setAttribute('aria-label', editing ? 'Done editing Title and Notes' : 'Edit Title and Notes');
+    text.toggle.innerHTML = props.iconSvg(editing ? 'tick' : 'edit');
+    const label = text.toggle.ownerDocument.createElement('span');
+    label.textContent = editing ? 'Done' : 'Edit';
+    text.toggle.appendChild(label);
+  }
+  if (editing) return;
+  const shared = {iconSvg: props.iconSvg, onOpenLink: props.onOpenLink};
+  RichInlineText({...shared, container: text.titleView, content: title, placeholder: 'Untitled'});
+  RichBlockText({...shared, container: text.notesView, content: notes, placeholder: 'No notes'});
+}
+
 export function ActionDetails(props: ActionDetailsProps): void {
   const {elements, view} = props;
   elements.heading.textContent = 'Action details';
@@ -109,6 +139,7 @@ export function ActionDetails(props: ActionDetailsProps): void {
 
   props.setValue(elements.fields.title, view.title);
   props.setValue(elements.fields.notes, view.notes);
+  renderText(props);
   for (const [field, value] of Object.entries(view.dates)) {
     const input = elements.fields[field as keyof ActionDateValues];
     if (value !== undefined) props.setValue(input, value);

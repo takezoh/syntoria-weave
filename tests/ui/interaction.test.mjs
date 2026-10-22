@@ -51,3 +51,16 @@ test('catalog acknowledgment correlates submission and preserves newer composer 
  const later=viewTransition(view,{type:'view.selection',catalog:'project:other'});assert.equal(catalogAcknowledgmentPlan(later,created,nodes,'submitted').select,null);
  const ordinary=viewTransition(view,{type:'catalog.submission',token:9,submission:{...submitted,direct:false}});assert.equal(catalogAcknowledgmentPlan(ordinary,created,nodes,'newer unfinished name').hideComposer,false);assert.equal(catalogAcknowledgmentPlan(ordinary,created,nodes,'submitted').hideComposer,true);assert.equal(catalogAcknowledgmentPlan(view,{...created,available:false},nodes,'submitted').select,null);
 });
+
+test('text editing follows only the selected Action, survives local identity remap and keeps invalid text editable',async()=>{
+ const {initialViewState,viewTransition,normalizeTextEditing}=await import('../../lib/ui/model/view-state.ts');let view=initialViewState();
+ assert.equal(view.textEditing,null);
+ view=viewTransition(view,{type:'view.set',field:'textEditing',value:'local:action:1'});const before=structuredClone(view);
+ const remapped=viewTransition(view,{type:'view.remap',from:'local:action:1',to:'saved'});assert.equal(remapped.textEditing,'saved');assert.deepEqual(view,before);
+ assert.equal(viewTransition(remapped,{type:'view.remap',from:'other',to:'next'}).textEditing,'saved');
+ assert.equal(normalizeTextEditing('a','a',false),'a');
+ assert.equal(normalizeTextEditing('a','b',false),null);
+ assert.equal(normalizeTextEditing(null,'b',true),'b');
+ assert.equal(normalizeTextEditing('a',null,true),null);
+ assert.equal(normalizeTextEditing(null,'a',false),null);
+});

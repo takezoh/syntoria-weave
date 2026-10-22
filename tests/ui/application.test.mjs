@@ -174,3 +174,14 @@ test('pointer publication shares every unchanged field with large retained catal
  for(const key of Object.keys(before))if(key!=='interaction')assert.equal(c.state[key],before[key],key+' must retain its published reference');
  assert.equal(c.state.interaction.view,before.interaction.view);c.editCatalog('project:p0',{name:'new correction'});assert.equal(c.state.catalogErrors['project:p0'],undefined);assert.equal(before.catalogErrors['project:p0'],'This project is no longer available. Your edits are retained.');assert.equal(c.state.catalogDrafts['project:p0'].name,'new correction');assert.equal(before.catalogDrafts['project:p0'].name,'proposal 0');
 });
+test('text editing starts with local creation, ends on selection change and stays while Title or Notes are invalid',async()=>{
+ const f=fixture(async()=>structuredClone(f.snapshot),creationModel),editing=()=>f.controller.state.interaction.view.textEditing,set=value=>f.controller.dispatch({type:'view.set',field:'textEditing',value});
+ const local=f.controller.createEmpty({title:'',notes:''});assert.equal(editing(),local);assert.equal(f.controller.state.selectedId,local);
+ f.controller.selectAction('a');assert.equal(editing(),null);assert.equal(f.controller.state.transients[local],undefined);
+ set('b');assert.equal(editing(),null);set('a');assert.equal(editing(),'a');
+ f.controller.editDraft('a',{title:''});set(null);assert.equal(editing(),'a');
+ f.controller.editDraft('a',{title:'fixed',notes:'x'.repeat(65537)});set(null);assert.equal(editing(),'a');
+ f.controller.editDraft('a',{notes:'fixed'});set(null);assert.equal(editing(),null);assert.equal(f.controller.state.drafts.a.title,'fixed');
+ set('a');f.controller.selectAction(null);assert.equal(editing(),null);
+ f.controller.editDraft('a',{title:' '});f.controller.selectAction('a');assert.equal(editing(),'a');
+});
