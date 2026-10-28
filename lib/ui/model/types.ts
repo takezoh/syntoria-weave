@@ -6,6 +6,7 @@ import type {TransientRecord} from './transient-create';
 
 export interface UiResult {
  operationId?:string;
+ changedIds?:readonly string[];
  resolved?:{actions?:{id:string}[];project?:{id:string;created:boolean};tag?:{id:string;created:boolean}};
 }
 export interface UiSnapshot {revision:number;actions:DraftAction[];result?:UiResult;[key:string]:unknown}

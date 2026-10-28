@@ -11,7 +11,18 @@ test('clean drafts refresh and dirty drafts outside current snapshot remain reta
  const initial=mergeDrafts({},[{id:'a',title:'old',notes:'',revision:1}]);const next=mergeDrafts(initial,[{id:'a',title:'new',notes:'',revision:2}]);assert.equal(next.a.title,'new');
  const dirty=editDraft(next,'a',{notes:'retained'});assert.equal(mergeDrafts(dirty,[]).a.notes,'retained');
 });
-import {retainRequest,operationUnknown,operationSucceeded} from '../../lib/ui/model/operations.ts';
+import {completionFeedback,retainRequest,operationUnknown,operationSucceeded} from '../../lib/ui/model/operations.ts';
+test('completion feedback uses only changed IDs and the committed snapshot without mutating frozen inputs',()=>{
+ const result=Object.freeze({changedIds:Object.freeze(['parent','child'])});
+ const actions=Object.freeze([
+  Object.freeze({id:'parent',due_at:'2026-10-04T00:00:00.000Z',defer_reasons:Object.freeze([])}),
+  Object.freeze({id:'child',due_at:'2026-10-02T00:00:00.000Z',defer_reasons:Object.freeze([Object.freeze({until:'2026-10-03T00:00:00.000Z'})])}),
+  Object.freeze({id:'unchanged',due_at:'2026-10-02T00:00:00.000Z',defer_reasons:Object.freeze([Object.freeze({until:'2026-10-03T00:00:00.000Z'})])})
+ ]);
+ const snapshot=Object.freeze({actions});const feedback=completionFeedback(result,snapshot);
+ assert.equal(feedback.changedIds,result.changedIds);assert.deepEqual(feedback.warnings,[{id:'child',due_at:'2026-10-02T00:00:00.000Z'}]);
+ assert.deepEqual(actions.map(action=>action.id),['parent','child','unchanged']);
+});
 test('unknown operation retains independent exact wire arguments and success preserves prior Undo ID',()=>{
  const args={operationId:'same',payload:{title:'original'}};const request=retainRequest('apply_change',args);args.payload.title='changed';
  assert.deepEqual(request.args,{operationId:'same',payload:{title:'original'}});

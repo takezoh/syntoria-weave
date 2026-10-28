@@ -52,11 +52,12 @@ Use Node.js 24 LTS and the packageManager version in package.json. Install with 
 pnpm install --frozen-lockfile
 pnpm check
 pnpm build
+pnpm dev
 pnpm test:postgres
 pnpm test:node:built
 ```
 
-`pnpm dev` builds and serves the independent static SPA on loopback; it does not proxy requests to the API. Without rendered runtime settings, the shell reports that configuration is unavailable. A functional browser session needs HTTPS API, Gate and SPA origins under one configured cookie parent, an exact registered Gate browser return URI, and a separately running API. Keep those settings in ignored local inputs. `pnpm start` runs the API and requires the validated environment contract in [deployment](technical/deployment.md). Administrative commands require an explicit `ADMIN_DATABASE_URL`; `LOCAL_DATABASE=true` permits nonproduction loopback PostgreSQL without TLS.
+`pnpm dev` serves the shared interactive UI at `http://localhost:5174` and starts a private PostgreSQL 17 cluster with a synthetic local identity. It uses the same HTTP action routes, application service and PostgreSQL adapter as the service, without reading `.local` runtime settings, Gate configuration, production credentials or hosted services. The database cluster and synthetic identity are created in a temporary directory for each run and removed when the server stops. The server binds to loopback and rejects unexpected Host, cross-origin or non-JSON writes; set `LOCAL_PREVIEW_PORT` only when another local process owns port 5174. Run `pnpm build` first to generate `dist/spa/workspace.html`; this preview does not need the Gate emulator, sibling Gate checkout, or production environment variables. It does not verify hosted Gate, Cloud Run or Neon behavior. `pnpm start` runs the API and requires the validated environment contract in [deployment](technical/deployment.md). Administrative commands require an explicit `ADMIN_DATABASE_URL`; `LOCAL_DATABASE=true` permits nonproduction loopback PostgreSQL without TLS.
 
 Confirm actual runtime and command behavior in package.json and source before verification. build/ contains source and must not be deleted as generated output. Container artifacts, dependencies and local/auth settings must not enter source changes.
 

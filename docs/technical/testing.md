@@ -27,7 +27,7 @@ Use isolated synthetic datasets and database instances. Never run destructive fi
 
 ## UI test responsibility map
 
-Pure model tests own selection, proposals, conflict and recovery decisions. Application tests own serial mutation state and acknowledgment. DOM tests own focus/caret, node retention, events and layout-dependent effects. Communication tests own correlation, transport failure and host messages. Browser tests own rendering, pointer/touch, scrolling, resize and composition behavior. Actual host tests own resource caches, discovery, widget association and host lifecycle. A successful tool response does not establish rendered UI behavior.
+Pure model tests own selection, proposals, conflict and recovery decisions. Application tests own serial mutation state and acknowledgment. DOM tests own focus/caret, node retention, events and layout-dependent effects. Communication tests own correlation, transport failure and host messages. Browser tests own rendering, pointer/touch, scrolling, resize and composition behavior. Actual host tests own resource caches, discovery, widget association and host lifecycle. A successful tool response does not establish rendered UI behavior. `tests/ui/autosave.test.mjs` verifies one `apply_change` for ordinary completion and `status: completed`, descendant baseline updates from committed `changedIds`, retained child drafts and warnings, known CAS retry and exact unknown-result replay. `tests/ui/model.test.mjs` verifies completion feedback as a nonmutating projection of the receipt and committed snapshot.
 
 ## Performance and evidence
 
@@ -42,6 +42,8 @@ The [requirements](../changes/change-20261018-cloud-run-neon-infrastructure/requ
 ## Implemented local runners
 
 `pnpm check` runs ESLint, TypeScript and all selected test files, including `tests/postgres/`. The PostgreSQL fixture launches the packaged PostgreSQL 17 binaries in an isolated temporary cluster with a separate limited runtime role. It does not substitute SQLite or a handwritten fake. `pnpm test:postgres` selects real-adapter HTTP/MCP and atomic-transfer suites; the ordinary Gate fixture supplies synthetic online browser-session and bearer responses. `tests/ui/web-session-relay.test.mjs` exercises the actual static SPA relay under DOM simulation, including retained iframe identity and exact arguments across reauthentication and account mismatch.
+
+`pnpm dev` starts the same shared widget UI and action HTTP/application/PostgreSQL paths on `http://localhost:5174`, with a separate temporary PostgreSQL 17 cluster and synthetic identity created at startup. It serves only the local shell, built widget and API routes; deployment runtime settings are not read or served. The loopback launcher checks Host, Origin, JSON content type and CSRF for writes. Shutting it down removes the database directory. This is an interactive local development preview, not evidence for Gate authentication or hosted Cloud Run/Neon behavior.
 
 After `pnpm build`, `pnpm test:node:built` starts `dist/server/index.mjs` as a separate process and uses real HTTP sockets against the isolated PostgreSQL runtime role. It confirms the API-only route surface, then checks a synthetic Gate HTTPS fixture through the built SDK: shared-cookie session/CSRF, exact credentialed CORS, raw duplicate-header rejection, a write and identical replay, MCP bearer access, revocation and outage behavior. It does not serve SPA assets or verify GitHub login. The synthetic Gate fixture does not replace the actual Gate/Firestore integration below.
 

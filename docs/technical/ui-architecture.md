@@ -1,6 +1,6 @@
 # UI responsibility and dependency boundaries
 
-The dedicated UI separates data-only decisions, application state transitions, component rendering, and host/DOM effects. `lib/ui/client.ts` is the composition root: it creates the model instances and connects the controller, view, tool client, host transport, and DOM adapter. Typed occurrences and the readonly `get_selection_context` projection live in the model/controller boundary; the DOM adapter registers the local App tool while the host adapter owns trusted bidirectional JSON-RPC dispatch.
+The dedicated UI separates data-only decisions, application state transitions, component rendering, and host/DOM effects. `lib/ui/client.ts` is the composition root: it creates the model instances and connects the controller, view, tool client, host transport, and DOM adapter. Typed occurrences and the readonly `get_selection_context` projection live in the model/controller boundary; the DOM adapter registers the local App tool while the host adapter owns trusted bidirectional JSON-RPC dispatch. Ordinary completion writes use the current confirmed revision directly; their committed `changedIds` and returned snapshot determine cascade draft baselines and completion feedback. Explicit preview remains available, and other autosaved changes continue to use preview when they need validation or resolved values.
 
 ## Development principles
 
@@ -54,7 +54,7 @@ lib/ui/
     ├── interaction.ts                pure typed occurrence selection and interaction state
     ├── movement.ts                   pure movement decisions and indexes
     ├── navigation.ts                 pure view and picker navigation
-    ├── operations.ts                 pure operation and recovery state
+    ├── operations.ts                 pure operation, recovery, and committed completion feedback
     ├── picker.ts                     pure picker filtering and ranking
     ├── presentation.ts               pure text and presentation helpers
     ├── rich-text.ts                  pure Markdown-subset parsing and link safety

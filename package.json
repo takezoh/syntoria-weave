@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "node scripts/serve-spa.mjs",
+    "dev": "node --import ./scripts/testing/register-loader.mjs scripts/local-preview.mjs",
     "build": "node scripts/build-all.mjs",
     "start": "node dist/server/index.mjs",
     "render:runtime-config": "node scripts/render-runtime-config.mjs",
