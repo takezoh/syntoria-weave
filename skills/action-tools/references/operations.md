@@ -22,7 +22,7 @@ Normal list means exactly view=normal: explicit on-hold stays included; cancelle
 
 Respect explicit user choices. Interpret ambiguous wording in context and clarify missing meaning only when needed; do not require a separate approval workflow for ordinary edits.
 
-The server does not perform arrival monitoring or notifications. A caller may obtain arrival evidence from the user or its own authorized external tools, then read current state and apply the requested waiting-state change independently of completion and Defer. Source access, interpretation, scheduling and notification belong to the caller; combining these tools with Slack/email tools requires no dedicated integration.
+The server does not monitor external arrivals or send proactive reminders. Its Remote MCP resource notifications only signal committed shared-state changes to subscribed clients. A caller may obtain arrival evidence from the user or its own authorized external tools, then read current state and apply the requested waiting-state change independently of completion and Defer. Source access, interpretation, scheduling and notification belong to the caller; combining these tools with Slack/email tools requires no dedicated integration.
 
 Help the user put concerns down and choose what to do or not do with less total management effort. An unresolved concern or reference may remain an unstructured Inbox action with its original text in notes. Do not ask classification questions merely to fill fields. Preserve the original intention and uncertainty.
 
@@ -57,3 +57,7 @@ Actions have a nonnegative safe-integer order within siblings; roots are ordered
 ## Saved perspectives
 
 Saved perspectives are user-scoped versioned views. Read list_perspectives and query_perspective {id} to retrieve their exact current definitions. Use apply_change perspective_add with exactly one of {name,filter} (v1) or {name,query} (v2); perspective_edit can change metadata without changing the current variant, replace a v1 filter, or replace/upgrade a definition with query. A v2 definition cannot be downgraded. V1 filters accept unique statuses, is_deferred, flagged, project_id (null means no project), tag_id and include_descendants. Conditions combine with AND; {} matches all states and statuses:[] matches none. Omitted v1 include_descendants is false. V2 queries use recursive and/or/not with typed field predicates and optional global order_by; omitted descendant behavior is true for each Project/Tag leaf. V1 preserves action-tree order; v2 does so when order_by is omitted. Project/tag deletion refuses references in either variant. Save a view when repeated use is wanted, rather than automatically saving temporary requests. These operations use the same revision, receipt, replay and Undo guarantees as other writes. No dedicated query editor is provided.
+
+## Shared proposals and reports
+
+Use the dedicated collaboration tools for saved proposals, selection, editing, approval cancellation and run reports. These transitions are separate from Action lifecycle changes and generic Undo. Read [proposal operations and notifications](collaboration.md) for exact envelopes, the three-proposal limit, retained cancellation, unknown outcomes and host notification support.

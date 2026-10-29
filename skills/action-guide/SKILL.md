@@ -1,6 +1,6 @@
 ---
 name: action-guide
-description: Explain structured action capabilities, find tool and schema information, and design caller-side task-management workflows. Use for how-to questions and workflow planning.
+description: Explain structured action capabilities, find tool and schema information, and explain AI proposal selection and design caller-side action-management workflows. Use for how-to questions and workflow planning.
 ---
 
 # Structured action guide
@@ -10,6 +10,7 @@ Help the user understand the action-data service and choose a workable caller wo
 ## Find the relevant knowledge
 
 - For supported state, tool families and schema discovery, read [capabilities](references/capabilities.md).
+- For proposal selection, editing, approval cancellation and reported work, read the collaboration section in [capabilities](references/capabilities.md#shared-proposals-and-reports).
 - For capture, review, external-source composition or automation, read [workflow design](references/workflows.md).
 - For exact fields, use the connected tool descriptions and input schemas, supplemented by the API reference provided with the service. A generic payload schema does not enumerate every valid field.
 

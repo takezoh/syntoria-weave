@@ -19,6 +19,8 @@ test('application scope migration supports fresh and historical databases withou
   url.username='migration_owner';url.pathname='/'+database;
   const pool=new pg.Pool({connectionString:url.href,max:1});
   const adminUrl=new URL(url);adminUrl.username='postgres';const admin=new pg.Pool({connectionString:adminUrl.href,max:1});
+  let closing=false;const poolError=error=>{if(!(closing&&error.code==='57P01'))throw error;};
+  pool.on('error',poolError);admin.on('error',poolError);
   try{
    const role=(await pool.query('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user')).rows[0];assert.deepEqual(role,{rolsuper:false,rolbypassrls:false});
    const notes='exact\0\ud800😀 and "metadata": false';
@@ -53,6 +55,6 @@ test('application scope migration supports fresh and historical databases withou
     const file=join(altered,mode==='applied_metadata'?'0007_action_metadata_text.sql':'0009_application_user_scope.sql');await writeFile(file,(await readFile(file,'utf8'))+'\n-- modified\n');
     await assert.rejects(migrate(pool,altered),/checksum differs/);
    }finally{await rm(altered,{recursive:true,force:true});}
-  }finally{await pool.end();await admin.end();}
+  }finally{closing=true;await pool.end();await admin.end();}
  });
 });

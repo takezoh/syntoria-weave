@@ -29,7 +29,7 @@ const settings = Object.freeze({
 test('personal plugin requires the Syntoria Weave registered app dependency', () => {
   assert.equal(validateCloudPluginManifest(plugin), plugin);
   assert.equal(plugin.name, 'syntoria-weave');
-  assert.equal(plugin.version, '1.0.3');
+  assert.equal(plugin.version, '1.1.0');
   assert.equal(plugin.extensions['com.openai'].interface.displayName, 'Syntoria Weave');
   assert.equal(plugin.extensions['com.openai'].apps, './.app.json');
   assert.equal(Object.hasOwn(plugin.extensions['com.openai'], 'requires_local_executor'), false);

@@ -1,18 +1,20 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "syntoria-weave",
-  "version": "1.0.3",
-  "description": "Manage shared actions through Syntoria Weave.",
+  "version": "1.1.0",
+  "description": "Manage shared actions and review AI work proposals through Syntoria Weave.",
   "extensions": {
     "com.openai": {
       "apps": "./.app.json",
       "interface": {
         "displayName": "Syntoria Weave",
         "shortDescription": "Shared state for you and AI",
-        "longDescription": "Manage actions, projects, tags and perspectives through Syntoria Weave with a shared list interface.",
+        "longDescription": "Manage actions, projects, tags and perspectives in a shared interface. Review up to three AI proposals per action, edit a proposal, approve one or cancel approval while retaining it.",
         "developerName": "Syntoria",
         "category": "Productivity",
-        "defaultPrompt": ["Read my saved actions and open my list."]
+        "defaultPrompt": [
+          "Read my saved actions and open my list."
+        ]
       }
     }
   }
