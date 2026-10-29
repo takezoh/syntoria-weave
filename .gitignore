@@ -21,6 +21,9 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.p12
+*.pfx
 
 # debug
 npm-debug.log*
@@ -51,10 +54,12 @@ next-env.d.ts
 /work/
 
 *.tsbuildinfo
-# Infrastructure state and locally generated plans contain deployment-local material.
-/infra/.terraform/
-/infra/*.tfstate*
-/infra/*.tfplan
+# Infrastructure state, plans and variable files contain deployment identifiers.
+.terraform/
+*.tfstate*
+*.tfplan
+*.tfvars
+*.tfvars.json
 /db/postgres/drafts/
 
 # Ephemeral CI identity files.
