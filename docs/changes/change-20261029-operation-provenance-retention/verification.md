@@ -22,3 +22,14 @@ Local working tree on 2026-10-29; not committed or deployed.
 ## Limitations
 
 Hosted Neon, Cloud Run and real client hosts are not exercised. Retention timing depends on the server clock.
+
+## Production release
+
+On 2026-10-29, source `763791d` was released as revision `weave-api-retention-763791d` with image `sha256:7787d24ee98df6b0b0da7d21899ca3623c5eb60ea2f6484a2e7960846f414b43` (OCI index, built with Docker Buildx for linux/amd64). The release also carried the earlier unreleased commits `42ac8a5` and `6cdba94`.
+
+- Backup execution `weave-backup-pkmb4` succeeded before migration (661,778 bytes).
+- Migrator execution `weave-migrator-t299q` applied `0005_operation_client_provenance.sql` with the new image. The new revision then passed its startup schema check.
+- The revision was probed through a no-traffic tag before receiving 100% traffic. The tag was removed afterwards. The backup job also uses the new image.
+- Public checks: `/health/ready` 200, MCP POST with an invalid bearer 401, untrusted-origin preflight 403, MCP resource metadata 200.
+
+No hosted write has exercised period retention or `client_id` yet. Configuration, secrets, IAM and DNS were unchanged.
