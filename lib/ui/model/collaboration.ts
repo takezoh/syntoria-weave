@@ -76,4 +76,10 @@ export function actionCollaborationLabel(records:unknown,actionId:string):string
  return record?collaborationLabel(record):'';
 }
 
+/** Proposals on an Action that are still the person's to approve; approved or closed work is not counted. */
+export function actionProposalCount(records:unknown,actionId:string):number {
+ if(!Array.isArray(records))return 0;
+ return (records as Collaboration[]).filter(row=>row.action_id===actionId&&row.progress==='not_started'&&['pending','deferred','changes_requested'].includes(row.decision)).length;
+}
+
 export type {CollaborationProposal} from '../../data/types';

@@ -65,11 +65,13 @@ export function projectSavedComparison(fields:readonly string[],action:Omit<Draf
 
 export type UiActorRef=ActorRef&{client_name?:string|null};
 export type UiActionRecord=Omit<DraftAction,'status'|'tags'>&{status:string;is_deferred?:boolean;project_path?:string;created_by?:UiActorRef|null;updated_by?:UiActorRef|null;tags?:{id:string;name?:string;path?:string}[];defer_reasons?:{id:string;title:string;until:string;ancestor:boolean}[]};
-export interface ProjectedActionRow {title:string;accessibleTitle:string;badges:{text:string;icon?:string}[];signature:string;batchSelected:boolean;active:boolean}
+export type RowBadgeTone='proposal';
+export interface ProjectedActionRow {title:string;accessibleTitle:string;badges:{text:string;icon?:string;tone?:RowBadgeTone}[];signature:string;batchSelected:boolean;active:boolean}
 
-export function projectActionRow(input:{entry:{key:string;level:number;parentKey?:string|null;catalogId?:string|null};action:UiActionRecord;actions:readonly UiActionRecord[];draft?:Draft;tree:boolean;visibleActionIds:readonly string[];batchSelected:boolean;active:boolean;formattedDue:string;collaborationLabel?:string}):ProjectedActionRow {
- const {entry,action,actions,draft}=input,parentVisible=Boolean(action.parent_id&&input.visibleActionIds.includes(action.parent_id)),parent=parentVisible?undefined:actions.find(row=>row.id===action.parent_id),badges:{text:string;icon?:string}[]=[];
+export function projectActionRow(input:{entry:{key:string;level:number;parentKey?:string|null;catalogId?:string|null};action:UiActionRecord;actions:readonly UiActionRecord[];draft?:Draft;tree:boolean;visibleActionIds:readonly string[];batchSelected:boolean;active:boolean;formattedDue:string;collaborationLabel?:string;proposals?:number}):ProjectedActionRow {
+ const {entry,action,actions,draft}=input,parentVisible=Boolean(action.parent_id&&input.visibleActionIds.includes(action.parent_id)),parent=parentVisible?undefined:actions.find(row=>row.id===action.parent_id),badges:ProjectedActionRow['badges']=[],proposals=input.proposals??0;
  const parentListed=input.tree?Boolean(action.parent_id&&entry.parentKey?.endsWith(':action:'+action.parent_id)):parentVisible;
+ if(proposals)badges.push({text:proposals===1?'Proposal':proposals+' proposals',icon:'proposal',tone:'proposal'});
  if(action.parent_id&&!parentListed&&parent?.title)badges.push({text:'In '+displayTitle(parent.title)});
  if(input.collaborationLabel)badges.push({text:input.collaborationLabel});
  if(action.status==='on-hold')badges.push({text:'Waiting',icon:'waiting'});
@@ -79,7 +81,7 @@ export function projectActionRow(input:{entry:{key:string;level:number;parentKey
  if(action.due_at)badges.push({text:'Deadline '+input.formattedDue});
  if(action.project_path)badges.push({text:action.project_path});
  if(action.tags?.length)badges.push({text:action.tags.map(tag=>tag.path||tag.name||'').filter(Boolean).join(', ')});
- return {title:displayTitle(draft?.title??action.title),accessibleTitle:displayTitle(action.title),badges,signature:JSON.stringify([input.collaborationLabel,entry.key,entry.level,input.tree,action.id,action.title,action.status,action.parent_id,action.flagged,entry.parentKey??null,parentVisible,parent?.title||'',action.defer_reasons,action.due_at,input.formattedDue,action.project_path,action.tags,draft?.title,input.batchSelected,input.active]),batchSelected:input.batchSelected,active:input.active};
+ return {title:displayTitle(draft?.title??action.title),accessibleTitle:displayTitle(action.title),badges,signature:JSON.stringify([input.collaborationLabel,proposals,entry.key,entry.level,input.tree,action.id,action.title,action.status,action.parent_id,action.flagged,entry.parentKey??null,parentVisible,parent?.title||'',action.defer_reasons,action.due_at,input.formattedDue,action.project_path,action.tags,draft?.title,input.batchSelected,input.active]),batchSelected:input.batchSelected,active:input.active};
 }
 
 export function projectCatalogRow(input:{entry:{key:string;kind:string;id:string;level:number;label:string;expandable:boolean};collapsed:readonly string[];draft?:CatalogDraft;selected:boolean;batchSelected?:boolean}):{signature:string;title:string;collapsed:boolean;selected:boolean;batchSelected:boolean} {
@@ -94,15 +96,8 @@ function catalogPath(catalog:readonly (CatalogRecord&{path?:string})[],id:string
 
 /** View mode renders saved-text structure; edit mode exposes the raw inputs without parsing. */
 export interface ActionTextProjection {mode:'view'|'edit';title:RichInline[];notes:RichBlock[];toggleDisabled:boolean}
-/** What choosing a lifecycle status means, in the person's terms; empty for an ordinary open action. */
-export function statusHint(status:string,hasChildren:boolean):string {
- if(status==='on-hold')return 'Stays unfinished and visible. Use it when you are waiting on someone or something.';
- if(status==='completed')return hasChildren?'Done, together with the steps inside it. Any of them can be reopened later.':'Done. You can reopen it later.';
- if(status==='dropped')return 'Kept for reference instead of deleted. You can reopen it any time.';
- return '';
-}
-export interface ActionInspectorProjection {targetAvailable:boolean;title:string;notes:string;text:ActionTextProjection;flagged:boolean;status:string;statusHint:string;dates:DateInputProjection;lifecycle:string;timestamps?:{created:string;updated:string};provenance:{created:string|null;updated:string|null};missingMessage:string;savedCompare:string;dateSummary:string;releases:{id:string;label:string}[];projectValue?:string;tags:{id:string;label:string;focusKey:string}[]}
-export function projectActionInspector(input:{hasChildren?:boolean;id:string;draft:Draft;action?:UiActionRecord;savedAction?:{created_at?:string;updated_at?:string};targetAvailable:boolean;conflicts:readonly string[];projects:readonly (CatalogRecord&{path?:string})[];tags:readonly (CatalogRecord&{path?:string})[];dates:DateInputProjection;projectPickerFocused:boolean;formatInstant:(value:string)=>string;textEditing:boolean;richText:{inline(text:string):RichInline[];blocks(text:string):RichBlock[]}}):ActionInspectorProjection {
+export interface ActionInspectorProjection {targetAvailable:boolean;title:string;notes:string;text:ActionTextProjection;flagged:boolean;status:string;dates:DateInputProjection;lifecycle:string;timestamps?:{created:string;updated:string};provenance:{created:string|null;updated:string|null};missingMessage:string;savedCompare:string;dateSummary:string;releases:{id:string;label:string}[];projectValue?:string;tags:{id:string;label:string;focusKey:string}[]}
+export function projectActionInspector(input:{id:string;draft:Draft;action?:UiActionRecord;savedAction?:{created_at?:string;updated_at?:string};targetAvailable:boolean;conflicts:readonly string[];projects:readonly (CatalogRecord&{path?:string})[];tags:readonly (CatalogRecord&{path?:string})[];dates:DateInputProjection;projectPickerFocused:boolean;formatInstant:(value:string)=>string;textEditing:boolean;richText:{inline(text:string):RichInline[];blocks(text:string):RichBlock[]}}):ActionInspectorProjection {
  const {id,draft,action}=input,project=draft.project_id?input.projects.find(item=>item.id===draft.project_id):undefined;
  const dateSummary=(action?.defer_reasons||[]).filter(reason=>reason.ancestor).map(reason=>'Parent '+displayTitle(reason.title)+' · Deferred until: '+input.formatInstant(reason.until)).join(' / ');
  const releases=(action?.defer_reasons||[]).map(reason=>({id:reason.id,label:reason.ancestor?'Parent '+displayTitle(reason.title)+' · Clear Defer':'Clear Defer'}));
@@ -110,7 +105,7 @@ export function projectActionInspector(input:{hasChildren?:boolean;id:string;dra
  const tags=draft.tag_ids.map(tagId=>{const tag=input.tags.find(item=>item.id===tagId);return {id:tagId,label:tag?catalogPath(input.tags,tag.id,'tag'):'Unavailable Tag',focusKey:'tag:'+id+':'+tagId};});
  const mode=input.textEditing?'edit':'view',text:ActionTextProjection={mode,title:mode==='view'?input.richText.inline(draft.title):[],notes:mode==='view'?input.richText.blocks(draft.notes):[],toggleDisabled:mode==='view'&&!input.targetAvailable};
  const by=(ref:UiActorRef|null|undefined)=>{const label=actorLabel(ref);return label?'by '+label:null;};
- return {targetAvailable:input.targetAvailable,title:draft.title,notes:draft.notes,text,flagged:draft.flagged,status:draft.status,statusHint:statusHint(draft.status,Boolean(input.hasChildren)),provenance:{created:by(action?.created_by),updated:by(action?.updated_by)},dates:input.dates,lifecycle:action?.status==='on-hold'?'Waiting':action?.status==='completed'?'Done':action?.status==='dropped'?'Dropped':'Open',missingMessage:'This action is no longer available. Your unsaved changes are retained. Refresh before saving.',timestamps:input.savedAction?{created:input.formatInstant(input.savedAction.created_at||''),updated:input.formatInstant(input.savedAction.updated_at||'')}:undefined,savedCompare:projectSavedComparison(input.conflicts,action,input.projects,input.tags,input.formatInstant),dateSummary,releases,projectValue,tags};
+ return {targetAvailable:input.targetAvailable,title:draft.title,notes:draft.notes,text,flagged:draft.flagged,status:draft.status,provenance:{created:by(action?.created_by),updated:by(action?.updated_by)},dates:input.dates,lifecycle:action?.status==='on-hold'?'Waiting':action?.status==='completed'?'Done':action?.status==='dropped'?'Dropped':'Open',missingMessage:'This action is no longer available. Your unsaved changes are retained. Refresh before saving.',timestamps:input.savedAction?{created:input.formatInstant(input.savedAction.created_at||''),updated:input.formatInstant(input.savedAction.updated_at||'')}:undefined,savedCompare:projectSavedComparison(input.conflicts,action,input.projects,input.tags,input.formatInstant),dateSummary,releases,projectValue,tags};
 }
 
 export interface CatalogInspectorProjection {kind:'project'|'tag';temporary:boolean;exists:boolean;draft?:{name:string;description:string};missingMessage:string;parentText:string;nameErrorText:string;descriptionErrorText:string;conflict:boolean;problemText:string;savedCompare:string;showRetry:boolean;retryDisabled:boolean}

@@ -2,7 +2,7 @@ type RuntimeConfig=Readonly<{apiOrigin:string;gateOrigin:string;appId:string;log
 type Session=Readonly<{account_scope:string;csrf_token:string}>;
 
 const frame=document.querySelector<HTMLIFrameElement>('#workspace')!;
-const message=document.querySelector<HTMLElement>('#message')!;
+const access=document.querySelector<HTMLElement>('#access')!,message=document.querySelector<HTMLElement>('#message')!;
 const login=document.querySelector<HTMLButtonElement>('#login')!,logoutButton=document.querySelector<HTMLButtonElement>('#logout')!,retry=document.querySelector<HTMLButtonElement>('#retry')!;
 const refreshChannelName='action-tools-browser-session-refresh';
 const channel=new BroadcastChannel(refreshChannelName);
@@ -27,7 +27,9 @@ async function readRuntimeConfig():Promise<RuntimeConfig>{
  return Object.freeze({apiOrigin,gateOrigin,appId:value.appId,loginRedirectUri:redirect.href});
 }
 
+/** The access bar shows only while access needs the person; signed in, the workspace offers Sign out itself. */
 function showState(text:string,mode:'login'|'retry'|'authenticated'|'recovery'='login'){
+ access.hidden=mode==='authenticated';
  message.textContent=text;
  message.hidden=mode==='authenticated';
  login.hidden=mode!=='login'&&mode!=='recovery';
@@ -114,8 +116,9 @@ window.addEventListener('message',async event=>{
  pending.add(key);
  let result:unknown;
  try{
-  if(call.method==='ui/initialize')result={protocolVersion:'2026-01-26',hostInfo:{name:'web',version:'0.3.0'},hostCapabilities:{},hostContext:{displayMode:'fullscreen',availableDisplayModes:['fullscreen'],platform:'web'}};
+  if(call.method==='ui/initialize')result={protocolVersion:'2026-01-26',hostInfo:{name:'web',version:'0.3.0'},hostCapabilities:{experimental:{signOut:{}}},hostContext:{displayMode:'fullscreen',availableDisplayModes:['fullscreen'],platform:'web'}};
   else if(call.method==='ui/request-display-mode')result={mode:'fullscreen'};
+  else if(call.method==='web/sign-out'){await performLogout();result={};}
   else if(call.method==='ui/open-link'){const url=linkTarget((call.params as {url?:unknown}|undefined)?.url);if(url)window.open(url,'_blank','noopener,noreferrer');result=url?{}:{isError:true};}
   else if(call.method==='tools/call'){
    if(blocked||!session||!runtime)result={isError:true,structuredContent:{error:{code:'unauthenticated',message:'Sign into the original account. Your proposal is retained.'}}};

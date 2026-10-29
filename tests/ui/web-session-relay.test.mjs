@@ -22,7 +22,9 @@ test('independent SPA keeps its mounted proposal across expiry, account mismatch
   const settle=()=>new Promise(resolve=>setImmediate(resolve));await settle();
   const frame=window.document.querySelector('iframe'),originalFrame=frame.contentWindow,header=window.document.querySelector('#access'),logout=window.document.querySelector('#logout');
   assert.equal(frame.getAttribute('src'),'/workspace.html');
-  assert.equal(header.hidden,false);assert.equal(logout.hidden,false);assert.equal(window.document.querySelector('#message').hidden,true);
+  assert.equal(header.hidden,true,'a signed-in workspace has no access bar');assert.equal(window.document.querySelector('#message').hidden,true);
+  const posted=[];originalFrame.postMessage=(data,origin)=>posted.push({data,origin});
+  window.dispatchEvent(new window.MessageEvent('message',{source:originalFrame,origin:window.location.origin,data:{jsonrpc:'2.0',id:1,method:'ui/initialize',params:{}}}));await settle();assert.deepEqual(JSON.parse(JSON.stringify(posted.at(-1).data.result.hostCapabilities)),{experimental:{signOut:{}}});
   const policy=window.document.querySelector('meta[http-equiv="Content-Security-Policy"]').content;assert.match(policy,/connect-src 'self' https:\/\/api\.example\.com https:\/\/gate\.example\.com/);assert.doesNotMatch(policy,/\*/);
   const request={jsonrpc:'2.0',id:7,method:'tools/call',params:{name:'apply_change',arguments:{operationId:'retained-exact-id',expectedRevision:0}}};
   const send=()=>window.dispatchEvent(new window.MessageEvent('message',{source:originalFrame,origin:window.location.origin,data:request}));
@@ -36,7 +38,9 @@ test('independent SPA keeps its mounted proposal across expiry, account mismatch
   assert.equal(fetches.at(-2).url,'https://gate.example.com/browser/session');assert.equal(fetches.at(-2).options.credentials,'include');
   assert.equal(frame.contentWindow,originalFrame);assert.equal(window.document.querySelector('#login').hidden,false);assert.equal(logout.hidden,true);assert.match(window.document.querySelector('#message').textContent,/signed out/);
   send();await settle();assert.equal(writes.length,1);
-  identity='original';expired=false;notify({data:{type:'session-refresh'}});await settle();send();await settle();assert.deepEqual(writes,[request.params,request.params]);assert.equal(frame.contentWindow,originalFrame);assert.equal(logout.hidden,false);
+  identity='original';expired=false;notify({data:{type:'session-refresh'}});await settle();send();await settle();assert.deepEqual(writes,[request.params,request.params]);assert.equal(frame.contentWindow,originalFrame);assert.equal(header.hidden,true);
+  window.dispatchEvent(new window.MessageEvent('message',{source:originalFrame,origin:window.location.origin,data:{jsonrpc:'2.0',id:9,method:'web/sign-out',params:{}}}));await settle();await settle();await settle();
+  assert.equal(logoutCalls.length,2,'the workspace asks the shell to sign out');assert.deepEqual(JSON.parse(JSON.stringify(posted.at(-1))),{data:{jsonrpc:'2.0',id:9,result:{}},origin:window.location.origin});assert.equal(header.hidden,false);assert.equal(window.document.querySelector('#login').hidden,false);assert.equal(frame.contentWindow,originalFrame);
   window.dispatchEvent(new window.MessageEvent('message',{source:originalFrame,origin:'https://attacker.example.com',data:request}));await settle();assert.equal(writes.length,2);
   window.dispatchEvent(new window.MessageEvent('message',{source:null,origin:window.location.origin,data:request}));await settle();assert.equal(writes.length,2);
  }finally{window.close();}

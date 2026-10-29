@@ -30,6 +30,7 @@ export function iconSvg(name:string):string {
   edit:'<path d="m5 15 10-10 4 4L9 19l-5 1zM13 7l4 4"/>',
   now:'<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/>',
   changes:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  proposal:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
   later:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4"/>',
  };

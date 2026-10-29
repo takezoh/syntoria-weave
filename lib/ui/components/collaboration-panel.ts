@@ -2,12 +2,12 @@ import type {CollaborationProposal} from '../model/collaboration';
 import type {CollaborationPanelData} from '../model/collaboration';
 
 /** Retain DOM nodes and editor selection; business state lives in the controller. */
-export function createCollaborationPanel(document:Document,root:HTMLElement,callbacks:{toggle():void;edit(key:string,value:string):void;request(actionId:string):void;command(id:string,command:string):void;history(id:string):void;outcome?(id:string,value:string):void;beginEdit?(id:string):void;editField?(id:string,field:keyof CollaborationProposal,value:string):void;saveEdit?(id:string):void;cancelEdit?(id:string):void;copy(value:string):void;open(url:string):void;assign?(id:string,delegation:import('../model/collaboration').DelegationChoice['delegation']):void}){
+export function createCollaborationPanel(document:Document,root:HTMLElement,callbacks:{toggle():void;edit(key:string,value:string):void;request(actionId:string):void;command(id:string,command:string):void;history(id:string):void;outcome?(id:string,value:string):void;beginEdit?(id:string):void;editField?(id:string,field:keyof CollaborationProposal,value:string):void;saveEdit?(id:string):void;cancelEdit?(id:string):void;copy(value:string,origin:HTMLElement):void;open(url:string):void;assign?(id:string,delegation:import('../model/collaboration').DelegationChoice['delegation']):void}){
  const element=<K extends keyof HTMLElementTagNameMap>(tag:K,text='')=>{const node=document.createElement(tag);node.textContent=text;return node;};
  const heading=element('h3','Work with AI'),toggle=element('button'),requestLabel=element('label','What would you like help with?'),request=element('textarea'),send=element('button','Request assistance'),cardsRoot=element('div');
  toggle.type='button';toggle.onclick=callbacks.toggle;send.type='button';request.maxLength=16000;request.setAttribute('aria-label','Instructions for AI');requestLabel.appendChild(request);[heading,toggle,requestLabel,send,cardsRoot].forEach(node=>root.appendChild(node));
  const cards=new Map<string,{node:HTMLElement;handler:HTMLElement;delegation:HTMLSelectElement;label:HTMLElement;title:HTMLElement;scope:HTMLElement;outcome:HTMLElement;exclusions:HTMLElement;source:HTMLElement;summary:HTMLElement;feedback:HTMLTextAreaElement;buttons:HTMLElement;artifacts:HTMLElement;history:HTMLElement;copy:HTMLButtonElement;historyButton:HTMLButtonElement;resolution:HTMLSelectElement;editor:HTMLElement;fields:Record<keyof CollaborationProposal,HTMLTextAreaElement>;editButton:HTMLButtonElement;saveButton:HTMLButtonElement;cancelButton:HTMLButtonElement;signature:string}>();
- return {render(data:CollaborationPanelData){
+ return {focusRequest(){if(!request.closest('[hidden]'))request.focus();},render(data:CollaborationPanelData){
   root.hidden=!data.enabled;if(!data.enabled)return;
   toggle.hidden=!data.showToggle;toggle.textContent=data.showAll?'Show selected action':`All proposals and reports (${data.count})`;toggle.setAttribute('aria-pressed',String(data.showAll));
   requestLabel.hidden=!data.action;send.hidden=requestLabel.hidden;request.disabled=data.busy;send.disabled=data.requestDisabled||!data.request.trim();
@@ -44,7 +44,7 @@ export function createCollaborationPanel(document:Document,root:HTMLElement,call
     card.history.replaceChildren(...item.history.map(entry=>element('p',`${entry.record.updated_at} · ${entry.actor.kind==='user'?'User':'Client'} · ${entry.command} · proposal ${entry.record.version}\n${entry.record.proposal.scope}\n${entry.record.feedback||entry.record.summary}`)));
     card.signature=signature;
    }
-   card.copy.onclick=()=>callbacks.copy(item.handoff);card.historyButton.disabled=data.busy;card.historyButton.onclick=()=>callbacks.history(r.id);
+   card.copy.onclick=()=>callbacks.copy(item.handoff,card!.copy);card.historyButton.disabled=data.busy;card.historyButton.onclick=()=>callbacks.history(r.id);
   }
  }};
 }

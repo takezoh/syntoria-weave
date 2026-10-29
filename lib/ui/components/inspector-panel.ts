@@ -16,7 +16,6 @@ export interface ActionDetailsElements {
   readonly updatedTimestamp?: HTMLElement;
   readonly createdBy?: HTMLElement;
   readonly updatedBy?: HTMLElement;
-  readonly statusHint?: HTMLElement;
   readonly flagged: HTMLButtonElement;
   readonly statusChoices: readonly HTMLButtonElement[];
   readonly text: {
@@ -158,10 +157,6 @@ export function ActionDetails(props: ActionDetailsProps): void {
     if (!node) continue;
     node.hidden = !text;
     node.textContent = text ?? '';
-  }
-  if (elements.statusHint) {
-    elements.statusHint.hidden = !view.statusHint;
-    elements.statusHint.textContent = view.statusHint;
   }
   elements.dateSummary.textContent = view.dateSummary;
   elements.releaseControls.replaceChildren();

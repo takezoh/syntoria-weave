@@ -50,10 +50,9 @@ export interface ActionRowProps extends DeepReadonly<Omit<ProjectedActionRow,'si
   readonly onSelect: (event: MouseEvent) => void;
   readonly onSelectKeyDown: (event: KeyboardEvent) => void;
   readonly onFlag: () => void;
-  readonly onGripPointerDown: (event: PointerEvent) => void;
-  readonly onGripKeyDown: (event: KeyboardEvent) => void;
   readonly onRowPointerDown: (event: PointerEvent) => void;
   readonly onRowClick: (event: MouseEvent) => void;
+  readonly onContextMenu: (event: MouseEvent) => void;
   readonly onDragStart: (event: DragEvent) => void;
 }
 
@@ -130,7 +129,7 @@ export function ActionRow(props: ActionRowProps): HTMLDivElement {
   labelList.className = 'badges';
   for (const badge of badges) {
     const label = document.createElement('span');
-    label.className = 'badge' + (badge.icon ? ' on-hold' : '');
+    label.className = 'badge' + (badge.tone ? ' ' + badge.tone : badge.icon ? ' on-hold' : '');
     if (badge.icon) label.innerHTML = iconSvg(badge.icon);
     label.appendChild(document.createTextNode(badge.text));
     labelList.appendChild(label);
@@ -153,17 +152,9 @@ export function ActionRow(props: ActionRowProps): HTMLDivElement {
   flag.dataset.mutation = 'true';
   flag.dataset.focusKey = 'flag:' + entry.key;
 
-  const grip = createButton(document, iconSvg, 'Move action', 'grip', () => {});
-  grip.className = 'drag-handle icon-button';
-  grip.setAttribute('aria-label', 'Move: ' + accessibleTitle);
-  grip.dataset.actionId = action.id;
-  grip.dataset.focusKey = 'grip:' + entry.key;
-  setPointerDown(grip, props.onGripPointerDown);
-  grip.onkeydown = props.onGripKeyDown;
-
   setPointerDown(row, props.onRowPointerDown);
   row.onclick = props.onRowClick;
-  row.appendChild(grip);
+  row.oncontextmenu = props.onContextMenu;
   row.appendChild(complete);
   row.appendChild(content);
   row.appendChild(flag);
@@ -233,7 +224,7 @@ function patchNode(current: Node, next: Node): Node {
       currentElement.setAttribute(attribute.name, attribute.value);
     }
   }
-  for (const name of ['onclick', 'onkeydown', 'ondragstart'] as const) {
+  for (const name of ['onclick', 'onkeydown', 'ondragstart', 'oncontextmenu'] as const) {
     currentElement[name] = nextElement[name] as never;
   }
   setPointerDown(currentElement, pointerDownHandlers.get(nextElement));

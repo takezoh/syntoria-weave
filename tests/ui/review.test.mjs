@@ -4,7 +4,6 @@ import {projectNow,captureTitle} from '../../lib/ui/model/now.ts';
 import {quickDates} from '../../lib/ui/model/date-input.ts';
 import {describeChange,projectChangeFeed,changeNames,changeActor,actorLabel,isUnreviewed,validRecentChangePage} from '../../lib/ui/model/changes.ts';
 import {needsPerson} from '../../lib/ui/model/collaboration.ts';
-import {statusHint} from '../../lib/ui/model/ui-projections.ts';
 import {createChangesController} from '../../lib/ui/application/changes.ts';
 import {createReviewMarkStore} from '../../lib/ui/effects/review-mark.ts';
 
@@ -105,7 +104,6 @@ test('actors, review marks, collaboration attention and page validation follow t
  assert.equal(needsPerson(record({decision:'withdrawn'}),'active'),false);
  assert.equal(validRecentChangePage({head_revision:1,next_before_revision:null,changes:[change(1)]}),true);
  for(const invalid of [null,{head_revision:'1',next_before_revision:null,changes:[]},{head_revision:1,next_before_revision:null,changes:[{...change(1),undo:{status:'maybe'}}]},{head_revision:1,next_before_revision:null,changes:[{...change(1),changes:{actions:[]}}]}])assert.equal(validRecentChangePage(invalid),false);
- assert.equal(statusHint('active',true),'');assert.match(statusHint('completed',true),/steps inside/);assert.doesNotMatch(statusHint('completed',false),/steps inside/);assert.match(statusHint('on-hold',false),/waiting/);assert.match(statusHint('dropped',false),/reopen/);
 });
 
 test('recent changes load only for visible review views, ignore stale responses and keep the review mark through its port',async()=>{

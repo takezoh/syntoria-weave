@@ -8,7 +8,6 @@ export function createChangesPanel(document:Document,root:HTMLElement,callbacks:
  const element=<K extends keyof HTMLElementTagNameMap>(tag:K,text='',className='')=>{const node=document.createElement(tag);node.textContent=text;if(className)node.className=className;return node;};
  // Node#appendChild keeps DOM typing independent of the edge runtime's Element declarations.
  const add=(parent:Node,...children:Node[])=>{for(const child of children)parent.appendChild(child);};
- const intro=element('p','Every save to your list, newest first — by you, your AI and your other connected apps.','muted changes-intro');
  const toolbar=element('div','','changes-toolbar'),filters=element('div','','segmented');filters.setAttribute('role','group');filters.setAttribute('aria-label','Show changes by');
  const markReviewed=element('button','Mark all as reviewed','outline');markReviewed.type='button';markReviewed.id='markReviewed';markReviewed.onclick=()=>callbacks.markReviewed();
  const filterButtons=new Map<ChangeFilter,HTMLButtonElement>();
@@ -17,8 +16,7 @@ export function createChangesPanel(document:Document,root:HTMLElement,callbacks:
  const notice=element('p','','changes-notice');notice.setAttribute('role','status');
  const status=element('p','','now-empty'),retry=element('button','Try again','outline');retry.type='button';retry.onclick=()=>callbacks.retry();
  const groupsRoot=element('div','','changes-groups'),more=element('button','Show older changes','outline');more.type='button';more.id='changesMore';more.onclick=()=>callbacks.loadMore();
- const footnote=element('p','Undo is available for recent saves. It refuses when it would erase a correction made afterwards, and only recent history is kept.','now-note');
- add(root,intro,toolbar,notice,status,retry,groupsRoot,more,footnote);
+ add(root,toolbar,notice,status,retry,groupsRoot,more);
  const groups=new Map<string,{node:HTMLElement;list:ReturnType<typeof createChangeCardList>}>();
  return {render(data:ChangesPanelData){
   const labels={all:'All',connections:'AI and apps',you:'You'} as const;

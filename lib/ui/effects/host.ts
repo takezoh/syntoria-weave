@@ -42,11 +42,11 @@ export function createHostTransport(effects: HostEffects): HostPort {
 
 /** Display effects are independent from action writes and never create operation IDs. */
 export function createDisplayBridge(transport:HostPort,model:{mergeHostContext:(current:HostContext,patch:unknown)=>HostContext},publish:(state:DisplayState)=>void) {
- const state:DisplayState={context:{},contextVersion:0,pending:null,error:null};let disposed=false;
+ const state:DisplayState={context:{},contextVersion:0,pending:null,error:null,signOut:false};let disposed=false;
  function context(patch:unknown){state.context=model.mergeHostContext(state.context,patch);if(patch&&typeof patch==='object'&&['inline','fullscreen','pip'].includes(String((patch as Partial<HostContext>).displayMode)))state.contextVersion++;publish(state);}
  const unsubscribe=transport.subscribeContext(context);
  return {state,
-  initialize(result:HostInitializeResult){if(result?.hostContext)context(result.hostContext);},
+  initialize(result:HostInitializeResult){const experimental=result?.hostCapabilities?.experimental;state.signOut=Boolean(experimental&&typeof experimental==='object'&&(experimental as Record<string,unknown>).signOut);if(result?.hostContext)context(result.hostContext);else publish(state);},
   async request(mode:DisplayMode){
    if(disposed||state.pending)return false;
    if(!['inline','fullscreen'].includes(mode)||!state.context.availableDisplayModes?.includes(mode)){state.error='This display mode is not available.';publish(state);return false;}
