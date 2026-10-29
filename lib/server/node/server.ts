@@ -72,7 +72,7 @@ export function createServer({config,authentication,invoke,log=()=>{}}:{
 
  app.addHook('onRequest',async(req,reply)=>{
   stats.set(req,{pool_wait:0,sql:0});
-  reply.header('Cache-Control','no-store').header('X-Content-Type-Options','nosniff');
+  reply.header('Cache-Control','no-store').header('X-Content-Type-Options','nosniff').header('Strict-Transport-Security','max-age=31536000');
   const {raw: rawRequest}=req;
   rejectDuplicateWireHeaders(rawRequest.rawHeaders);
   const pathname=req.url.split('?',1)[0]!;

@@ -59,3 +59,27 @@ export function validateRuntimeSettings(value){
  if(typeof value.gateResourceClientId!=='string'||!value.gateResourceClientId.trim()||value.gateResourceClientId!==value.gateResourceClientId.trim())throw new Error('gateResourceClientId is required.');
  return Object.freeze({project:value.project,projectNumber:value.projectNumber,backupBucket:value.backupBucket,apiOrigin:api.origin,gateOrigin:gate.origin,sharedCookieDomain:parent,spaOrigins:Object.freeze(spaOrigins),appId:value.appId,loginRedirectUri:redirect.href,browserClientId:value.browserClientId,gateResourceClientId:value.gateResourceClientId});
 }
+
+/**
+ * Static-host rules published with the SPA. Only the shell's own same-origin frame may embed the
+ * workspace; no other page can be framed, so another site cannot overlay the signed-in app.
+ */
+export function spaHostingRules(){
+ const headers=[
+  '/*',
+  '  X-Content-Type-Options: nosniff',
+  '  Referrer-Policy: no-referrer',
+  '  X-Frame-Options: DENY',
+  "  Content-Security-Policy: frame-ancestors 'none'",
+  '/workspace.html',
+  '  ! X-Frame-Options',
+  '  ! Content-Security-Policy',
+  '  X-Frame-Options: SAMEORIGIN',
+  "  Content-Security-Policy: frame-ancestors 'self'",
+  '/runtime-config.json',
+  '  Cache-Control: no-store',
+  '/assets/*',
+  '  Cache-Control: public, max-age=31536000, immutable',
+ ];
+ return Object.freeze({headers:headers.join('\n')+'\n',redirects:'/ /index.html 200\n'});
+}

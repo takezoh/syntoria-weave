@@ -46,6 +46,7 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
 
  await t.test('API host and route split retain protocol-owned MCP UI resources',async()=>{
   const meta=await server.inject({url:'/.well-known/oauth-protected-resource/mcp',headers:base});assert.equal(meta.statusCode,200);assert.equal(meta.json().resource,config.resource);
+  assert.equal(meta.headers['strict-transport-security'],'max-age=31536000');
   assert.equal((await server.inject({url:'/health/live'})).statusCode,200);
   assert.equal((await server.inject({url:'/',headers:base})).statusCode,404);
   assert.equal((await server.inject({url:'/assets/app.js',headers:base})).statusCode,404);
