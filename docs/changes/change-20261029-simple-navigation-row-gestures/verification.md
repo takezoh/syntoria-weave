@@ -7,7 +7,7 @@ role: verification
 
 # Verification
 
-Local working tree on 2026-10-29, before commit.
+Local working tree on 2026-10-29, verified before commit `10da467`.
 
 ## Pure models
 
@@ -36,3 +36,13 @@ Headless Chrome screenshots of the generated widget with a synthetic in-page hos
 ## Limitations
 
 Synthetic pointer events in JSDOM and headless Chrome do not prove real touch behavior: browser scrolling, `touch-action`, implicit pointer capture hand-over, click synthesis after a swipe, haptics and the iOS callout need a real device. ChatGPT host rendering is unverified.
+
+## Production release
+
+On 2026-10-29, source `10da467`, pushed to main as a fast-forward, was released as revision `weave-api-nav-10da467` with image `sha256:241fea351a38715184c8922517995dfa1da218440db2ea7a4c261ba614ce6996` (Docker Buildx, linux/amd64). See the [release evidence](../../evidence/20261029-navigation-gestures-release/release.json).
+
+- No schema or administrative code changed, so no backup or migration ran and the jobs keep the previous image. The no-traffic tagged revision answered liveness and readiness with 200 before receiving 100% of traffic; the tag was removed.
+- Public checks after the switch: readiness 200, an untrusted-origin preflight 403, the SPA-origin preflight 204 with its exact origin and credentials, protected-resource metadata 200 and an unauthenticated session 401. MCP with an invalid bearer first returned 503 after 3.0 s, the authorization timeout, then 401 on three retries; the revision logged nothing else above the probes' expected 4xx. The 503 matches a cold authorization service and does not involve this change.
+- The static SPA is version `89402f96-cc2f-48ea-8184-dbc372a09ba9`, built and rendered from the same source; three files changed. All seven public files matched the candidate hashes with the expected cache, framing and credentialed CORS headers ([asset manifest](../../evidence/20261029-navigation-gestures-release/asset-manifest.json), [public checks](../../evidence/20261029-navigation-gestures-release/public-verification.json)).
+
+Not verified in production: the authenticated Web UI in a real browser, including Sign out from the rail; touch swipes, long press, scrolling and tap suppression on a real device; ChatGPT widget rendering. The nightly backup is still blocked until the backup role can read `state.client_names`, as recorded for `change-20261029-ux-first-redesign`.

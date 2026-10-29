@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-29",
+  "changes": [
+    "change-20261029-simple-navigation-row-gestures"
+  ],
+  "source": {
+    "commit": "10da467c7a0d056180fab2eb0aeac5f236576f78",
+    "cleanWorktree": true
+  },
+  "checks": {
+    "pnpmCheck": {
+      "tests": 667,
+      "passed": 667,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "lint": "passed",
+      "typecheck": "passed"
+    },
+    "pnpmBuild": "passed",
+    "testNodeBuilt": "passed"
+  },
+  "api": {
+    "image": "sha256:241fea351a38715184c8922517995dfa1da218440db2ea7a4c261ba614ce6996",
+    "imageBuild": "Docker Buildx, linux/amd64",
+    "previousRevision": "weave-api-review-dc0b0ef",
+    "revision": "weave-api-nav-10da467",
+    "traffic": "100% after a no-traffic tagged liveness and readiness probe (both 200); tag removed",
+    "jobs": "no schema or administrative change; migrator and backup jobs were neither run nor updated and keep the dc0b0ef image",
+    "publicChecks": {
+      "healthReady": 200,
+      "mcpInvalidBearer": "503 once after 3.0 s, then 401 on three retries",
+      "untrustedOriginPreflight": 403,
+      "spaOriginPreflight": "204 with exact origin and credentials",
+      "protectedResourceMetadata": 200,
+      "unauthenticatedSession": "401 with exact origin"
+    },
+    "revisionLogs": "warnings only for the probes' expected 401 and 403; one 503 on the first MCP probe at the 3 s authorization timeout, consistent with an idle authorization service starting"
+  },
+  "spa": {
+    "staticHostVersion": "89402f96-cc2f-48ea-8184-dbc372a09ba9",
+    "uploadedFiles": [
+      "index.html",
+      "assets/index-CPZoh-QM.js",
+      "workspace.html"
+    ],
+    "publicVerification": "all 7 public files match candidate hashes; no-store runtime configuration; immutable hashed assets; DENY and frame-ancestors 'none' except SAMEORIGIN and 'self' on workspace.html; credentialed CORS 204"
+  },
+  "unverified": [
+    "Authenticated Web UI behavior in a real browser, including Sign out from the rail",
+    "Touch swipes, long press, scrolling and tap suppression on a real touch device",
+    "ChatGPT widget rendering of the new navigation and rows",
+    "Nightly backup (still blocked until the backup role can read state.client_names)"
+  ]
+}

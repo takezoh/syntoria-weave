@@ -1,0 +1,50 @@
+{
+  "sourceCommit": "10da467c7a0d056180fab2eb0aeac5f236576f78",
+  "files": [
+    {
+      "path": "_headers",
+      "bytes": 396,
+      "sha256": "a812f88a466f8707c2c6d51aeddfd283fe756d5a43b7270d8d1f1bf93c7aa337"
+    },
+    {
+      "path": "_redirects",
+      "bytes": 18,
+      "sha256": "a1bdc12f6fb189a5f170419133275d498f3b335d940257e46c1e226e07fa21dc"
+    },
+    {
+      "path": "assets/authReturn-CK6eip8z.js",
+      "bytes": 170,
+      "sha256": "acdd0ce2fa43831263fb187b37edf779c4ff4f27639eb8814df5db3d4fc06081"
+    },
+    {
+      "path": "assets/index-CPZoh-QM.js",
+      "bytes": 6681,
+      "sha256": "dbdfcd6028f52502a6a380a9125dfff9c337bdfbc38cfec3905581f084f4d82e"
+    },
+    {
+      "path": "assets/modulepreload-polyfill-wMinxHhO.js",
+      "bytes": 698,
+      "sha256": "785597bca2e7dd97a652a20a197c077079e635a5663433448e0e1d9fd8c98a64"
+    },
+    {
+      "path": "auth-return.html",
+      "bytes": 536,
+      "sha256": "0c7babf5602838a2575deacd7aad7bdd467e26c5bc2ac3fdc242d888215bf69b"
+    },
+    {
+      "path": "index.html",
+      "bytes": 971,
+      "sha256": "e91d6c41db8abd888e70c2d39f048f6c73aee1864296479375dab53bf96fb6f3"
+    },
+    {
+      "path": "runtime-config.json",
+      "bytes": 197,
+      "sha256": "84b6a4201de02bfd3004b3e0d92ef4cb8955bf51ad4425944c283df529830277"
+    },
+    {
+      "path": "workspace.html",
+      "bytes": 290236,
+      "sha256": "c4d983a2b1fc5479492945853da7c5f7512193f2f5966b24e5af55d1768a21f9"
+    }
+  ]
+}
