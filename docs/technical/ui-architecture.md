@@ -88,3 +88,13 @@ lib/ui/
 `tests/harness/architecture-fixtures.test.mjs` runs positive and negative fixtures through the actual repository ESLint configuration. The fixtures exercise model-to-component and model-to-port type dependencies, component-to-controller re-exports, controller-to-DOM re-exports and non-static dynamic imports, ambient browser effects, new sibling application paths, and unclassified UI paths.
 
 These checks enforce the repository's concrete closed module architecture and enumerate common ambient capabilities. They are not a proof that arbitrary JavaScript is effect-free; review and tests remain necessary when adding a new runtime capability or changing a boundary.
+
+## Collaboration UI
+
+The action detail request form and the collapsible collaboration overview share the existing controller write/recovery lane. The pure collaboration projection derives labels and available decisions from readonly snapshot state. Components preserve keyed feedback inputs across refresh; the controller owns request/feedback/outcome and version-bound proposal-edit drafts and retains them through conflicts and unknown outcomes. A reply that loses an already-advertised collaboration capability is rejected rather than silently clearing state.
+
+The UI displays acceptance as requested/not started until a start report arrives. Results never check off an action. Withdrawal while running requests a stop and retains the last reported state. Unknown outcomes remain visible even after withdrawal; explicit reconciliation requires a written observation and selected outcome. Clipboard handoff includes IDs, version and scope, with a manual-copy fallback. It is not an agent-launch API.
+
+UI model/application modules may use type-only imports from `lib/data/types.ts`. Dependency lint still rejects runtime data imports and storage/adapter imports; fixtures exercise both the allowed type boundary and forbidden effects.
+
+Proposal cards show up to three retained alternatives for the selected Action, including cancelled approvals. Approving a card selects it; other approval controls are unavailable until cancellation and unresolved-run reconciliation. There is no rejection button. Direct editing retains all six proposal fields in controller state with the original version. Save explicitly clears approval; conflicting refreshes preserve unsaved fields. Components retain keyed editor nodes and never create drafts during rendering. Remote MCP notifications concern connected AI clients; the SPA continues to use its existing shared controller paths.

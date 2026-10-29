@@ -5,6 +5,7 @@ import {finalizeChange,normalizeChange,type PreparedChange} from '../data/model/
 import {parseReceiptResult} from '../data/model/storage';
 import {decodeChangeCursor,DEFAULT_CHANGE_PAGE_SIZE,encodeChangeCursor,pageChangeWindow} from '../data/model/change-cursor';
 import type {UserActionPorts} from './ports';
+import {collaborationCall} from './collaboration-service';
 
 function generatedId(snapshot:Snapshot,newId:()=>string,operationId:string,reserved:Set<string>) {
  for(let attempt=0;attempt<8;attempt++){
@@ -32,6 +33,7 @@ function previewResolution(resolved:OperationResolution|undefined,createdActionI
 }
 
 export async function actionCall(ports:UserActionPorts,name:string,args:unknown) {
+ if(['list_collaborations','get_collaboration','propose_collaboration','update_collaboration'].includes(name))return collaborationCall(ports,name,args);
  async function readCurrent(){const snapshot=await ports.store.readSnapshot();validateGraph(snapshot);return snapshot;}
  async function fullSnapshot(snapshot:Snapshot,now:string,result:unknown=null){const scope=await ports.changeCursorScope();return response(snapshot,now,result,encodeChangeCursor(scope,snapshot.revision));}
  const {store,clock,newId}=ports;
@@ -83,5 +85,7 @@ export async function actionCall(ports:UserActionPorts,name:string,args:unknown)
  else {const prepared=prepareChange(before,c,newId,operationId);resolved=prepared.resolved;after=prepared.change?change(before,prepared.change,now):structuredClone(before);}
 
  if(new TextEncoder().encode(original).length>262144)fail('operation_too_large','入力が大きすぎます。');
+ if(undoOf){const target=await store.readReceipt(undoOf);if(target&&parseReceiptResult(target).collaboration_id)fail('invalid_state','Use a collaboration decision or correction; collaboration records cannot be undone.');}
+ if(after.collaborations?.some(row=>row.action_id&&!after.actions.some(action=>action.id===row.action_id)))fail('undo_conflict','An action with collaboration history cannot be removed. Withdraw it instead.',409);
  const result=await store.commit({operationId,payload:original,before,after,now,undoOf,resolved});return fullSnapshot(await readCurrent(),now,result);
 }

@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createServer} from 'node:net';
 import {migrate,grantRuntime} from '../../lib/adapters/postgres/migrations.ts';
-export async function postgresFixture({migrations=join(process.cwd(),'db/postgres/migrations')}={}){
+export async function postgresFixture({migrations=join(process.cwd(),'db/postgres/migrations'),collaboration=true}={}){
  const directory=await mkdtemp(join(tmpdir(),'action-pg-'));
  const listener=createServer();await new Promise((resolve,reject)=>{listener.once('error',reject);listener.listen(0,'127.0.0.1',resolve);});
  const port=listener.address().port;await new Promise(resolve=>listener.close(resolve));
@@ -29,7 +29,7 @@ export async function postgresFixture({migrations=join(process.cwd(),'db/postgre
   admin.on('error',poolError);
   await migrate(admin,migrations);
   await admin.query(`CREATE ROLE action_runtime LOGIN PASSWORD '${password}'`);
-  await grantRuntime(admin,'action_runtime');
+  await grantRuntime(admin,'action_runtime',{collaboration});
   const url=`postgresql://action_runtime:${password}@127.0.0.1:${port}/postgres`;
   pool=new pg.Pool({connectionString:url,max:5,connectionTimeoutMillis:3000});
   pool.on('error',poolError);

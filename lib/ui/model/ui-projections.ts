@@ -64,10 +64,11 @@ export function projectSavedComparison(fields:readonly string[],action:Omit<Draf
 export type UiActionRecord=Omit<DraftAction,'status'|'tags'>&{status:string;is_deferred?:boolean;project_path?:string;tags?:{id:string;name?:string;path?:string}[];defer_reasons?:{id:string;title:string;until:string;ancestor:boolean}[]};
 export interface ProjectedActionRow {title:string;accessibleTitle:string;badges:{text:string;icon?:string}[];signature:string;batchSelected:boolean;active:boolean}
 
-export function projectActionRow(input:{entry:{key:string;level:number;parentKey?:string|null;catalogId?:string|null};action:UiActionRecord;actions:readonly UiActionRecord[];draft?:Draft;tree:boolean;visibleActionIds:readonly string[];batchSelected:boolean;active:boolean;formattedDue:string}):ProjectedActionRow {
+export function projectActionRow(input:{entry:{key:string;level:number;parentKey?:string|null;catalogId?:string|null};action:UiActionRecord;actions:readonly UiActionRecord[];draft?:Draft;tree:boolean;visibleActionIds:readonly string[];batchSelected:boolean;active:boolean;formattedDue:string;collaborationLabel?:string}):ProjectedActionRow {
  const {entry,action,actions,draft}=input,parentVisible=Boolean(action.parent_id&&input.visibleActionIds.includes(action.parent_id)),parent=parentVisible?undefined:actions.find(row=>row.id===action.parent_id),badges:{text:string;icon?:string}[]=[];
  const parentListed=input.tree?Boolean(action.parent_id&&entry.parentKey?.endsWith(':action:'+action.parent_id)):parentVisible;
  if(action.parent_id&&!parentListed&&parent?.title)badges.push({text:'In '+displayTitle(parent.title)});
+ if(input.collaborationLabel)badges.push({text:input.collaborationLabel});
  if(action.status==='on-hold')badges.push({text:'On hold',icon:'waiting'});
  if(action.status==='dropped')badges.push({text:'Dropped'});
  if(action.status==='completed')badges.push({text:'Completed'});
@@ -75,7 +76,7 @@ export function projectActionRow(input:{entry:{key:string;level:number;parentKey
  if(action.due_at)badges.push({text:'Due '+input.formattedDue});
  if(action.project_path)badges.push({text:action.project_path});
  if(action.tags?.length)badges.push({text:action.tags.map(tag=>tag.path||tag.name||'').filter(Boolean).join(', ')});
- return {title:displayTitle(draft?.title??action.title),accessibleTitle:displayTitle(action.title),badges,signature:JSON.stringify([entry.key,entry.level,input.tree,action.id,action.title,action.status,action.parent_id,action.flagged,entry.parentKey??null,parentVisible,parent?.title||'',action.defer_reasons,action.due_at,input.formattedDue,action.project_path,action.tags,draft?.title,input.batchSelected,input.active]),batchSelected:input.batchSelected,active:input.active};
+ return {title:displayTitle(draft?.title??action.title),accessibleTitle:displayTitle(action.title),badges,signature:JSON.stringify([input.collaborationLabel,entry.key,entry.level,input.tree,action.id,action.title,action.status,action.parent_id,action.flagged,entry.parentKey??null,parentVisible,parent?.title||'',action.defer_reasons,action.due_at,input.formattedDue,action.project_path,action.tags,draft?.title,input.batchSelected,input.active]),batchSelected:input.batchSelected,active:input.active};
 }
 
 export function projectCatalogRow(input:{entry:{key:string;kind:string;id:string;level:number;label:string;expandable:boolean};collapsed:readonly string[];draft?:CatalogDraft;selected:boolean;batchSelected?:boolean}):{signature:string;title:string;collapsed:boolean;selected:boolean;batchSelected:boolean} {

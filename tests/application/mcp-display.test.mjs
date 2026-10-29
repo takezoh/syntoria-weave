@@ -19,7 +19,7 @@ test('Node MCP exposes one shared UI launcher and the current action resource', 
   assert.equal(list._meta.ui.resourceUri, open._meta.ui.resourceUri);
 
   const resources = (await dispatch('resources/list')).resources;
-  assert.deepEqual(resources.map(resource => resource.uri), [open._meta.ui.resourceUri]);
+  assert.deepEqual(resources.map(resource => resource.uri), [open._meta.ui.resourceUri,'action-state://current']);
 });
 
 test('Node MCP resource retains HTML identity and bounded host metadata', async () => {
@@ -42,7 +42,8 @@ test('Node MCP publishes the current typed tool and Perspective schemas', async 
     'add_action', 'apply_change', 'capture_intent', 'get_change_cursor', 'get_changes', 'get_relevant_context',
     'list_actions', 'list_perspectives', 'open_actions', 'operation_status', 'preview_change',
     'query_actions', 'query_perspective', 'rename_action', 'undo_change',
-  ]);
+    'list_collaborations','get_collaboration','propose_collaboration','update_collaboration',
+  ].sort());
 
   const apply = tools.find(tool => tool.name === 'apply_change');
   for (const name of ['add_action', 'rename_action']) {

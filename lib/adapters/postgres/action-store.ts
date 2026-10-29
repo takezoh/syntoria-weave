@@ -1,8 +1,9 @@
 import type {Pool,PoolClient,QueryResultRow} from 'pg';
 import {createHash} from 'node:crypto';
 import {fail} from '../../domain/core';
+import {persistedCollaboration} from '../../domain/collaboration';
 import {decodeSnapshotRows,planStorageCommit,parseReceiptResult,operationPruneThrough,operationRetentionCutoff,type SnapshotRows,type StorageTableKey} from '../../data/model/storage';
-import type {Snapshot,Receipt,UserCommitRequest,ChangeWindow} from '../../data/types';
+import type {Snapshot,Receipt,UserCommitRequest,ChangeWindow,CollaborationHistory} from '../../data/types';
 import type {UserActionStore,ReadOperationState} from '../../application/ports';
 import {verifyPrincipal,type Principal} from '../../server/node/principal';
 
@@ -38,11 +39,14 @@ export async function userTransaction<T>(pool:Pool,user:string,readOnly:boolean,
 }
 async function receipt(client:PoolClient,user:string,operationId:string):Promise<Receipt|null> {
  const row=(await client.query('SELECT canonical_payload,result,delta,revision_after,undo_of FROM state.operations WHERE user_id=$1 AND operation_id=$2',[user,operationId])).rows[0];
- return row?{...row,revision_after:number(row.revision_after)}:null;
+ if(row)return {...row,revision_after:number(row.revision_after)};
+ const retained=(await client.query('SELECT canonical_payload,result,delta,revision AS revision_after FROM state.collaboration_history WHERE user_id=$1 AND operation_id=$2',[user,operationId])).rows[0];
+ return retained?{...retained,revision_after:number(retained.revision_after),undo_of:null}:null;
 }
 function decodeRows(captured:QueryResultRow[][]):Snapshot {
  const keys=["actions","projects","tags","action_tags","catalog_identity_ledger","perspectives"] as const;
- return decodeSnapshotRows([captured[0].map(row=>({revision:number(row.revision)})),...keys.map((key,i)=>captured[i+1].map(row=>decoded(row,tables[key].text)))] as unknown as SnapshotRows);
+ const snapshot=decodeSnapshotRows([captured[0].map(row=>({revision:number(row.revision)})),...keys.map((key,i)=>captured[i+1].map(row=>decoded(row,tables[key].text)))] as unknown as SnapshotRows);
+ return {...snapshot,collaborations:captured[7].map(row=>{const record=persistedCollaboration(JSON.parse(String(row.body)));if(record.id!==row.id||record.action_id!==row.action_id||record.revision!==number(row.revision))fail('invalid_state','Collaboration identity does not match its row.');return record;})};
 }
 async function rows(client:PoolClient,user:string):Promise<QueryResultRow[][]> {
  const revision=(await client.query('SELECT COALESCE(MAX(revision_after),0) AS revision FROM state.operations WHERE user_id=$1',[user])).rows;
@@ -51,6 +55,7 @@ async function rows(client:PoolClient,user:string):Promise<QueryResultRow[][]> {
   const descriptor=tables[key];const result=await client.query(`SELECT ${descriptor.columns.map(c=>'"'+c+'"').join(',')} FROM state.${key} WHERE user_id=$1`,[user]);
   data.push(result.rows);
  }
+ data.push((await client.query('SELECT id,action_id,revision,body FROM state.collaborations WHERE user_id=$1 ORDER BY revision DESC,id',[user])).rows);
  return [revision,...data];
 }
 export async function readSnapshotInTransaction(client:PoolClient,user:string){return decodeRows(await rows(client,user));}
@@ -77,6 +82,8 @@ export function createPostgresActionStore(pool:Pool,identity:Principal,{revalida
  const {user,clientId,actorKind}=verifyPrincipal(identity);
  const read=<T>(fn:(client:PoolClient)=>Promise<T>)=>userTransaction(pool,user,true,fn,signal,observe);
  return Object.freeze({
+  collaborationActor:Object.freeze({kind:actorKind,client_id:clientId,connection_id:identity.connectionId}),
+  readCollaborationHistory:(key:string,beforeRevision:number|null)=>read(async client=>(await client.query('SELECT operation_id,revision,command,actor,body FROM state.collaboration_history WHERE user_id=$1 AND collaboration_id=$2 AND ($3::bigint IS NULL OR revision<$3) ORDER BY revision DESC LIMIT 50',[user,key,beforeRevision])).rows.map(row=>({operation_id:row.operation_id,revision:number(row.revision),command:row.command,actor:JSON.parse(row.actor),record:persistedCollaboration(JSON.parse(row.body))})) as CollaborationHistory[]),
   readSnapshot:()=>read(async client=>decodeRows(await rows(client,user))),
   readOperationState:(op:string)=>read(async client=>{
    const prior=await receipt(client,user,op),captured=await rows(client,user);let snapshot:Snapshot|undefined;
@@ -101,6 +108,11 @@ export function createPostgresActionStore(pool:Pool,identity:Principal,{revalida
     await client.query('INSERT INTO state.operations(user_id,operation_id,canonical_payload,result,delta,revision_before,revision_after,undo_of,created_at,client_id,actor_kind) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[user,command.operationId,command.payload,JSON.stringify(plan.result),JSON.stringify(plan.changes),current,plan.result.revision,command.undoOf,command.now,clientId,actorKind]);
     for(const table of plan.tables)await persist(client,user,table.key,table.changes);
     await persist(client,user,'catalog_identity_ledger',plan.markerChanges);
+    if(command.collaboration){
+     const {record,actor,command:kind}=command.collaboration;
+     await client.query('INSERT INTO state.collaborations(user_id,id,action_id,revision,body) VALUES($1,$2,$3,$4,$5) ON CONFLICT(user_id,id) DO UPDATE SET action_id=excluded.action_id,revision=excluded.revision,body=excluded.body',[user,record.id,record.action_id,plan.result.revision,JSON.stringify(record)]);
+     await client.query('INSERT INTO state.collaboration_history(user_id,operation_id,collaboration_id,revision,command,actor,body,canonical_payload,result,delta) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[user,command.operationId,record.id,plan.result.revision,kind,JSON.stringify(actor),JSON.stringify(record),command.payload,JSON.stringify(plan.result),JSON.stringify(plan.changes)]);
+    }
     // Canonical ISO instants order bytewise; the scan stops at the first operation inside the period.
     const recent=(await client.query('SELECT revision_after FROM state.operations WHERE user_id=$1 AND created_at COLLATE "C">=$2 ORDER BY revision_after LIMIT 1',[user,operationRetentionCutoff(command.now)])).rows[0];
     await client.query('DELETE FROM state.operations WHERE user_id=$1 AND revision_after<=$2',[user,operationPruneThrough(plan.result.revision,recent?number(recent.revision_after):null)]);

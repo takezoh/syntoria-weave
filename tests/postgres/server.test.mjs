@@ -139,6 +139,26 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+gate.token({subject:'unmapped-person',client:'another-dcr-client'})})).statusCode,403);
  });
 
+ await t.test('collaboration crosses MCP, browser decisions and the same PostgreSQL revision without new grants',async()=>{
+  const read=await rpc('tools/call',{name:'list_collaborations',arguments:{}}),before=read.json().result.structuredContent;
+  const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:before.revision,action_id:null,proposal:{title:'Suggested work',instructions:'Original request',scope:'Draft only',outcome:'A draft',exclusions:'No external sending',source:'AI suggestion'}};
+  const proposed=(await rpc('tools/call',{name:'propose_collaboration',arguments:args})).json().result.structuredContent;
+  assert.equal(proposed.collaborations.length,1);assert.equal(proposed.actions.length,before.actions.length);
+  const decision={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:proposed.revision,id:proposed.result.collaboration_id,command:'adopt',payload:{version:1},action_id:null,delegate:true};
+  const activeSession=gate.session({client:'web'});
+  assert.equal((await browserWrite(activeSession,'wrong','https://app.example.com',{name:'update_collaboration',arguments:decision})).statusCode,403);
+  const adopted=(await browserWrite(activeSession,'synthetic-csrf','https://app.example.com',{name:'update_collaboration',arguments:decision})).json();
+  assert.equal(adopted.actions.length,before.actions.length+1);assert.equal(adopted.collaborations[0].progress,'not_started');
+  const started=(await rpc('tools/call',{name:'update_collaboration',arguments:{...decision,operationId:crypto.randomUUID(),expectedRevision:adopted.revision,command:'start',action_id:undefined,delegate:undefined}})).json().result.structuredContent;
+  assert.equal(started.collaborations[0].progress,'running');
+  const report={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:started.revision,id:decision.id,command:'report',payload:{version:1,run_id:started.collaborations[0].run_id,summary:'Draft ready',remaining:'User must send',outcome:'success',artifacts:[]}};
+  const reported=(await rpc('tools/call',{name:'update_collaboration',arguments:report})).json().result.structuredContent;
+  assert.equal(reported.actions.find(row=>row.id===reported.collaborations[0].action_id).status,'active');
+  assert.deepEqual((await rpc('tools/call',{name:'update_collaboration',arguments:report})).json().result.structuredContent.result,reported.result);
+  const history=(await rpc('tools/call',{name:'get_collaboration',arguments:{id:decision.id}})).json().result.structuredContent.history;
+  assert.equal(history.find(row=>row.command==='adopt').actor.kind,'user');assert.equal(history.find(row=>row.command==='propose').actor.kind,'client');
+ });
+
  await t.test('client connection writes pass the approval policy while the person needs none',async()=>{
   const operations=async()=>(await f.admin.query('SELECT actor_kind FROM state.operations WHERE user_id=$1 ORDER BY revision_after',['user'])).rows.map(row=>row.actor_kind);
   const before=await operations();

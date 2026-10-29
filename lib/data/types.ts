@@ -105,7 +105,24 @@ export type Snapshot = Readonly<{
   tags: readonly Tag[];
   action_tags: readonly ActionTag[];
   perspectives: readonly Perspective[];
+  /** Present only when the store supports the collaboration contract. */
+  collaborations?: readonly Collaboration[];
 }>;
+
+/** Business decisions and reports; these records never grant external permissions. */
+export type CollaborationActor = Readonly<{kind:'user'|'client';client_id:string;connection_id:string}>;
+export type CollaborationProposal = Readonly<{title:string;instructions:string;scope:string;outcome:string;exclusions:string;source:string}>;
+export type Collaboration = Readonly<{
+ id:string;action_id:string|null;revision:number;version:number;proposal:CollaborationProposal;
+ decision:'pending'|'accepted'|'changes_requested'|'rejected'|'deferred'|'withdrawn';
+ progress:'not_started'|'running'|'waiting'|'reported'|'stopped';
+ next_actor:'user'|'ai'|'external'|'none';
+ feedback:string;summary:string;remaining:string;outcome:'none'|'success'|'partial'|'failed'|'unknown';
+ artifacts:readonly Readonly<{label:string;url:string}>[];
+ run_id:string|null;run_actor:CollaborationActor|null;stop_requested:boolean;
+ action_revision:number|null;created_at:string;updated_at:string;last_reported_at:string|null;
+}>;
+export type CollaborationHistory = Readonly<{operation_id:string;revision:number;command:string;actor:CollaborationActor;record:Collaboration}>;
 
 export type Change = Readonly<{ kind: string; payload: Readonly<Record<string, unknown>> }>;
 export type Receipt = Readonly<{
@@ -144,6 +161,7 @@ export type OperationResult = Readonly<{
   revision: number;
   changedIds: readonly string[];
   resolved?: OperationResolution;
+  collaboration_id?:string;
 }>;
 /** User identity is intentionally absent; trusted composition binds it outside the request. */
 export type UserCommitRequest = Readonly<{
@@ -154,4 +172,5 @@ export type UserCommitRequest = Readonly<{
   now: string;
   undoOf: string | null;
   resolved?: OperationResolution;
+  collaboration?:Readonly<{command:string;actor:CollaborationActor;record:Collaboration}>;
 }>;

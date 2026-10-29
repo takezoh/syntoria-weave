@@ -1,3 +1,4 @@
+import type {CollaborationHistory,CollaborationProposal} from '../../data/types';
 import type {CatalogDraft} from './catalog-drafts';
 import type {DraftAction, Drafts, DraftValues} from './drafts';
 import type {UiInteractionState} from './interaction';
@@ -5,6 +6,7 @@ import type {MovePayload} from './movement';
 import type {TransientRecord} from './transient-create';
 
 export interface UiResult {
+ collaboration_id?:string;
  operationId?:string;
  changedIds?:readonly string[];
  resolved?:{actions?:{id:string}[];project?:{id:string;created:boolean};tag?:{id:string;created:boolean}};
@@ -12,6 +14,11 @@ export interface UiResult {
 export interface UiSnapshot {revision:number;actions:DraftAction[];result?:UiResult;[key:string]:unknown}
 export interface UiPreview {expectedRevision:number;kind:string;payload:Record<string,unknown>;[key:string]:unknown}
 export interface UiState {
+ collaborationEdits:Record<string,{version:number;proposal:CollaborationProposal}>;
+ collaborationOutcomes:Record<string,string>;
+ collaborationDrafts:Record<string,string>;
+ collaborationHistory:Record<string,readonly CollaborationHistory[]>;
+ collaborationShowAll:boolean;
  interaction:UiInteractionState;
  transients:Record<string,TransientRecord>;
  drafts:Drafts;

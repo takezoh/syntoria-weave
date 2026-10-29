@@ -164,3 +164,17 @@ test('actual repository config keeps the perspective query kernel inside the pur
  const invalid=readFileSync(fixtureRoot+'effect.fixture','utf8');
  assert(reports(await actualLint(invalid,'lib/domain/__perspective_query_fixture__.ts'),'pure-effects'));
 });
+
+test('UI collaboration shares only type declarations across the data boundary',async()=>{
+ for(const path of ['lib/ui/model/sample.ts','lib/ui/application/sample.ts']){
+  assert.equal((await actualLint("import type {Collaboration} from '../../data/types';export type Item=Collaboration;",path)).length,0);
+  assert(reports(await actualLint("import {Collaboration} from '../../data/types';void Collaboration;",path),'data-type-only'));
+  assert(reports(await actualLint("import {planStorageCommit} from '../../data/model/storage';void planStorageCommit;",path),'dependency-direction'));
+ }
+});
+
+test('MCP subscription effects stay on their reviewed adapter and composition edges',async()=>{
+ assert.deepEqual(await actualLint("import {createMcpSubscriptions} from '../../adapters/postgres/mcp-subscriptions';void createMcpSubscriptions;",'lib/server/node/main.ts'),[]);
+ assert(reports(await actualLint("import {createMcpSubscriptions} from '../../adapters/postgres/mcp-subscriptions';void createMcpSubscriptions;",'lib/ui/model/sample.ts'),'capability-direction'));
+ assert(reports(await actualLint("client.query('SELECT 1');",'lib/application/sample.ts'),'raw-sql-location'));
+});

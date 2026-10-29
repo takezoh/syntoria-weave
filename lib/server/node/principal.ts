@@ -12,7 +12,7 @@ export function issuePrincipal(value:Principal):Principal {
 export function verifyPrincipal(value:Principal):Principal {
  if(!issued.has(value))fail('unauthenticated','Verified identity is required.',401);return value;
 }
-export const mutators=new Set(['add_action','rename_action','capture_intent','apply_change','undo_change']);
+export const mutators=new Set(['add_action','rename_action','capture_intent','apply_change','undo_change','propose_collaboration','update_collaboration']);
 /** How a client connection's writes are approved: `auto` approves each one at once, `blocked` refuses them. The person's own writes need no approval. */
 export type ClientWriteApproval='auto'|'blocked';
 export type WritePolicy=Readonly<{writeMode:'blocked'|'enabled';clientWriteApproval:ClientWriteApproval}>;

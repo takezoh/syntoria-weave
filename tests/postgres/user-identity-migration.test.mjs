@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {postgresFixture} from '../helpers/postgres.mjs';
-import {migrate,checkRuntime} from '../../lib/adapters/postgres/migrations.ts';
+import {migrate,checkRuntime,grantRuntime} from '../../lib/adapters/postgres/migrations.ts';
 import {createPostgresActionStore,cursorScope,userLockKey} from '../../lib/adapters/postgres/action-store.ts';
 import {issuePrincipal} from '../../lib/server/node/principal.ts';
 import {actionCall} from '../../lib/application/action-service.ts';
@@ -14,7 +14,7 @@ import {exportData} from '../../lib/adapters/postgres/transfer.ts';
 test('populated identity migration preserves IDs, receipts, replay and user isolation',async t=>{
  const directory=await mkdtemp(join(tmpdir(),'action-old-schema-'));
  await copyFile('db/postgres/migrations/0001_state.sql',join(directory,'0001_state.sql'));
- const source=await postgresFixture(),target=await postgresFixture({migrations:directory});
+ const source=await postgresFixture(),target=await postgresFixture({migrations:directory,collaboration:false});
  t.after(async()=>{await source.close();await target.close();await rm(directory,{recursive:true,force:true});});
  const invoke=(pool,user,name,args={})=>actionCall({store:createPostgresActionStore(pool,issuePrincipal({user,issuer:'test',subject:user,connectionId:`test:${user}`,clientId:'test',actorKind:'client',scopes:['state:read','state:write']})),clock:()=> '2026-10-18T00:00:00.000Z',newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope(user,'epoch')},name,args);
  const request={schemaVersion:2,expectedRevision:0,operationId:crypto.randomUUID(),kind:'add',payload:{title:'Preserve 日本語',notes:'exact\0notes'}};
@@ -32,6 +32,7 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  const journal=(await target.admin.query('SELECT version,checksum FROM schema_migrations')).rows;
  await migrate(target.admin,resolve('db/postgres/migrations'));
  await migrate(target.admin,resolve('db/postgres/migrations'));
+ await grantRuntime(target.admin,'action_runtime');
  await checkRuntime(target.pool);
  assert.deepEqual((await target.admin.query('SELECT version,checksum FROM schema_migrations WHERE version=$1',['0001_state.sql'])).rows,journal);
  const migrated=structuredClone(value);for(const row of migrated.tables['state.operations']){row.client_id=null;row.actor_kind=null;}

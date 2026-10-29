@@ -31,7 +31,7 @@ Weave supports personal workflows. Shared state stays within the authenticated u
 
 Your AI handles interpretation, judgment, organization, recommendations and management policy. Weave stores, retrieves and updates structured state through API/MCP operations and a dedicated UI, with validation, revisions, atomicity, replay, Undo and ownership. Reading state gives the AI information to consider; the AI remains responsible for understanding it and revising its judgment. The API entity is named action. Containment, projects, tags, order, direct flags, dates and perspectives support GTD or another caller-chosen management method without requiring a fixed workflow.
 
-User prompts, the user's AI and caller-side schedulers can use the same tools. An authorized agent can collect Slack/email commitments with its own external tools and save or update actions in Weave. No dedicated Weave agent integration is needed: source access, interpretation, execution timing and notifications are responsibilities of the caller. Changing the caller's workflow does not require changing Weave's data operations.
+User prompts, the user's AI and caller-side schedulers can use the same tools. An authorized agent can collect Slack/email commitments with its own external tools and save or update actions in Weave. No dedicated Weave agent integration is needed: source access, interpretation, execution timing and proactive notifications are responsibilities of the caller. Changing the caller's workflow does not require changing Weave's data operations.
 
 ## What Weave does not promise
 
@@ -86,10 +86,20 @@ After a conflict compare the latest saved state with the retained proposal. Afte
 
 ## Scope and evidence
 
-Current scope includes original-input preservation, actions, containment, order, direct flags, projects/tags, explicit on-hold, Due/Defer, lifecycle editing, replay and Undo, shared by conversation and UI. Independent prerequisite edges and sequential/parallel modes are unsupported. Planned, estimates and recurrence are not implemented data capabilities. Calendar synchronization, notifications, external-source collection and background execution are caller capabilities; callers may compose such workflows with Weave data tools, and they are not prerequisites or planned integrations for using the service.
+Current scope includes original-input preservation, actions, containment, order, direct flags, projects/tags, explicit on-hold, Due/Defer, lifecycle editing, replay and Undo, shared by conversation and UI. Independent prerequisite edges and sequential/parallel modes are unsupported. Planned, estimates and recurrence are not implemented data capabilities. Calendar synchronization, proactive notifications, external-source collection and background execution are caller capabilities; callers may compose such workflows with Weave data tools, and they are not prerequisites or planned integrations for using the service.
 
 Local tests and implementation completion do not establish hosted acceptance or long-term reductions in management effort. Hosted behavior requires verification in the actual delivery environment.
 
 Success means fewer missed important matters and less total remembering, explanation, approval, correction and supervision work. More actions or completions alone are not success; dropping work or resting can be appropriate choices. General availability and pricing remain undecided.
 
 [Introduction](README.md) · [Architecture](ARCHITECTURE.md) · [Development](docs/development.md)
+
+## Work with AI on an action
+
+An action can remain entirely human-managed. When assistance would help, enter instructions on a saved action or review a caller's proposal, including its scope, expected result, exclusions and source. Keep up to three proposals for an action, choose one to approve, or edit its contents without changing the action's completion state. Saving edits clears approval. Cancelling approval keeps the proposal available for review and reuse. New-work suggestions can be adopted as actions separately from delegation.
+
+An accepted request stays visibly unstarted until a caller reports starting it. Copy the request context to a capable AI to continue; saving a request does not wake an agent. Progress reports identify who needs to respond and retain results, remaining work, artifact links and history. A stop request awaits confirmation; unknown outcomes require verification before another attempt. Completing the person's action remains an explicit, separate action.
+
+These decisions express work intent. Gate and the caller's execution environment continue to control access and external permissions. The UI does not promise that an external runner is installed, running or cancelled.
+
+Connected MCP clients can subscribe to changes in shared state, including decisions made in the UI. A change notification tells the client to reread current state; it does not start an AI or authorize external effects.

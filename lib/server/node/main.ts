@@ -1,3 +1,4 @@
+import {createMcpSubscriptions} from '../../adapters/postgres/mcp-subscriptions';
 import {randomUUID} from 'node:crypto';
 import {readConfig} from './config';
 import {createPool} from '../../adapters/postgres/pool';
@@ -10,7 +11,7 @@ import {actionCall} from '../../application/action-service';
 const config=readConfig(process.env),pool=createPool(config.databaseUrl,{local:config.localDatabase});
 await checkRuntime(pool);
 const auth=createAuthentication(config,createIdentityStore(pool));
-const server=createServer({config,authentication:auth,
+const server=createServer({config,authentication:auth,subscriptions:createMcpSubscriptions(pool),
  log:value=>console.log(JSON.stringify(value)),
  invoke:(identity,name,args,signal,observe)=>actionCall({store:createPostgresActionStore(pool,identity,{revalidate:client=>auth.revalidate(identity,client),signal,observe}),clock:()=>new Date().toISOString(),newId:randomUUID,changeCursorScope:async()=>cursorScope(identity.user,config.cursorEpoch)},name,args)});
 let stopping=false;

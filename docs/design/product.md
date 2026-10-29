@@ -80,7 +80,7 @@ Weave provides API/MCP tools and a dedicated UI over that shared state. The user
 
 Weave is Syntoria's State Store. Its subject is the state currently shared between the user and their authorized AI consumers: what is open, what waits on a decision, the original input, its context and the references back to its source. That state covers the relations and intent around the work as well: containment and classification say how actions belong together, and order, flags and dates say what the user meant to do with them. Weave keeps that state durable, validated and correctable, and makes the same records available to every authorized reader.
 
-Weave owns its storage, API, history and change cursor, and releases and deploys on its own. It serves whatever authorized caller holds its credentials; a caller that works with other services alongside shared state composes them itself and decides how the results relate. An Action's state records what the person decided or finished; whether a delegated process has run is a separate fact kept in the caller's own records.
+Weave owns its storage, API, history and change cursor, and releases and deploys on its own. It serves whatever authorized caller holds its credentials; a caller that works with other services alongside shared state composes them itself and decides how the results relate. An Action's state records what the person decided or finished; the actual execution remains the caller's responsibility. Shared collaboration records can retain the caller's reported progress and outcome separately from Action lifecycle, without becoming execution authority.
 
 ## Audience
 

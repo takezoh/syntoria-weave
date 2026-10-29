@@ -1,3 +1,6 @@
+import type {McpSubscriptions} from './mcp-subscriptions';
+import type {ChangePage} from '../../data/model/change-cursor';
+import {mcpEventStream} from './mcp-event-stream';
 import Fastify from 'fastify';
 import {ActionError,fail} from '../../domain/core';
 import {dispatchMcp} from '../../mcp/dispatcher';
@@ -33,6 +36,7 @@ const uniqueWireHeaders:Readonly<Record<string,{code:'unauthenticated'|'forbidde
  'x-csrf-token':{code:'forbidden',status:403},
  'content-type':{code:'invalid_input',status:400},
  host:{code:'forbidden',status:403},
+ 'last-event-id':{code:'invalid_input',status:400},
  'access-control-request-method':{code:'forbidden',status:403},
  'access-control-request-headers':{code:'forbidden',status:403},
 });
@@ -63,12 +67,14 @@ function setVary(reply:{header(name:string,value:string):unknown},value:string){
  reply.header('Vary',value);
 }
 
-export function createServer({config,authentication,invoke,log=()=>{}}:{
- config:ServiceConfig;authentication:Authentication;invoke:Invoke;log?:(value:Record<string,unknown>)=>void;
+export function createServer({config,authentication,invoke,subscriptions,log=()=>{}}:{
+ config:ServiceConfig;subscriptions?:McpSubscriptions;authentication:Authentication;invoke:Invoke;log?:(value:Record<string,unknown>)=>void;
 }){
  const stats=new WeakMap<object,{pool_wait:number;sql:number}>();
  const app=Fastify({logger:false,bodyLimit:1_048_576,requestTimeout:20_000,connectionTimeout:30_000,trustProxy:false});
  const apiHost=new URL(config.origin).host;
+ const streams=new Map<string,number>(),streamControllers=new Set<AbortController>();let streamCount=0;
+ app.addHook('preClose',async()=>{for(const controller of streamControllers)controller.abort();});
 
  app.addHook('onRequest',async(req,reply)=>{
   stats.set(req,{pool_wait:0,sql:0});
@@ -148,9 +154,29 @@ export function createServer({config,authentication,invoke,log=()=>{}}:{
   const principal=await identity(req,false);authorize(principal,'list_actions',config);
   const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');if(version&&!['2025-03-26','2025-06-18','2025-11-25'].includes(version))fail('invalid_input','Unsupported MCP protocol version.');
   const body=req.body as {method?:string;params?:{name?:string}};if(body?.method==='tools/call'&&typeof body.params?.name==='string')authorize(principal,body.params.name,config);
-  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'));
+  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'),subscriptions?{set:subscribed=>subscriptions.set(principal,subscribed)}:undefined);
   return result.body===null?reply.code(result.status).send():reply.code(result.status).send(result.body);
  });
- app.route({method:['GET','DELETE'],url:'/mcp',handler:async(_req,reply)=>reply.header('Allow','POST').code(405).send()});
+ app.get('/mcp',async(req,reply)=>{
+  if(!subscriptions)return reply.header('Allow','POST').code(405).send();
+  if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
+  if(!String(req.headers.accept??'').split(',').some(part=>part.trim().split(';')[0]==='text/event-stream'))fail('invalid_input','Accept text/event-stream to receive MCP notifications.',406);
+  const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');if(version&&!['2025-03-26','2025-06-18','2025-11-25'].includes(version))fail('invalid_input','Unsupported MCP protocol version.');
+  const principal=await identity(req,false);authorize(principal,'list_actions',config);
+  if(!await subscriptions.has(principal))fail('invalid_state','Subscribe to action-state://current before opening the event stream.',409);
+  if(streamCount>=64||(streams.get(principal.user)??0)>=4)fail('unavailable','Too many active event streams. Reconnect later.',429);
+  const cursor=oneHeader(req.headers['last-event-id'],'Last-Event-ID')??(await run(req,principal,'get_change_cursor',{}) as {cursor:string}).cursor;
+  const initial=await run(req,principal,'get_changes',{cursor}) as ChangePage;
+  if(streamCount>=64||(streams.get(principal.user)??0)>=4)fail('unavailable','Too many active event streams. Reconnect later.',429);
+  const controller=new AbortController();streamControllers.add(controller);let closed=false;
+  const close=()=>{if(closed)return;closed=true;controller.abort();streamControllers.delete(controller);streamCount--;const count=(streams.get(principal.user)??1)-1;if(count)streams.set(principal.user,count);else streams.delete(principal.user);};
+  streamCount++;streams.set(principal.user,(streams.get(principal.user)??0)+1);const {raw:rawReply}=reply;rawReply.once('close',close);
+  const stream=mcpEventStream(initial,{
+   authorized:async()=>{const current=await identity(req,false);authorize(current,'list_actions',config);return current.user===principal.user&&current.connectionId===principal.connectionId&&await subscriptions.has(current);},
+   poll:async current=>await run(req,principal,'get_changes',{cursor:current}) as ChangePage,
+  },{signal:controller.signal});
+  stream.once('close',close);reply.header('Content-Type','text/event-stream').header('X-Accel-Buffering','no');return reply.send(stream);
+ });
+ app.delete('/mcp',async(_req,reply)=>reply.header('Allow',subscriptions?'POST, GET':'POST').code(405).send());
  return app;
 }

@@ -80,3 +80,15 @@ For a production restore, fence and drain API writes, preserve the incident expo
 ## Release evidence
 
 A release record binds source commit, image digest, build/suite results, IaC/configuration revision, secret version references (never values), schema journal/checksums, Cloud Run revision, endpoint, timestamp, access scope and actual verification results. Report server correctness, deployed identity, browser operation, MCP client/host behavior and latency separately. No local fake or document validation is hosted acceptance.
+
+## Collaboration schema rollout
+
+The current runtime requires migration `0007_collaboration.sql`. Apply it with the established admin migration workflow before starting this source version. It adds user-scoped collaboration heads and durable history; it does not reset actions or identity records. Runtime grants cover head SELECT/INSERT/UPDATE and history SELECT/INSERT. Include both tables in backups and capacity planning: collaboration history has no automatic pruning.
+
+Transfer manifest version 6 includes collaboration records and retained replay receipts. Older manifests are not silently accepted by the current importer; use the matching old reader and an explicitly reviewed conversion when moving an older backup. Verify source/target versions before transfer. A rollback must account for new heads and history and must not drop them merely to run an older binary. Local automated acceptance does not establish hosted migration or host-client availability.
+
+## Proposal selection and MCP event rollout
+
+The current source requires `0008_mcp_subscriptions.sql` after 0007. Migrate once with the candidate image and grant the runtime SELECT/INSERT/UPDATE/DELETE on the new table. Grant export SELECT and its existing export-role RLS policy for physical backups. Preserve all collaboration heads and history; do not remove older proposals to enforce the new three-choice creation limit. `reject` is removed from the current tool schema; refresh client discovery. Cancellation retains a pending proposal, so old clients must not assume it disappears.
+
+Remote event streams are bounded below the existing Cloud Run request timeout and reconnect with a cursor. Keep the current cursor epoch during a normal release. Verify subscriptions across instances, actual host SSE support, online revocation and unauthenticated rejection separately from local tests. Logical transfer continues at version 6 and excludes subscription metadata. This documentation does not establish a hosted deployment.

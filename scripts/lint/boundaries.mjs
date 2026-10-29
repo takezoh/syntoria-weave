@@ -84,9 +84,9 @@ function allowed(from, target) {
   if (from === 'data-model') return pure || target === 'lib/data/types.ts' || target.startsWith('lib/data/model/');
   if (from === 'domain') return pure || target === 'lib/data/types.ts';
   if (from === 'application') return pure || target === 'lib/data/types.ts' || target.startsWith('lib/data/model/') || target.startsWith('lib/application/');
-  if (from === 'ui-model') return pure || target.startsWith('lib/ui/model/');
+  if (from === 'ui-model') return target === 'lib/data/types.ts' || pure || target.startsWith('lib/ui/model/');
   if (from === 'ui-ports') return pure || target.startsWith('lib/ui/model/') || target === 'lib/ui/ports.ts';
-  if (from === 'ui-application') return pure || target.startsWith('lib/ui/model/') || target === 'lib/ui/ports.ts' || target.startsWith('lib/ui/application/');
+  if (from === 'ui-application') return target === 'lib/data/types.ts' || pure || target.startsWith('lib/ui/model/') || target === 'lib/ui/ports.ts' || target.startsWith('lib/ui/application/');
   if (from === 'ui-components') return pure || target.startsWith('lib/ui/model/') || target.startsWith('lib/ui/components/');
   if (from === 'ui-tool-client') return pure || target.startsWith('lib/ui/model/') || target === 'lib/ui/ports.ts' || /^lib\/ui\/effects\/tool-client\.(?:ts|tsx|mts|js|jsx|mjs)$/.test(target);
   if (from === 'ui-effects') return pure || target.startsWith('lib/ui/model/') || target === 'lib/ui/ports.ts' || target.startsWith('lib/ui/application/') || target.startsWith('lib/ui/components/') || target.startsWith('lib/ui/effects/');
@@ -239,7 +239,7 @@ const privateComposition = {
 };
 
 /** Exact reviewed location for native SQL; every other module must use named domain operations. */
-const sqlAllowlist = new Set(['lib/adapters/d1-action-store.ts','lib/adapters/postgres/action-store.ts','lib/adapters/postgres/identity-store.ts','lib/adapters/postgres/migrations.ts','lib/adapters/postgres/transfer.ts','lib/mcp/local/state-store.mjs']);
+const sqlAllowlist = new Set(['lib/adapters/d1-action-store.ts','lib/adapters/postgres/action-store.ts','lib/adapters/postgres/mcp-subscriptions.ts','lib/adapters/postgres/identity-store.ts','lib/adapters/postgres/migrations.ts','lib/adapters/postgres/transfer.ts','lib/mcp/local/state-store.mjs']);
 
 const rawSqlLocation = {
   meta: { type: 'problem', schema: [], messages: { sql: 'Raw SQL ({{what}}) is confined to the approved adapter; use a closed descriptor or a reviewed named operation.' } },
@@ -263,12 +263,14 @@ const rawSqlLocation = {
 
 // Privileged dependencies are permitted per edge, never by exempting an entire importer.
 const capabilityEdges = new Map([
+ ['lib/adapters/postgres/mcp-subscriptions.ts',new Set(['lib/server/node/principal','lib/server/node/mcp-subscriptions'])],
+ ['lib/server/node/mcp-subscriptions.ts',new Set(['lib/server/node/principal'])],
  ['lib/adapters/postgres/transfer.ts',new Set(['lib/adapters/postgres/action-store'])],
  ['lib/adapters/postgres/action-store.ts',new Set(['lib/server/node/principal'])],
  ['lib/mcp/dispatcher.ts',new Set(['lib/mcp/tool-definitions'])],
  ['lib/server/node/authentication.ts',new Set(['lib/server/node/principal','lib/server/node/config','lib/server/node/gate-verifier','lib/adapters/postgres/identity-store'])],
- ['lib/server/node/server.ts',new Set(['lib/server/node/principal','lib/server/node/authentication','lib/server/node/config'])],
- ['lib/server/node/main.ts',new Set(['lib/server/node/config','lib/server/node/authentication','lib/server/node/server','lib/adapters/postgres/pool','lib/adapters/postgres/migrations','lib/adapters/postgres/identity-store','lib/adapters/postgres/action-store'])],
+ ['lib/server/node/server.ts',new Set(['lib/server/node/mcp-subscriptions','lib/server/node/mcp-event-stream','lib/server/node/principal','lib/server/node/authentication','lib/server/node/config'])],
+ ['lib/server/node/main.ts',new Set(['lib/adapters/postgres/mcp-subscriptions','lib/server/node/config','lib/server/node/authentication','lib/server/node/server','lib/adapters/postgres/pool','lib/adapters/postgres/migrations','lib/adapters/postgres/identity-store','lib/adapters/postgres/action-store'])],
 ]);
 const capabilityDirection = {
  meta:{type:'problem',schema:[],messages:{capability:'Private capability {{target}} is restricted to its exact trusted composition edge.'}},

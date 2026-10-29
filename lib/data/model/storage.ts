@@ -138,6 +138,7 @@ export function planStorageCommit(request: UserCommitRequest): StoragePlan {
     revision: before.revision + 1,
     changedIds: changes.actions.map(item => (item.after ?? item.before)!.id),
     ...(request.resolved ? { resolved: request.resolved } : {}),
+    ...(request.collaboration?{collaboration_id:request.collaboration.record.id}:{}),
   };
   const tables: StorageTablePlan[] = [
     { key: 'actions', changes: changes.actions },
@@ -156,7 +157,7 @@ export function planStorageCommit(request: UserCommitRequest): StoragePlan {
     + assertBoundJson(JSON.stringify(result))
     + assertBoundJson(JSON.stringify(changes));
   const bulkBytes = tables.reduce((total, table) => total + encodedBytes(table.changes), 0);
-  let planBytes = receiptBytes + bulkBytes;
+  let planBytes = receiptBytes + bulkBytes + (request.collaboration?assertBoundJson(JSON.stringify(request.collaboration)):0);
   if (planBytes > MAX_COMMIT_PLAN_BYTES) fail('operation_too_large', '保存する変更が大きすぎます。', 413);
 
   const previousMarkers = new Map(before.catalog_identity_ledger.map(row => [JSON.stringify([row.kind, row.identity]), row]));

@@ -1,4 +1,4 @@
-import type { ChangeWindow, OperationResult, UserCommitRequest, Receipt, Snapshot } from '../data/types';
+import type { CollaborationActor, CollaborationHistory, ChangeWindow, OperationResult, UserCommitRequest, Receipt, Snapshot } from '../data/types';
 
 /** Receipt and user state acquired together; snapshot decoding stays lazy for conflict precedence. */
 export type ReadOperationState = Readonly<{
@@ -8,6 +8,8 @@ export type ReadOperationState = Readonly<{
 
 /** User-bound capability handed to the application. Identity is fixed by its trusted composition. */
 export interface UserActionStore {
+  readonly collaborationActor?:CollaborationActor;
+  readCollaborationHistory?(id:string,beforeRevision:number|null):Promise<readonly CollaborationHistory[]>;
   /** Reads a consistent snapshot for the bound user; unknown users have revision zero. */
   readSnapshot(): Promise<Snapshot>;
   /** Reads an operation receipt and captures the current user snapshot in one acquisition. */

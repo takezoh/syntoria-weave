@@ -13,7 +13,7 @@ test('real PostgreSQL transfer preserves data and rejects partial or conflicting
  const request={schemaVersion:2,expectedRevision:0,operationId:crypto.randomUUID(),kind:'add',payload:{title:'Mixed case ID',notes:'日本語\0\ud800😀'}};
  const created=await invoke(source.pool,'apply_change',request);
  const value=await exportData(source.admin),digest=transferDigest(value);
- assert.equal(value.version,5);assert.equal(value.tables['state.operations'][0].client_id,'test');assert.equal(value.tables['state.operations'][0].actor_kind,'client');assert.equal(Object.hasOwn(value.tables,'identity.client_grants'),false);assert.equal(value.tables['state.actions'][0].user_id,principal.user);assert(!('owner' in value.tables['state.actions'][0]));
+ assert.equal(value.version,6);assert.equal(value.tables['state.operations'][0].client_id,'test');assert.equal(value.tables['state.operations'][0].actor_kind,'client');assert.equal(Object.hasOwn(value.tables,'identity.client_grants'),false);assert.equal(value.tables['state.actions'][0].user_id,principal.user);assert(!('owner' in value.tables['state.actions'][0]));
  await t.test('a corrupt digest or invalid graph imports nothing',async()=>{
   await assert.rejects(importData(target.admin,value,'invalid'),/digest/);
   const unsupported={...value,version:4};await assert.rejects(importData(target.admin,unsupported,transferDigest(unsupported)),/manifest/);
