@@ -11,6 +11,8 @@ role: implementation
 
 Migration `0005_operation_client_provenance.sql` adds nullable `state.operations.client_id` with a length check. The PostgreSQL store inserts the verified principal's `clientId`; D1 and the memory fake return null. `RetainedOperation` and `ChangeOperation` carry `client_id`, and projection rejects malformed values. The runtime schema check expects 0005, and the transfer format is version 4 with the new column; version 3 is rejected.
 
+Migration `0006_operation_actor_kind.sql` adds nullable `state.operations.actor_kind` (`user` or `client`). Authentication sets `Principal.actorKind` from the credential: a browser session is `user`, a bearer token is `client`. The PostgreSQL store records it. `RetainedOperation` and `ChangeOperation` carry it, and projection rejects other values. D1 and the memory fake return null. The runtime schema check expects 0006, and the transfer format moves to version 5; version 4 is rejected. A change made inside an AI host's embedded UI arrives through that host's connection and is recorded as `client`; Weave cannot verify a click there.
+
 Assistance policy, the `operation_status` and `get_changes` tool descriptions, the skills and current documents describe the new retention and provenance.
 
 ## Release impact

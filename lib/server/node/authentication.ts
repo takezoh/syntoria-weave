@@ -62,7 +62,8 @@ export function createAuthentication(config:ServiceConfig,store:IdentityStore,ve
 
  async function bind(binding:IdentityBinding,clientId:string,connectionId:string,credential:Credential,csrf?:string,client?:Parameters<IdentityStore['resolveSubject']>[1]){
   const identity=await store.resolveSubject(binding,client);
-  const principal=issuePrincipal({...binding,clientId,connectionId,user:identity.user,scopes:['state:read','state:write']});
+  // A Gate browser session is the person in the Weave app; a bearer token is a client connection acting for them.
+  const principal=issuePrincipal({...binding,clientId,connectionId,actorKind:credential.kind==='session'?'user':'client',user:identity.user,scopes:['state:read','state:write']});
   credentials.set(principal,{...credential,csrfToken:csrf});
   return principal;
  }

@@ -124,6 +124,8 @@ export type RetainedOperation = Readonly<{
   undo_of: string | null;
   /** OAuth client that committed the operation; null when the store does not record it. */
   client_id: string | null;
+  /** The person in the Weave app (`user`) or a client connection acting for them (`client`); null when unknown. */
+  actor_kind: 'user' | 'client' | null;
   delta: string;
 }>;
 export type ChangeWindow = Readonly<{

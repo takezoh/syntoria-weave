@@ -115,6 +115,7 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   const accountOne=await readSession(first),accountTwo=await readSession(second);assert.notEqual(accountOne.json().account_scope,accountTwo.json().account_scope);
   assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM state.actions WHERE user_id=$1',['user'])).rows[0].count,0);
   assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM state.actions WHERE user_id=$1',['other-user'])).rows[0].count,1);
+  assert.deepEqual((await f.admin.query('SELECT actor_kind FROM state.operations WHERE user_id=$1',['other-user'])).rows,[{actor_kind:'user'}]);
  });
 
  await t.test('MCP retains bearer authorization-code resource semantics and rejects cookies',async()=>{
@@ -125,6 +126,7 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,kind:'add',payload:{title:'MCP remains independent'}};
   const call=()=>rpc('tools/call',{name:'apply_change',arguments:args});
   assert.equal((await call()).json().result.structuredContent.revision,1);assert.equal((await call()).json().result.structuredContent.revision,1);
+  assert.deepEqual((await f.admin.query('SELECT actor_kind FROM state.operations WHERE user_id=$1',['user'])).rows,[{actor_kind:'client'}]);
   assert.equal((await server.inject({method:'POST',url:'/api/actions',headers:{...base,authorization:'Bearer '+bearer},payload:{name:'list_actions'}})).json().actions[0].title,'MCP remains independent');
   assert.equal((await rpc('notifications/initialized')).statusCode,202);
   assert.equal((await rpc('ping',{}, {'mcp-protocol-version':'future'})).statusCode,400);

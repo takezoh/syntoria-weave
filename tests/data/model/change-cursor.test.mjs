@@ -7,7 +7,7 @@ const scope = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 const now = '2026-10-14T09:00:00.000Z';
 const uuid = value => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`;
 const emptyDelta = () => ({ actions: [], projects: [], tags: [], perspectives: [], action_tags: [] });
-const retained = (revision, delta = emptyDelta()) => ({ operation_id: uuid(revision), revision_before: revision - 1, revision_after: revision, committed_at: now, undo_of: null, client_id: null, delta: JSON.stringify(delta) });
+const retained = (revision, delta = emptyDelta()) => ({ operation_id: uuid(revision), revision_before: revision - 1, revision_after: revision, committed_at: now, undo_of: null, client_id: null, actor_kind: null, delta: JSON.stringify(delta) });
 const window = (head, operations, oldest = operations[0]?.revision_after ?? null) => ({ head_revision: head, oldest_revision: oldest, operations });
 const utf8Length = value => new TextEncoder().encode(JSON.stringify(value)).length;
 
@@ -52,10 +52,15 @@ test('feed projection preserves persisted before/after records and omits derived
   assert.deepEqual(projected.changes.action_tags[0], { before: relation, after: null });
   assert.deepEqual(projected.changes.action_tags[0].before, persistedActionTag(relation));
   assert.equal(projected.client_id, null);
+  assert.equal(projected.actor_kind, null);
 });
 
 test('client provenance is projected verbatim and malformed values fail closed', () => {
   assert.equal(projectRetainedOperation({ ...retained(1), client_id: 'client-A_1' }).client_id, 'client-A_1');
+  for (const actor_kind of ['user', 'client']) assert.equal(projectRetainedOperation({ ...retained(1), actor_kind }).actor_kind, actor_kind);
+  for (const actor_kind of [undefined, 'owner', 'USER', 1]) {
+    assert.throws(() => projectRetainedOperation({ ...retained(1), actor_kind }), error => error.code === 'invalid_state');
+  }
   for (const client_id of [undefined, '', ' padded', 'x'.repeat(256), 'line\nbreak', 42]) {
     assert.throws(() => projectRetainedOperation({ ...retained(1), client_id }), error => error.code === 'invalid_state');
   }

@@ -33,3 +33,10 @@ On 2026-10-29, source `763791d` was released as revision `weave-api-retention-76
 - Public checks: `/health/ready` 200, MCP POST with an invalid bearer 401, untrusted-origin preflight 403, MCP resource metadata 200.
 
 No hosted write has exercised period retention or `client_id` yet. Configuration, secrets, IAM and DNS were unchanged.
+
+## Actor kind follow-up (2026-10-29)
+
+- `tests/data/model/change-cursor.test.mjs`: `actor_kind` values `user` and `client` are projected; undefined, `owner`, `USER` and numbers fail with `invalid_state`.
+- `tests/postgres/server.test.mjs`: a browser-session write through Node HTTP records `user`, and an MCP bearer write records `client`. Swapping the mapping in authentication made both cases fail, and they passed again once restored.
+- `tests/postgres/action-store.test.mjs`, `transfer.test.mjs` and `user-identity-migration.test.mjs`: the change feed returns `actor_kind`, version 5 transfer round-trips it, version 4 is rejected, and migrated operations keep NULL.
+- `pnpm check`: lint, typecheck and 591 tests passed, with no failures, skips or TODOs.
