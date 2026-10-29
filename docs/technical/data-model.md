@@ -16,7 +16,7 @@ The model represents shared state used by the human and authorized AI consumers:
 | action_tags | user, action_id, tag_id | many-to-many association and revision |
 | catalog_identity_ledger | user, kind, identity | reserved catalog IDs and latest project/tag/action_tag mutation revision |
 | perspectives | user, id | name, description, filter, definition_version, revision, created_at, updated_at |
-| operations | user, operation_id | canonical request, result, delta, before/after revision, undo_of, timestamp, committing OAuth client (provenance only) |
+| operations | user, operation_id | canonical request, result, delta, before/after revision, undo_of, timestamp, whether the person or a client connection made it, and the committing OAuth client (provenance only) |
 
 There is no tasks, task_tags, or dependencies table in the current schema. Action relationships are parent-child containment only. Independent prerequisite edges and sequential/parallel modes are unsupported. An explicit on-hold action remains an ordinary unfinished action.
 
@@ -44,7 +44,7 @@ The free-text codec is deliberate: PostgreSQL text cannot contain NUL and jsonb 
 - actions/projects/tags/perspectives: PRIMARY KEY(user_id,id). Projects/tags have two unique indexes: (user_id,name) WHERE parent_id IS NULL and (user_id,parent_id,name) WHERE parent_id IS NOT NULL.
 - action_tags: PRIMARY KEY(user_id,action_id,tag_id). Add (user_id,tag_id,action_id) for reverse membership.
 - catalog_identity_ledger: PRIMARY KEY(user_id,kind,identity); kind is one of project, tag, action_tag and perspective, matching the domain codec. Retain identity rows for deleted records.
-- operations: PRIMARY KEY(user_id,operation_id), UNIQUE(user_id,revision_after), CHECK revision_after=revision_before+1, and an index (user_id,undo_of) WHERE undo_of IS NOT NULL. Receipt contents are immutable after insertion; retention only deletes an oldest prefix. `client_id` records the verified OAuth client of the committing request; it is NULL for operations committed before migration 0005 and is never read for authorization.
+- operations: PRIMARY KEY(user_id,operation_id), UNIQUE(user_id,revision_after), CHECK revision_after=revision_before+1, and an index (user_id,undo_of) WHERE undo_of IS NOT NULL. Receipt contents are immutable after insertion; retention only deletes an oldest prefix. `client_id` records the verified OAuth client of the committing request, and `actor_kind` records `user` for a Gate browser session in the Weave app or `client` for a bearer-token connection. They are NULL for operations committed before migrations 0005 and 0006 and are never read for authorization.
 - Add (user_id,parent_id) indexes for containment and (user_id,project_id) for actions. Use user-composite DEFERRABLE INITIALLY DEFERRED foreign keys for action parent/project, catalog parent and action_tag references. No cascading deletes; the domain's explicit changed-row plan owns detachment/removal. No foreign key from identity markers or undo_of to retained records, because deletion/pruning must not erase recovery markers or prevent history retention.
 - Perspective definition_version CHECK is 1 or 2 and its body is a JSON object validated through json. Domain code validates variant/query shape and references; DB constraints do not invent hierarchy or perspective semantics.
 

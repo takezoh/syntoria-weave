@@ -25,7 +25,7 @@ export function memoryActionStore() {
    if(prior){if(prior.canonical_payload!==r.payload)fail('idempotency_conflict','same ID, different input',409);return JSON.parse(prior.result);}
    if((users.get(r.user)?.revision??0)!==r.before.revision)fail('conflict','stale revision',409);
    users.set(r.user,structuredClone({...r.after,revision:r.before.revision+1}));
-   receipts.set(key(r.user,r.operationId),{canonical_payload:r.payload,result:JSON.stringify(result),delta:JSON.stringify(changes),revision_before:r.before.revision,revision_after:result.revision,committed_at:r.now,undo_of:r.undoOf,client_id:null});
+   receipts.set(key(r.user,r.operationId),{canonical_payload:r.payload,result:JSON.stringify(result),delta:JSON.stringify(changes),revision_before:r.before.revision,revision_after:result.revision,committed_at:r.now,undo_of:r.undoOf,client_id:null,actor_kind:null});
    const owned=[...receipts].filter(([k])=>JSON.parse(k)[0]===r.user),cutoff=operationRetentionCutoff(r.now);
    const firstRecent=owned.map(([,receipt])=>receipt).filter(receipt=>receipt.committed_at>=cutoff).reduce((first,receipt)=>Math.min(first,receipt.revision_after),Infinity);
    const through=operationPruneThrough(result.revision,firstRecent===Infinity?null:firstRecent);

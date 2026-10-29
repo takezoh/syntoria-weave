@@ -22,6 +22,8 @@ export type ChangeOperation = Readonly<{
   undo_of: string | null;
   /** Provenance only: which OAuth client committed the operation. It never grants access. */
   client_id: string | null;
+  /** Provenance only: the person in the Weave app (`user`) or a client connection acting for them (`client`). */
+  actor_kind: 'user' | 'client' | null;
   changes: Readonly<{
     actions: readonly EntityDelta<Action>[];
     projects: readonly EntityDelta<Project>[];
@@ -135,6 +137,7 @@ export function projectRetainedOperation(operation: RetainedOperation): ChangeOp
   } catch { return fail('invalid_state', 'Retained operation metadata is malformed.'); }
   if (committedAt === null || (operation.undo_of !== null && undoOf === null)) return fail('invalid_state', 'Retained operation metadata is malformed.');
   if (operation.client_id !== null && !(typeof operation.client_id === 'string' && /^[\x21-\x7e]{1,255}$/u.test(operation.client_id))) return fail('invalid_state', 'Retained operation metadata is malformed.');
+  if (operation.actor_kind !== null && operation.actor_kind !== 'user' && operation.actor_kind !== 'client') return fail('invalid_state', 'Retained operation metadata is malformed.');
   let delta: unknown;
   try { delta = JSON.parse(operation.delta); } catch { return fail('invalid_state', 'Retained operation delta is malformed.'); }
   const changes = record(delta, 'operation delta');
@@ -142,7 +145,7 @@ export function projectRetainedOperation(operation: RetainedOperation): ChangeOp
   if (Object.keys(changes).length !== collections.length || collections.some(key => !Object.hasOwn(changes, key))) return fail('invalid_state', 'Retained operation delta collections are incomplete.');
   try { return {
     operation_id: operationId, revision_before: operation.revision_before, revision_after: operation.revision_after,
-    committed_at: committedAt, undo_of: undoOf, client_id: operation.client_id,
+    committed_at: committedAt, undo_of: undoOf, client_id: operation.client_id, actor_kind: operation.actor_kind,
     changes: {
       actions: sorted(changes.actions, 'Action delta', persistedAction, item => item.id),
       projects: sorted(changes.projects, 'Project delta', persistedProject, item => item.id),

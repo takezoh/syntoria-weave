@@ -74,7 +74,7 @@ async function persist(client:PoolClient,user:string,key:StorageTableKey,changes
 }
 /** Every query uses the capability user and transaction-local RLS context. */
 export function createPostgresActionStore(pool:Pool,identity:Principal,{revalidate=async()=>{},signal,observe}:{revalidate?:(client:PoolClient)=>Promise<void>;signal?:AbortSignal;observe?:(phase:'pool_wait'|'sql',ms:number)=>void}={}):UserActionStore {
- const {user,clientId}=verifyPrincipal(identity);
+ const {user,clientId,actorKind}=verifyPrincipal(identity);
  const read=<T>(fn:(client:PoolClient)=>Promise<T>)=>userTransaction(pool,user,true,fn,signal,observe);
  return Object.freeze({
   readSnapshot:()=>read(async client=>decodeRows(await rows(client,user))),
@@ -86,7 +86,7 @@ export function createPostgresActionStore(pool:Pool,identity:Principal,{revalida
   hasUndo:(op:string)=>read(async client=>!!(await client.query('SELECT 1 FROM state.operations WHERE user_id=$1 AND undo_of=$2',[user,op])).rowCount),
   readChangeWindow:(after:number,through:number|null)=>read(async client=>{
    const limits=(await client.query('SELECT COALESCE(MAX(revision_after),0) AS head, MIN(revision_after) AS oldest FROM state.operations WHERE user_id=$1',[user])).rows[0];
-   const operations=(await client.query('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,client_id,delta FROM state.operations WHERE user_id=$1 AND revision_after>$2 AND ($3::bigint IS NULL OR revision_after<=$3) ORDER BY revision_after LIMIT 101',[user,after,through])).rows;
+   const operations=(await client.query('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,client_id,actor_kind,delta FROM state.operations WHERE user_id=$1 AND revision_after>$2 AND ($3::bigint IS NULL OR revision_after<=$3) ORDER BY revision_after LIMIT 101',[user,after,through])).rows;
    return {head_revision:number(limits.head),oldest_revision:limits.oldest===null?null:number(limits.oldest),operations:operations.map(row=>({...row,revision_before:number(row.revision_before),revision_after:number(row.revision_after)}))} as ChangeWindow;
   }),
   async commit(command:UserCommitRequest){
@@ -98,7 +98,7 @@ export function createPostgresActionStore(pool:Pool,identity:Principal,{revalida
     if(prior){if(prior.canonical_payload!==command.payload)fail('idempotency_conflict','Operation ID already has different input.',409);return parseReceiptResult(prior);}
     const current=number((await client.query('SELECT COALESCE(MAX(revision_after),0) AS revision FROM state.operations WHERE user_id=$1',[user])).rows[0].revision);
     if(current!==command.before.revision)fail('conflict','State changed; preserve the proposal and reread.',409);
-    await client.query('INSERT INTO state.operations(user_id,operation_id,canonical_payload,result,delta,revision_before,revision_after,undo_of,created_at,client_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[user,command.operationId,command.payload,JSON.stringify(plan.result),JSON.stringify(plan.changes),current,plan.result.revision,command.undoOf,command.now,clientId]);
+    await client.query('INSERT INTO state.operations(user_id,operation_id,canonical_payload,result,delta,revision_before,revision_after,undo_of,created_at,client_id,actor_kind) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[user,command.operationId,command.payload,JSON.stringify(plan.result),JSON.stringify(plan.changes),current,plan.result.revision,command.undoOf,command.now,clientId,actorKind]);
     for(const table of plan.tables)await persist(client,user,table.key,table.changes);
     await persist(client,user,'catalog_identity_ledger',plan.markerChanges);
     // Canonical ISO instants order bytewise; the scan stops at the first operation inside the period.

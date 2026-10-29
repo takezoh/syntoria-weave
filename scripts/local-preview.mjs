@@ -103,7 +103,7 @@ function createSyntheticAuthentication(config, identityStore, binding) {
   const scopes = ['state:read', 'state:write'];
   async function principal() {
     const identity = await identityStore.resolveSubject(binding);
-    return issuePrincipal({...binding, user: identity.user, clientId: config.browserClientId, connectionId: 'local-preview', scopes});
+    return issuePrincipal({...binding, user: identity.user, clientId: config.browserClientId, connectionId: 'local-preview', actorKind: 'user', scopes});
   }
   return Object.freeze({
     async authenticate(headers, write = false) {
