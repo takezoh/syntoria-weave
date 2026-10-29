@@ -1,4 +1,7 @@
 {
+  "project": "example-project",
+  "projectNumber": "123456789012",
+  "backupBucket": "weave-backups-example-project",
   "apiOrigin": "https://api.example.com",
   "gateOrigin": "https://gate.example.com",
   "sharedCookieDomain": "example.com",
