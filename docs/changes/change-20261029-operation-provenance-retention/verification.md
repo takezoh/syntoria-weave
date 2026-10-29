@@ -40,3 +40,15 @@ No hosted write has exercised period retention or `client_id` yet. Configuration
 - `tests/postgres/server.test.mjs`: a browser-session write through Node HTTP records `user`, and an MCP bearer write records `client`. Swapping the mapping in authentication made both cases fail, and they passed again once restored.
 - `tests/postgres/action-store.test.mjs`, `transfer.test.mjs` and `user-identity-migration.test.mjs`: the change feed returns `actor_kind`, version 5 transfer round-trips it, version 4 is rejected, and migrated operations keep NULL.
 - `pnpm check`: lint, typecheck and 591 tests passed, with no failures, skips or TODOs.
+
+### Production release of actor kind
+
+On 2026-10-29, source `a72872c` was built from a clean worktree, without unrelated uncommitted work in the main checkout. It was later pushed as `494ce6d`, rebased onto the concurrent UI commit `6e0707c`; the deployed image does not contain `6e0707c`. It was released as revision `weave-api-actor-a72872c` with image `sha256:ae54dbd1e6b4c68c815cc3ba69ea2bf37f183a9397587253c71b08f3cadd6996` (OCI index, linux/amd64). Before release, `pnpm check` passed 587 tests in that worktree and `pnpm build` passed.
+
+- Backup execution `weave-backup-ghkh7` succeeded before migration.
+- Migrator execution `weave-migrator-6zb8d` applied `0006_operation_actor_kind.sql`. The new revision then passed its startup schema check.
+- The revision was probed through a no-traffic tag before receiving 100% traffic. The tag was removed afterwards. The backup job also uses the new image.
+- Public checks: `/health/ready` 200, MCP POST with an invalid bearer 401, untrusted-origin preflight 403.
+
+No hosted write has exercised `actor_kind` yet.
+
