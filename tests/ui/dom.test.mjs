@@ -353,6 +353,7 @@ test('explicit Edit and Done switch Title and Notes inputs, flush once and retur
  const f=createFixture();t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window;selectFirst(f);
  const toggle=d.getElementById('editText'),title=d.getElementById('editTitle'),notes=d.getElementById('editNotes');
  toggle.click();assert.equal(toggle.dataset.mode,'edit');assert.equal(toggle.textContent,'Done');assert.equal(toggle.getAttribute('aria-label'),'Done editing Title and Notes');
+ assert.equal(w.getComputedStyle(notes).minHeight,'240px');
  assert.equal(d.getElementById('textEdit').hidden,false);assert.equal(d.getElementById('textView').hidden,true);assert.equal(d.activeElement,title);assert.equal(title.selectionStart,title.value.length);
  notes.value='- first\n- https://example.com';notes.dispatchEvent(new w.Event('input',{bubbles:true}));toggle.click();
  assert.equal(toggle.dataset.mode,'view');assert.equal(d.activeElement,toggle);assert.deepEqual([...d.querySelectorAll('#notesView li')].map(li=>li.textContent),['first','https://example.com']);await settle();
