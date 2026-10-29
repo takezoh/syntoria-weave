@@ -106,6 +106,15 @@ Mock auth and local database tests do not prove hosted PostgreSQL, trusted authe
 
 Before behavioral verification, inventory actual harnesses in docs/technical/testing.md and confirm their implementation. MCP-to-storage verification must exercise Node HTTP/MCP and the real PostgreSQL adapter. Distinguish local PostgreSQL from hosted Neon. Mocks or another database cannot close that boundary. Record concrete failures and unexecuted tests; host-specific behavior requires actual host acceptance.
 
+## Deployment identifiers
+
+Never commit actual deployment identifiers: not in tracked files, commit messages, test fixtures, examples, documentation, evidence and release records, or generated artifacts. They include GCP project IDs and numbers, service account emails, Cloud Run and other service URLs (`*.run.app`), Artifact Registry paths, Cloud Storage bucket names, production and personal domains and hostnames, redirect registrations, private site URLs, and provider account or endpoint identifiers such as Neon or Cloudflare. They are not secrets, but they map the production environment and the repositories can be public.
+
+- Keep real values in ignored local files (`infra/.local/deployment.json` for runtime input, an ignored `*.tfvars` such as `infra/.local/terraform.tfvars` for Terraform, and rendered output under `.local/`) and inject them when rendering or running. Do not hard-code them in scripts, templates or tests.
+- In tracked files use only synthetic placeholders: project `example-project`, project number `123456789012` and domains under `example.com` or `example.test`.
+- Before committing, check the staged diff, new files and the commit message for such values, including values copied from command output, cloud readbacks or hosted verification.
+- If one has been committed, do not push. Report it instead: removing it requires rewriting history and a force push.
+
 ## Documents, data and deployment
 
 User material belongs in README.md/PRODUCT.md; development instructions in docs/development.md/docs/technical/. Documents outside docs/*/** must describe only the current state, without past states or change rationale. Place historical records and change rationale under docs/*/**. Use dev:dev-docs and docs/.docs-config.yaml for change/design/ADR/note/issue documents.
