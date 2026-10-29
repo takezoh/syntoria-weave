@@ -51,9 +51,17 @@ test('missing selected catalog, perspective or saved references fail closed with
  assert.equal(model.present(wire,{...model.initial(),view:'perspective',perspectiveId:id(99)}).unavailable,true);
  for(const filter of [{project_id:id(99)},{tag_id:id(99)}]){const result=model.present({...wire,perspectives:[{id:id(30),name:'Saved',filter,definition_version:1}]},{...model.initial(),view:'perspective',perspectiveId:id(30)});assert.equal(result.unavailable,true);assert.deepEqual(result.actions,[]);}
 });
-test('history keeps completed/dropped state and default views include on hold without availability logic',()=>{
- const wire=response(fixture(),now),history=model.initial('history');assert.deepEqual(ids(model.present(wire,history).actions),[id(15),id(14)]);assert.deepEqual(ids(model.present(wire,{...history,statuses:['dropped']}).actions),[id(15)]);
- const project=model.present(wire,{...model.initial(),view:'projects',classificationId:id(1)});assert(project.actions.some(a=>a.status==='on-hold'));const flagged=model.present(wire,{...model.initial(),view:'flagged'});assert(flagged.actions.some(a=>a.status==='on-hold'));assert.equal(project.summary,'');
+test('history orders completed and dropped actions by lifecycle recency without mutating snapshots',()=>{
+ const wire=response(fixture(),now),history=model.initial('history'),historyRows=wire.actions.filter(action=>['completed','dropped'].includes(action.status)),otherRows=wire.actions.filter(action=>!['completed','dropped'].includes(action.status));
+ const byIdAscending=[...historyRows].sort((left,right)=>left.id<right.id?-1:left.id>right.id?1:0);
+ const timestamped={...wire,actions:[...otherRows,...byIdAscending.map(action=>({...action,updated_at:action.id===id(15)?'2026-10-05T00:00:00.000Z':'2026-10-04T00:00:00.000Z'}))]},before=structuredClone(timestamped);
+ assert.deepEqual(ids(timestamped.actions.filter(action=>['completed','dropped'].includes(action.status))),[id(14),id(15)]);
+ assert.deepEqual(ids(model.present(timestamped,history).actions),[id(15),id(14)]);assert.deepEqual(ids(model.present(timestamped,{...history,statuses:['dropped']}).actions),[id(15)]);assert.deepEqual(timestamped,before);
+ const tiedRows=[...historyRows].sort((left,right)=>left.id>right.id?-1:left.id<right.id?1:0),tied={...wire,actions:[...otherRows,...tiedRows.map(action=>({...action,updated_at:'2026-10-05T00:00:00.000Z'}))]},tiedBefore=structuredClone(tied);
+ assert.deepEqual(ids(tied.actions.filter(action=>['completed','dropped'].includes(action.status))),[id(15),id(14)]);
+ assert.deepEqual(ids(model.present(tied,history).actions),[id(14),id(15)]);assert.deepEqual(tied,tiedBefore);
+ const projectSelection={...model.initial(),view:'projects',classificationId:id(1)},project=model.present(wire,projectSelection),flagged=model.present(wire,{...model.initial(),view:'flagged'});
+ assert.deepEqual(ids(model.present(timestamped,projectSelection).actions),ids(project.actions));assert.deepEqual(ids(model.present(timestamped,{...model.initial(),view:'flagged'}).actions),ids(flagged.actions));assert(project.actions.some(a=>a.status==='on-hold'));assert(flagged.actions.some(a=>a.status==='on-hold'));assert.equal(project.summary,'');
  assert.equal(model.initial().view,'inbox');const selected=model.select(model.initial(),{view:'projects',classificationId:id(1)}),copy=structuredClone(selected);assert.equal(model.select(selected,{view:'tags'}).classificationId,'all');assert.deepEqual(selected,copy);
 });
 
