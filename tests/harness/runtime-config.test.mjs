@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {renderCloudRunManifest,validateRuntimeSettings} from '../../scripts/deployment/runtime-config.mjs';
+import {renderCloudRunManifest,spaHostingRules,validateRuntimeSettings} from '../../scripts/deployment/runtime-config.mjs';
 
 const example=JSON.parse(await readFile('infra/runtime-input.example.json','utf8'));
 
@@ -39,4 +39,15 @@ test('Cloud Run templates take their project identity only from the private runt
   assert.doesNotMatch(rendered,/example-project|123456789012/);
   if(name!=='production')assert.match(rendered,/"name":"BACKUP_BUCKET","value":"private-backups"/);
  }
+});
+
+test('SPA hosting rules forbid framing except the workspace inside its own shell',()=>{
+ const {headers,redirects}=spaHostingRules();
+ const rules=new Map();let current;
+ for(const line of headers.trimEnd().split('\n')){if(!line.startsWith(' ')){current=[];rules.set(line,current);}else current.push(line.trim());}
+ assert.deepEqual(rules.get('/*'),['X-Content-Type-Options: nosniff','Referrer-Policy: no-referrer','X-Frame-Options: DENY',"Content-Security-Policy: frame-ancestors 'none'"]);
+ assert.deepEqual(rules.get('/workspace.html'),['! X-Frame-Options','! Content-Security-Policy','X-Frame-Options: SAMEORIGIN',"Content-Security-Policy: frame-ancestors 'self'"]);
+ assert.deepEqual(rules.get('/runtime-config.json'),['Cache-Control: no-store']);
+ assert.equal(rules.get('/assets/*')[0],'Cache-Control: public, max-age=31536000, immutable');
+ assert.equal(redirects,'/ /index.html 200\n');
 });

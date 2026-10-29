@@ -1,6 +1,6 @@
 import {cp,mkdir,readFile,rm,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {renderCloudRunManifest,validateRuntimeSettings} from './deployment/runtime-config.mjs';
+import {renderCloudRunManifest,spaHostingRules,validateRuntimeSettings} from './deployment/runtime-config.mjs';
 
 const inputPath=resolve(process.argv[2]??'infra/.local/deployment.json');
 const outputRoot=resolve('.local'),spaOutput=resolve(outputRoot,'spa'),cloudRunOutput=resolve(outputRoot,'cloud-run');
@@ -17,7 +17,10 @@ for(const [name,value] of Object.entries(values)){
 await rm(spaOutput,{recursive:true,force:true});
 await mkdir(spaOutput,{recursive:true});
 await cp(resolve('dist/spa'),spaOutput,{recursive:true});
+const hosting=spaHostingRules();
+await writeFile(resolve(spaOutput,'_headers'),hosting.headers,{mode:0o644});
+await writeFile(resolve(spaOutput,'_redirects'),hosting.redirects,{mode:0o644});
 await writeFile(resolve(spaOutput,'runtime-config.json'),JSON.stringify({apiOrigin:settings.apiOrigin,gateOrigin:settings.gateOrigin,appId:settings.appId,loginRedirectUri:settings.loginRedirectUri})+'\n',{mode:0o644});
 await mkdir(cloudRunOutput,{recursive:true});
 for(const [name,manifest] of Object.entries(manifests))await writeFile(resolve(cloudRunOutput,name+'.json'),JSON.stringify(manifest,null,2)+'\n',{mode:0o600});
-process.stdout.write('Rendered SPA runtime configuration and Cloud Run manifests under .local/.\n');
+process.stdout.write('Rendered SPA runtime configuration, hosting rules and Cloud Run manifests under .local/.\n');

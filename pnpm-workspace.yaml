@@ -12,3 +12,6 @@ enableGlobalVirtualStore: false
 packageImportMethod: auto
 verifyDepsBeforeRun: false
 optimisticRepeatInstall: false
+overrides:
+  # ajv (via fastify) allows ^3.0.1; earlier 3.x releases carry GHSA-hrr3-gc8f-f4qj and related advisories.
+  'fast-uri@<3.1.9': ^3.1.9
