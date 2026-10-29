@@ -274,6 +274,7 @@ try {
     databaseUrl: fixture.url,
     cursorEpoch: randomUUID(),
     writeMode: 'enabled',
+    clientWriteApproval: 'auto',
     port: 8080,
     localDatabase: true,
   };

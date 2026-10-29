@@ -25,7 +25,7 @@ function rawHttp(port,request){
 test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth for MCP',async t=>{
  const f=await postgresFixture();t.after(()=>f.close());
  const gate=await gateFixture();t.after(()=>gate.close());
- const config={origin:'https://api.example.com',issuer:gate.issuer,resource:'https://api.example.com/mcp',browserClientId:'web',spaOrigins:['https://app.example.com','https://other-app.example.com'],sharedCookieDomain:'example.com',gateClientId:'resource',gateClientSecret:'synthetic-secret',databaseUrl:f.url,cursorEpoch:crypto.randomUUID(),writeMode:'enabled',port:8080,localDatabase:true};
+ const config={origin:'https://api.example.com',issuer:gate.issuer,resource:'https://api.example.com/mcp',browserClientId:'web',spaOrigins:['https://app.example.com','https://other-app.example.com'],sharedCookieDomain:'example.com',gateClientId:'resource',gateClientSecret:'synthetic-secret',databaseUrl:f.url,cursorEpoch:crypto.randomUUID(),writeMode:'enabled',clientWriteApproval:'auto',port:8080,localDatabase:true};
  const verification=createGateVerification(config,{fetch:gate.fetch});
  const identityStore=createIdentityStore(f.pool),auth=createAuthentication(config,identityStore,verification);
  const bearer=gate.token({client:'mcp'}),browser=gate.session({client:'web'}),cookie=sessionCookie+'='+browser;
@@ -138,6 +138,29 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   assert.equal((await rpc('tools/list',{}, {authorization:'Bearer '+gate.token({subject:'unmapped-person',client:'another-dcr-client'})})).statusCode,403);
  });
 
+ await t.test('client connection writes pass the approval policy while the person needs none',async()=>{
+  const operations=async()=>(await f.admin.query('SELECT actor_kind FROM state.operations WHERE user_id=$1 ORDER BY revision_after',['user'])).rows.map(row=>row.actor_kind);
+  const before=await operations();
+  config.clientWriteApproval='blocked';
+  try{
+   const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:before.length,kind:'add',payload:{title:'Client write under a blocking policy'}};
+   const denied=await rpc('tools/call',{name:'apply_change',arguments:args});
+   assert.equal(denied.statusCode,403,denied.body);assert.equal(denied.json().error,'client_write_denied');
+   const deniedHttp=await server.inject({method:'POST',url:'/api/actions',headers:{...base,authorization:'Bearer '+bearer},payload:{name:'apply_change',arguments:args}});
+   assert.equal(deniedHttp.statusCode,403);assert.equal(deniedHttp.json().error,'client_write_denied');
+   assert.equal((await rpc('tools/call',{name:'list_actions',arguments:{}})).statusCode,200);
+   assert.deepEqual(await operations(),before);
+   const person=gate.session({subject:'person',client:'web'});
+   const revision=(await browserWrite(person,'synthetic-csrf','https://app.example.com',{name:'list_actions'})).json().revision;
+   const saved=await browserWrite(person,'synthetic-csrf','https://app.example.com',{name:'apply_change',arguments:{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:revision,kind:'add',payload:{title:'The person writes without approval'}}});
+   assert.equal(saved.statusCode,200,saved.body);
+   assert.deepEqual(await operations(),[...before,'user']);
+  }finally{config.clientWriteApproval='auto';}
+  const approved=await rpc('tools/call',{name:'apply_change',arguments:{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:before.length+1,kind:'add',payload:{title:'Client write approved automatically'}}});
+  assert.equal(approved.json().result.structuredContent.revision,before.length+2,approved.body);
+  assert.deepEqual(await operations(),[...before,'user','client']);
+ });
+
  await t.test('Gate and subject mapping are rechecked online inside locked writes',async()=>{
   await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'lock-person','lock-user']);
   const owner=gate.session({subject:'lock-person'});
@@ -186,6 +209,9 @@ test('configuration binds API, Gate issuer and SPA origins to an explicit shared
  assert.throws(()=>readConfig({}),/Missing configuration/);
  const env={PUBLIC_ORIGIN:'https://api.example.com',OAUTH_ISSUER:'https://gate.example.com',OAUTH_RESOURCE:'https://api.example.com/mcp',GATE_BROWSER_CLIENT_ID:'web',SPA_ORIGINS:'["https://app.example.com"]',SHARED_COOKIE_DOMAIN:'example.com',GATE_RESOURCE_CLIENT_ID:'resource',GATE_RESOURCE_CLIENT_SECRET:'secret',DATABASE_URL:'postgresql://user:secret@db.example.com/db',CURSOR_EPOCH:crypto.randomUUID()};
  assert.equal(readConfig(env).writeMode,'blocked');
+ assert.equal(readConfig(env).clientWriteApproval,'auto');
+ assert.equal(readConfig({...env,CLIENT_WRITE_APPROVAL:'blocked'}).clientWriteApproval,'blocked');
+ assert.throws(()=>readConfig({...env,CLIENT_WRITE_APPROVAL:'gate'}),/CLIENT_WRITE_APPROVAL/);
  assert.throws(()=>readConfig({...env,PUBLIC_ORIGIN:'http://api.example.com'}));
  assert.throws(()=>readConfig({...env,PUBLIC_ORIGIN:'https://api.example.com/path'}));
  assert.throws(()=>readConfig({...env,OAUTH_ISSUER:'https://gate.other.test'}));

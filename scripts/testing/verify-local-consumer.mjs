@@ -28,6 +28,7 @@ const config = {
   databaseUrl: '',
   cursorEpoch: randomUUID(),
   writeMode: 'enabled',
+  clientWriteApproval: 'auto',
   localDatabase: true,
 };
 

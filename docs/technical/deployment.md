@@ -17,6 +17,7 @@ Configuration is explicit and validated before startup:
 | GATE_BROWSER_CLIENT_ID | Resource browser client used in Gate session introspection; verified subjects require an explicit enabled local user mapping |
 | CURSOR_EPOCH | Nonsecret deployment UUID, stable for releases and rotated for cutover/timeline restore |
 | WRITE_MODE | blocked or enabled; defaults to blocked until release acceptance |
+| CLIENT_WRITE_APPROVAL | auto or blocked; defaults to auto. Approval policy for writes from client connections (bearer tokens); the person's browser-session writes need no approval |
 | DATABASE_URL secret version | Primary direct TLS endpoint and limited runtime role |
 | GATE_RESOURCE_CLIENT_ID, GATE_RESOURCE_CLIENT_SECRET secret version | Gate server-to-server authentication for bearer and shared-session validation; no secret values in artifacts or Terraform |
 | Runtime limits | Pool=5, concurrency=20, max instances=3, role cap=40 and validated total DB capacity >=64 |
@@ -24,6 +25,8 @@ Configuration is explicit and validated before startup:
 | Backup/alert settings | Authorized bucket, retention, alert recipients and environment budget thresholds |
 
 All entry points enforce WRITE_MODE before dispatching a mutation; reads, status lookup and metadata remain available. No header or argument bypasses the fence. The control is a release/configuration effect, not a business field or user override. A maintenance rejection returns a bounded retryable error without fabricating an operation receipt. In-flight commits remain unknown until settled; a new fence does not roll them back retroactively.
+
+CLIENT_WRITE_APPROVAL applies after WRITE_MODE, only to mutations whose verified credential is a bearer client connection (`actor_kind` `client`). `auto` approves each one at once; `blocked` refuses it with 403 `client_write_denied` and writes no receipt, while reads stay available. Changes made inside an AI host's embedded UI travel over that client's connection and are governed by this policy. No header or argument changes the actor kind.
 
 ## Reproducible build and IaC
 
