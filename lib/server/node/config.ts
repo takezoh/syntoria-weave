@@ -3,7 +3,7 @@ import {isIP} from 'node:net';
 export type ServiceConfig=Readonly<{
  origin:string;issuer:string;resource:string;browserClientId:string;spaOrigins:readonly string[];sharedCookieDomain:string;
  gateClientId:string;gateClientSecret:string;
- databaseUrl:string;cursorEpoch:string;writeMode:'blocked'|'enabled';port:number;localDatabase:boolean;
+ databaseUrl:string;cursorEpoch:string;writeMode:'blocked'|'enabled';clientWriteApproval:'auto'|'blocked';port:number;localDatabase:boolean;
 }>;
 
 function required(env:NodeJS.ProcessEnv,key:string){const value=env[key];if(!value)throw new Error('Missing configuration: '+key);return value;}
@@ -54,8 +54,9 @@ export function readConfig(env:NodeJS.ProcessEnv):ServiceConfig {
  if(localDatabase&&(env.NODE_ENV==='production'||!['127.0.0.1','localhost','[::1]'].includes(new URL(databaseUrl).hostname)))throw new Error('Local database TLS exemption is restricted to local development.');
  const resource=required(env,'OAUTH_RESOURCE');if(resource!==origin+'/mcp')throw new Error('OAuth resource differs from canonical MCP URL.');
  const writeMode=env.WRITE_MODE??'blocked';if(writeMode!=='blocked'&&writeMode!=='enabled')throw new Error('Invalid WRITE_MODE.');
+ const clientWriteApproval=env.CLIENT_WRITE_APPROVAL??'auto';if(clientWriteApproval!=='auto'&&clientWriteApproval!=='blocked')throw new Error('Invalid CLIENT_WRITE_APPROVAL.');
  const port=Number(env.PORT??8080);if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid PORT.');
  const browserClientId=required(env,'GATE_BROWSER_CLIENT_ID');
  const cursorEpoch=required(env,'CURSOR_EPOCH');if(!/^[0-9a-f-]{36}$/i.test(cursorEpoch))throw new Error('CURSOR_EPOCH must be a deployment UUID.');
- return Object.freeze({origin,issuer,resource,browserClientId,spaOrigins,sharedCookieDomain,gateClientId:required(env,'GATE_RESOURCE_CLIENT_ID'),gateClientSecret:required(env,'GATE_RESOURCE_CLIENT_SECRET'),databaseUrl,cursorEpoch,writeMode,port,localDatabase});
+ return Object.freeze({origin,issuer,resource,browserClientId,spaOrigins,sharedCookieDomain,gateClientId:required(env,'GATE_RESOURCE_CLIENT_ID'),gateClientSecret:required(env,'GATE_RESOURCE_CLIENT_SECRET'),databaseUrl,cursorEpoch,writeMode,clientWriteApproval,port,localDatabase});
 }

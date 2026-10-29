@@ -265,7 +265,7 @@ async function main() {
     origin, issuer: 'urn:action-tools:local-preview', resource: origin + '/mcp', browserClientId: 'local-preview',
     spaOrigins: Object.freeze([origin]), sharedCookieDomain: 'localhost', gateClientId: 'local-preview', gateClientSecret: 'unused',
     databaseUrl: `postgresql://action_runtime:${database.password}@127.0.0.1:${database.port}/postgres`,
-    cursorEpoch: randomUUID(), writeMode: 'enabled', port, localDatabase: true,
+    cursorEpoch: randomUUID(), writeMode: 'enabled', clientWriteApproval: 'auto', port, localDatabase: true,
   });
   const identityStore = createIdentityStore(database.runtime);
   const authentication = createSyntheticAuthentication(config, identityStore, database.binding);

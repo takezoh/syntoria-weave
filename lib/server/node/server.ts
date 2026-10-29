@@ -135,20 +135,20 @@ export function createServer({config,authentication,invoke,log=()=>{}}:{
  });
 
  app.get('/api/session',async(req)=>{
-  const p=await browserIdentity(req);authorize(p,'list_actions',config.writeMode);return authentication.sessionInfo(p);
+  const p=await browserIdentity(req);authorize(p,'list_actions',config);return authentication.sessionInfo(p);
  });
  app.post('/api/actions',async(req)=>{
   if(!jsonContentType(req.headers['content-type']))fail('invalid_input','Expected application/json.',415);
   const p=await identity(req,true),body=req.body as {name?:unknown;arguments?:unknown};
   if(!body||typeof body.name!=='string'||Object.keys(body).some(key=>!['name','arguments'].includes(key)))fail('invalid_input','Expected name and arguments.');
-  authorize(p,body.name,config.writeMode);return run(req,p,body.name,body.arguments??{});
+  authorize(p,body.name,config);return run(req,p,body.name,body.arguments??{});
  });
  app.post('/mcp',async(req,reply)=>{
   if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
-  const principal=await identity(req,false);authorize(principal,'list_actions',config.writeMode);
+  const principal=await identity(req,false);authorize(principal,'list_actions',config);
   const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');if(version&&!['2025-03-26','2025-06-18','2025-11-25'].includes(version))fail('invalid_input','Unsupported MCP protocol version.');
-  const body=req.body as {method?:string;params?:{name?:string}};if(body?.method==='tools/call'&&typeof body.params?.name==='string')authorize(principal,body.params.name,config.writeMode);
-  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config.writeMode);return run(req,principal,name,args);},principal.scopes.includes('state:write'));
+  const body=req.body as {method?:string;params?:{name?:string}};if(body?.method==='tools/call'&&typeof body.params?.name==='string')authorize(principal,body.params.name,config);
+  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'));
   return result.body===null?reply.code(result.status).send():reply.code(result.status).send(result.body);
  });
  app.route({method:['GET','DELETE'],url:'/mcp',handler:async(_req,reply)=>reply.header('Allow','POST').code(405).send()});

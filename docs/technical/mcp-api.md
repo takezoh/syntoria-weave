@@ -16,7 +16,7 @@ POST /mcp uses JSON-RPC 2.0 with initialize, ping, tools/list, tools/call, resou
 
 POST /api/actions accepts application/json with `{name, arguments}` and invokes the same service for HTTP clients and the Web UI. Browser-cookie writes require an exact registered SPA Origin and the Gate-verified CSRF token. Browser requests use credentialed CORS for the registered static SPA origins; mixed-cookie-and-bearer credentials are rejected. Configured origin/host validation applies as defined in [infrastructure](infrastructure.md#http-boundaries).
 
-Business reads and writes obtain user from a verified OAuth subject or current Gate browser session and an enabled issuer/subject mapping. Approved connections receive full product access; the adapter applies its read/write capability checks to the request. Arguments cannot select user. SQL and receipts are user-scoped. Public initialization and UI resource metadata do not authorize business-data access.
+Business reads and writes obtain user from a verified OAuth subject or current Gate browser session and an enabled issuer/subject mapping. Approved connections receive full product access; the adapter applies its read/write capability checks to the request. Writes from a client connection are additionally admitted by the operator's client write approval policy: `auto` (default) approves them at once and `blocked` refuses them with 403 `client_write_denied`; the person's writes through a Gate browser session in the Weave app need no approval. See [deployment configuration](deployment.md). Arguments cannot select user. SQL and receipts are user-scoped. Public initialization and UI resource metadata do not authorize business-data access.
 
 ## Tool and schema discovery
 
