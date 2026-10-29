@@ -38,13 +38,12 @@ export async function importData(pool:Pool,value:Transfer,expectedDigest:string)
   }
   for(const table of transferTables){const names=columns[table];for(const row of value.tables[table]){
    if(Object.keys(row).sort().join()!==[...names].sort().join())throw new Error('Transfer row does not match the schema.');
-   if(table.startsWith('state.'))await client.query("SELECT set_config('app.user_id',$1,true)",[row.user_id]);
    await client.query(`INSERT INTO ${table} (${names.map(x=>'"'+x+'"').join(',')}) VALUES(${names.map((_,i)=>'$'+(i+1)).join(',')})`,names.map(name=>row[name]));
   }}
   // Force constraints before validation; failure leaves no partial import.
   await client.query('SET CONSTRAINTS ALL IMMEDIATE');
   const users=new Set(transferTables.filter(t=>t.startsWith('state.')).flatMap(t=>value.tables[t].map(row=>String(row.user_id))));
-  for(const user of users){await client.query("SELECT set_config('app.user_id',$1,true)",[user]);validateGraph(await readSnapshotInTransaction(client,user));const history=value.tables['state.operations'].filter(row=>row.user_id===user).sort((a,b)=>Number(a.revision_after)-Number(b.revision_after));if(history.length>OPERATION_HISTORY.maximum)throw new Error('History exceeds retention.');for(let i=0;i<history.length;i++){parseReceiptResult(history[i] as unknown as Parameters<typeof parseReceiptResult>[0]);if(i&&Number(history[i].revision_before)!==Number(history[i-1].revision_after))throw new Error('History is discontinuous.');}}
+  for(const user of users){validateGraph(await readSnapshotInTransaction(client,user));const history=value.tables['state.operations'].filter(row=>row.user_id===user).sort((a,b)=>Number(a.revision_after)-Number(b.revision_after));if(history.length>OPERATION_HISTORY.maximum)throw new Error('History exceeds retention.');for(let i=0;i<history.length;i++){parseReceiptResult(history[i] as unknown as Parameters<typeof parseReceiptResult>[0]);if(i&&Number(history[i].revision_before)!==Number(history[i-1].revision_after))throw new Error('History is discontinuous.');}}
   await client.query('COMMIT');
  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
 }

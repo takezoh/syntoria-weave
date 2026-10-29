@@ -34,7 +34,7 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
   await target.admin.query(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${entries.map((_,i)=>'$'+(i+1)).join(',')})`,entries.map(([,value])=>value));
  }
  await target.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes,enabled) VALUES($1,$2,$3,$4,false)',['test','person','fixed-client',['state:read','state:write']]);
- await assert.rejects(checkRuntime(target.pool),/Incompatible schema/);
+ await assert.rejects(checkRuntime(target.pool),/Incompatible schema|requires row security to be disabled/);
  const metadataMigration=await readFile('db/postgres/migrations/0007_action_metadata_text.sql','utf8');
  const limited=await target.pool.connect();
  try{await limited.query('BEGIN');await assert.rejects(limited.query(metadataMigration),/superuser or BYPASSRLS/);await limited.query('ROLLBACK');}
@@ -62,7 +62,7 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  assert.equal((await invoke(target.pool,'B','list_actions')).actions.length,0);
  const second=await invoke(target.pool,'B','apply_change',request);assert.equal(second.revision,1);
  assert.equal((await invoke(target.pool,'A','list_actions')).actions[0].id,saved.actions[0].id);
- assert.equal((await target.pool.query('SELECT count(*) FROM state.actions')).rows[0].count,'0');
+ assert.equal((await target.pool.query('SELECT count(*) FROM state.actions')).rows[0].count,'2');
  assert.equal(userLockKey('A'),createHash('sha256').update('action-tools/owner-commit/v1\0A').digest().readBigInt64BE(0).toString());
  assert.equal((await target.admin.query('SELECT user_id FROM identity.subjects')).rows[0].user_id,'A');
 });

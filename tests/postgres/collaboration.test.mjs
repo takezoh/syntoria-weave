@@ -40,11 +40,14 @@ test('real PostgreSQL collaboration contract: competition, replay, adoption, ret
   await assert.rejects(invoke('A','client-b')('update_collaboration',args),e=>e.code==='conflict');
   const result=await call('update_collaboration',args);assert.equal(result.actions.find(r=>r.id===run.action_id).status,'active');
  });
- await t.test('cross-user reads, writes and direct SQL are isolated',async()=>{
+ await t.test('application capability isolates cross-user reads and writes without database filtering',async()=>{
   assert.equal((await invoke('B')('list_collaborations')).collaborations.length,0);
   await assert.rejects(invoke('B')('get_collaboration',{id:record.id}),e=>e.code==='not_found');
-  assert.equal((await f.pool.query('SELECT * FROM state.collaborations')).rows.length,0);
-  assert.equal((await f.pool.query('SELECT * FROM state.collaboration_history')).rows.length,0);
+  const before=await call('list_collaborations');
+  await assert.rejects(invoke('B')('update_collaboration',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:0,id:record.id,command:'accept',payload:{version:1}}),e=>e.code==='not_found');
+  assert.deepEqual(await call('list_collaborations'),before);
+  assert.equal((await f.pool.query('SELECT * FROM state.collaborations')).rows.length,2);
+  assert((await f.pool.query('SELECT * FROM state.collaboration_history')).rows.length>0);
  });
  await t.test('legacy feed shape remains intact and history preserves original revisions',async()=>{
   const detail=await call('get_collaboration',{id:record.id});assert(detail.history.length>=2);assert.equal(detail.history.at(-1).record.proposal.instructions,proposal.instructions);

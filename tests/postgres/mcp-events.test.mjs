@@ -29,7 +29,8 @@ test('MCP SSE carries UI decisions across instances, resumes by user cursor and 
  await rpc(first,'resources/subscribe',{uri});
  const streamHeaders={host:'api.example.com',authorization:'Bearer '+token,accept:'text/event-stream'};
  const denied=await second.inject({url:'/mcp',headers:{...streamHeaders,authorization:'Bearer '+sameUserOtherConnection}});assert.equal(denied.statusCode,409);
- assert.equal((await f.pool.query('SELECT * FROM state.mcp_subscriptions')).rowCount,0);
+ assert.equal((await f.pool.query('SELECT * FROM state.mcp_subscriptions')).rowCount,1);
+ const otherDenied=await second.inject({url:'/mcp',headers:{...streamHeaders,authorization:'Bearer '+otherToken}});assert.equal(otherDenied.statusCode,409);
  const abort=new AbortController();t.after(()=>abort.abort());
  const response=await streamRequest(address+'/mcp',{headers:streamHeaders,signal:abort.signal});assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/event-stream/);
  const reader=response.body.getReader();let buffer='';

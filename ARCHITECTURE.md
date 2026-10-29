@@ -42,7 +42,7 @@ flowchart LR
 | build/ and scripts/ | Node/container build, execution, migration and verification |
 | Infrastructure configuration | Cloud Run, secrets, IAM, database configuration and monitoring |
 
-Pure code is deterministic and does not mutate inputs. DB, HTTP, DOM, host communication, clock and IDs are injected effects. UI components consume readonly models and explicit callbacks; rendering does not initialize or mutate application state. UI never connects directly to the database. HTTP and MCP share transitions and user-bound persistence. Caller text is data, never executable policy or authorization.
+Pure code is deterministic and does not mutate inputs. DB, HTTP, DOM, host communication, clock and IDs are injected effects. UI components consume readonly models and explicit callbacks; rendering does not initialize or mutate application state. UI never connects directly to the database. HTTP and MCP share transitions and user-bound persistence. Verified identity binds every business SQL query to an explicit user; PostgreSQL RLS and connection-local identity settings are not used. Caller text is data, never executable policy or authorization.
 
 A consumer reads current state before reconciling its context. Saved changes do not automatically update a caller LLM's context. Complete reads return a user-wide revision; filtered selections are not bootstrap snapshots. Perspectives are extraction definitions, not an independent management engine.
 

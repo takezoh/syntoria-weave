@@ -16,7 +16,7 @@ try{
  const counts:Record<string,string>={};for(const table of transferTables)counts[table]=(await client.query('SELECT count(*) AS count FROM '+table)).rows[0].count;
  const uri=new URL(connection);const env:NodeJS.ProcessEnv={...process.env,PGHOST:uri.hostname,PGPORT:uri.port||'5432',PGUSER:decodeURIComponent(uri.username),PGPASSWORD:decodeURIComponent(uri.password),PGDATABASE:uri.pathname.slice(1),PGSSLMODE:'verify-full',PGSSLROOTCERT:'system'};
  delete env.BACKUP_DATABASE_URL;
- child=spawn('pg_dump',['--format=custom','--no-owner','--no-acl','--enable-row-security','--snapshot='+snapshot],{env,stdio:['ignore','pipe','pipe'],timeout:840_000});
+ child=spawn('pg_dump',['--format=custom','--no-owner','--no-acl','--snapshot='+snapshot],{env,stdio:['ignore','pipe','pipe'],timeout:840_000});
  // Stderr may contain database details; consume without logging it.
  child.stderr?.resume();
  const exit=new Promise<void>((resolve,reject)=>{child!.once('error',()=>reject(new Error('Backup subprocess failed.')));child!.once('exit',code=>code===0?resolve():reject(new Error('Backup subprocess failed.')));});

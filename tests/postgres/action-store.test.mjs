@@ -12,7 +12,7 @@ test('real PostgreSQL transaction, replay, user, Undo and feed contract',async t
  const store=user=>createPostgresActionStore(f.pool,identity(user));
  const call=(user,name,args={})=>actionCall({store:store(user),clock:()=>now,newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope(user,'test-epoch')},name,args);
  const write=async(user,kind,payload)=>call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await call(user,'list_actions')).revision,kind,payload});
- await t.test('runtime does not bypass RLS; empty reads do not create rows',async()=>{
+ await t.test('application-scoped runtime reads do not create rows',async()=>{
   await checkRuntime(f.pool);assert.equal((await store('A').readSnapshot()).revision,0);
   assert.equal((await f.admin.query('SELECT count(*) FROM state.operations')).rows[0].count,'0');
   assert.equal((await f.pool.query('SELECT count(*) FROM state.actions')).rows[0].count,'0');
@@ -55,11 +55,12 @@ test('real PostgreSQL transaction, replay, user, Undo and feed contract',async t
   const changes=await call('A','get_changes',{cursor:snapshot.change_cursor});assert.equal(changes.changes.length,1);
   assert.equal(changes.changes[0].revision_after,7);assert.equal(changes.changes[0].client_id,'client-A');assert.equal(changes.changes[0].actor_kind,'client');
  });
- await t.test('repeatable reads stay consistent and pooled RLS context is reset',async()=>{
+ await t.test('repeatable reads stay consistent and pooled reads bind each user',async()=>{
   let release;const hold=new Promise(r=>{release=r;});let pinned;const ready=new Promise(r=>{pinned=r;});
-  const read=userTransaction(f.pool,'A',true,async client=>{const first=(await client.query('SELECT max(revision_after) AS revision FROM state.operations WHERE user_id=$1',['A'])).rows[0].revision;pinned();await hold;const last=(await client.query('SELECT max(revision_after) AS revision FROM state.operations WHERE user_id=$1',['A'])).rows[0].revision;return [first,last];});
+  const read=userTransaction(f.pool,true,async client=>{const first=(await client.query('SELECT max(revision_after) AS revision FROM state.operations WHERE user_id=$1',['A'])).rows[0].revision;pinned();await hold;const last=(await client.query('SELECT max(revision_after) AS revision FROM state.operations WHERE user_id=$1',['A'])).rows[0].revision;return [first,last];});
   await ready;await write('A','edit',{id:actionId,title:'Concurrent'});release();const values=await read;assert.equal(values[0],values[1]);
-  for(let i=0;i<8;i++)assert.equal((await f.pool.query('SELECT count(*) FROM state.actions')).rows[0].count,'0');
+  for(let i=0;i<8;i++){assert.equal((await store('A').readSnapshot()).actions[0].id,actionId);assert.notEqual((await store('B').readSnapshot()).actions[0].id,actionId);}
+  assert.equal((await f.pool.query('SELECT count(*) FROM state.actions')).rows[0].count,'2');
  });
  await t.test('lost client response resolves by exact replay without applying twice',async()=>{
   const before=await call('A','list_actions');const exact={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:before.revision,kind:'edit',payload:{id:actionId,title:'Lost reply'}};
@@ -75,6 +76,23 @@ test('real PostgreSQL transaction, replay, user, Undo and feed contract',async t
   const saved=await store('bulk-user').readSnapshot();assert.equal(saved.actions.length,205);assert.equal(saved.revision,1);
   await store('bulk-user').commit({operationId:crypto.randomUUID(),payload:'{}',before:saved,after:{...saved,actions:[]},now,undoOf:null});
   const removed=await store('bulk-user').readSnapshot();assert.equal(removed.actions.length,0);assert.equal(removed.revision,2);
+ });
+ await t.test('identical IDs and operation IDs remain user-scoped across updates, deletion, receipts and feeds',async()=>{
+  const sharedId=crypto.randomUUID(),op=crypto.randomUUID();
+  const invoke=(user,name,args={})=>actionCall({store:store(user),clock:()=>now,newId:()=>sharedId,changeCursorScope:async()=>cursorScope(user,'test-epoch')},name,args);
+  for(const user of ['same-A','same-B'])await invoke(user,'apply_change',{schemaVersion:2,operationId:op,expectedRevision:0,kind:'add',payload:{title:user}});
+  const a=await store('same-A').readSnapshot();assert.equal(a.actions[0].id,sharedId);
+  await invoke('same-B','apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:1,kind:'edit',payload:{id:sharedId,title:'B edit'}});
+  const b=await store('same-B').readSnapshot();assert.equal(b.actions[0].title,'B edit');assert.deepEqual(await store('same-A').readSnapshot(),a);
+  assert.notEqual((await store('same-A').readReceipt(op)).canonical_payload,(await store('same-B').readReceipt(op)).canonical_payload);
+  const onlyA=crypto.randomUUID();await invoke('same-A','apply_change',{schemaVersion:2,operationId:onlyA,expectedRevision:1,kind:'edit',payload:{id:sharedId,title:'A edit'}});
+  assert.equal(await store('same-B').readReceipt(onlyA),null);
+  await assert.rejects(invoke('same-B','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:2,undoOf:onlyA}));
+  const savedA=await store('same-A').readSnapshot();
+  await store('same-B').commit({operationId:crypto.randomUUID(),payload:'{}',before:b,after:{...b,actions:[]},now,undoOf:null});
+  assert.equal((await store('same-B').readSnapshot()).actions.length,0);assert.deepEqual(await store('same-A').readSnapshot(),savedA);
+  assert((await store('same-A').readChangeWindow(0,null)).operations.every(row=>row.client_id==='client-same-A'));
+  assert((await store('same-B').readChangeWindow(0,null)).operations.every(row=>row.client_id==='client-same-B'));
  });
  await t.test('retention keeps the period beyond 100, prunes only the oldest prefix and expires cursors',async()=>{
   // `now` puts the period start at 2026-09-18T00:00:00.000Z.

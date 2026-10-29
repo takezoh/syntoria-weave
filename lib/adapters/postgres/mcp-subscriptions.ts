@@ -5,8 +5,8 @@ import {verifyPrincipal,type Principal} from '../../server/node/principal';
 /** Database-backed subscriptions survive Cloud Run instance changes; no connection stays checked out while idle. */
 export function createMcpSubscriptions(pool:Pool):McpSubscriptions {
  async function transaction<T>(principal:Principal,run:(client:import('pg').PoolClient)=>Promise<T>){
-  const p=verifyPrincipal(principal),client=await pool.connect();
-  try{await client.query('BEGIN');await client.query("SELECT set_config('app.user_id',$1,true)",[p.user]);const value=await run(client);await client.query('COMMIT');return value;}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
+  verifyPrincipal(principal);const client=await pool.connect();
+  try{await client.query('BEGIN');const value=await run(client);await client.query('COMMIT');return value;}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
  }
  return {
   set:(p,subscribed)=>transaction(p,async client=>{

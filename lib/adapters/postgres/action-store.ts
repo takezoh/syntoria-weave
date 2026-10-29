@@ -24,11 +24,10 @@ function decoded(row:Row,text:readonly string[]) {
 // The versioned lock namespace is stable across terminology changes.
 export function userLockKey(user:string) {return createHash('sha256').update('action-tools/owner-commit/v1\0'+user).digest().readBigInt64BE(0).toString();}
 export function cursorScope(user:string,epoch:string) {return createHash('sha256').update('action-tools/change-cursor/scope/v2\0'+user+'\0'+epoch).digest('base64url');}
-export async function userTransaction<T>(pool:Pool,user:string,readOnly:boolean,fn:(client:PoolClient)=>Promise<T>,signal?:AbortSignal,observe?:(phase:'pool_wait'|'sql',ms:number)=>void):Promise<T> {
+export async function userTransaction<T>(pool:Pool,readOnly:boolean,fn:(client:PoolClient)=>Promise<T>,signal?:AbortSignal,observe?:(phase:'pool_wait'|'sql',ms:number)=>void):Promise<T> {
  const start=performance.now(),client=await pool.connect();observe?.('pool_wait',performance.now()-start);let broken=false,commitSent=false;
  try {
   await client.query(readOnly?'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY':'BEGIN ISOLATION LEVEL READ COMMITTED');
-  await client.query("SELECT set_config('app.user_id',$1,true)",[user]);
   const guarded=new Proxy(client,{get(target,key){if(key==='query')return (...args:Parameters<PoolClient['query']>)=>{if(signal?.aborted)fail('outcome_unknown','Request deadline elapsed.',503);const begin=performance.now();return Promise.resolve(Reflect.apply(target.query,target,args)).finally(()=>observe?.('sql',performance.now()-begin));};return Reflect.get(target,key);}});
   const result=await fn(guarded);if(signal?.aborted)fail('outcome_unknown','Request deadline elapsed.',503);commitSent=true;await client.query('COMMIT');return result;
  } catch(error) {
@@ -77,10 +76,10 @@ async function persist(client:PoolClient,user:string,key:StorageTableKey,changes
   }
  }
 }
-/** Every query uses the capability user and transaction-local RLS context. */
+/** Every business query binds the verified capability user explicitly. */
 export function createPostgresActionStore(pool:Pool,identity:Principal,{revalidate=async()=>{},signal,observe}:{revalidate?:(client:PoolClient)=>Promise<void>;signal?:AbortSignal;observe?:(phase:'pool_wait'|'sql',ms:number)=>void}={}):UserActionStore {
  const {user,clientId,actorKind}=verifyPrincipal(identity);
- const read=<T>(fn:(client:PoolClient)=>Promise<T>)=>userTransaction(pool,user,true,fn,signal,observe);
+ const read=<T>(fn:(client:PoolClient)=>Promise<T>)=>userTransaction(pool,true,fn,signal,observe);
  return Object.freeze({
   collaborationActor:Object.freeze({kind:actorKind,client_id:clientId,connection_id:identity.connectionId}),
   readCollaborationHistory:(key:string,beforeRevision:number|null)=>read(async client=>(await client.query('SELECT operation_id,revision,command,actor,body FROM state.collaboration_history WHERE user_id=$1 AND collaboration_id=$2 AND ($3::bigint IS NULL OR revision<$3) ORDER BY revision DESC LIMIT 50',[user,key,beforeRevision])).rows.map(row=>({operation_id:row.operation_id,revision:number(row.revision),command:row.command,actor:JSON.parse(row.actor),record:persistedCollaboration(JSON.parse(row.body))})) as CollaborationHistory[]),
@@ -98,7 +97,7 @@ export function createPostgresActionStore(pool:Pool,identity:Principal,{revalida
   }),
   async commit(command:UserCommitRequest){
    const plan=planStorageCommit(command);
-   return userTransaction(pool,user,false,async client=>{
+   return userTransaction(pool,false,async client=>{
     await client.query('SELECT pg_advisory_xact_lock($1::bigint)',[userLockKey(user)]);
     await revalidate(client);
     const prior=await receipt(client,user,command.operationId);

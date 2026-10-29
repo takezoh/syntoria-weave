@@ -9,10 +9,14 @@ export async function migrate(pool:Pool,directory:string) {
   await client.query('BEGIN');
   await client.query('SELECT pg_advisory_xact_lock(7247027267111031::bigint)');
   await client.query('CREATE TABLE IF NOT EXISTS public.schema_migrations(version text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())');
-  for(const file of (await readdir(directory)).filter(x=>/^\d+_[a-z_]+\.sql$/.test(x)).sort()){
+  const files=(await readdir(directory)).filter(x=>/^\d+_[a-z_]+\.sql$/.test(x)).sort();
+  for(const file of files){
    const sql=await readFile(resolve(directory,file),'utf8'),hash=createHash('sha256').update(sql).digest('hex');
    const prior=(await client.query('SELECT checksum FROM public.schema_migrations WHERE version=$1',[file])).rows[0];
    if(prior){if(prior.checksum!==hash)throw new Error('Applied migration checksum differs: '+file);continue;}
+   // The successor performs metadata expansion without requiring a privileged role.
+   // Preserve and verify the historical checksum when it was already applied.
+   if(file==='0007_action_metadata_text.sql'&&files.includes('0009_application_user_scope.sql'))continue;
    await client.query(sql);await client.query('INSERT INTO public.schema_migrations(version,checksum) VALUES($1,$2)',[file,hash]);
   }
   await client.query('COMMIT');
@@ -30,14 +34,16 @@ export async function grantRuntime(pool:Pool,role:string,{collaboration=true}:{c
  await pool.query(`ALTER ROLE "${role}" CONNECTION LIMIT 40`);
 }
 export async function checkRuntime(pool:Pool) {
- const info=(await pool.query('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user')).rows[0];
- if(info.rolsuper||info.rolbypassrls)throw new Error('Runtime role must not bypass row security.');
+ const info=(await pool.query('SELECT rolsuper FROM pg_roles WHERE rolname=current_user')).rows[0];
+ if(info.rolsuper)throw new Error('Runtime role must not be a superuser.');
  const owned=await pool.query("SELECT 1 FROM pg_tables WHERE schemaname IN ('state','identity') AND tableowner=current_user");
  const exported=await pool.query("SELECT 1 FROM pg_roles e WHERE e.rolname='action_export' AND pg_has_role(current_user,e.oid,'member')");if(exported.rowCount)throw new Error('Runtime role must not export all users.');
+ const filtered=await pool.query("SELECT 1 FROM pg_tables WHERE schemaname='state' AND rowsecurity");
+ if(filtered.rowCount)throw new Error('Application user scope requires row security to be disabled.');
  const capacity=(await pool.query('SHOW max_connections')).rows[0].max_connections;if(Number(capacity)<64)throw new Error('Database connection capacity must be at least 64.');
  if(owned.rowCount)throw new Error('Runtime role must not own application tables.');
  const schema=await pool.query("SELECT version FROM public.schema_migrations ORDER BY version");
- if(schema.rows.map(row=>row.version).join(',')!=='0001_state.sql,0002_user_identity.sql,0003_gate_sessions.sql,0004_subject_only_identity.sql,0005_operation_client_provenance.sql,0006_operation_actor_kind.sql,0007_action_metadata_text.sql,0007_collaboration.sql,0008_mcp_subscriptions.sql')throw new Error('Incompatible schema version.');
+ if(schema.rows.map(row=>row.version).filter(version=>version!=='0007_action_metadata_text.sql').join(',')!=='0001_state.sql,0002_user_identity.sql,0003_gate_sessions.sql,0004_subject_only_identity.sql,0005_operation_client_provenance.sql,0006_operation_actor_kind.sql,0007_collaboration.sql,0008_mcp_subscriptions.sql,0009_application_user_scope.sql')throw new Error('Incompatible schema version.');
 }
 export async function grantExport(pool:Pool,role:string) {
  if(!/^[a-z][a-z0-9_]{0,62}$/.test(role))throw new Error('Invalid role identifier.');
@@ -47,8 +53,4 @@ export async function grantExport(pool:Pool,role:string) {
  await pool.query(`GRANT USAGE ON SCHEMA state,identity TO "${role}"`);
  await pool.query(`GRANT SELECT ON ALL TABLES IN SCHEMA state,identity TO "${role}"`);
  await pool.query(`GRANT SELECT ON public.schema_migrations TO "${role}"`);
- for(const name of ['actions','projects','tags','action_tags','perspectives','catalog_identity_ledger','operations','collaborations','collaboration_history','mcp_subscriptions']){
-  await pool.query(`DROP POLICY IF EXISTS export_access ON state.${name}`);
-  await pool.query(`CREATE POLICY export_access ON state.${name} FOR SELECT TO action_export USING (true)`);
- }
 }
