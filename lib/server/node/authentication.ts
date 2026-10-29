@@ -60,10 +60,10 @@ function principalMatches(principal:Principal,verified:GatePrincipal){
 export function createAuthentication(config:ServiceConfig,store:IdentityStore,verification:GateVerification=createGateVerification(config)) {
  const credentials=new WeakMap<Principal,Credential>();
 
- async function bind(binding:IdentityBinding,clientId:string,connectionId:string,credential:Credential,csrf?:string,client?:Parameters<IdentityStore['resolveSubject']>[1]){
+ async function bind(binding:IdentityBinding,clientId:string,connectionId:string,credential:Credential,csrf?:string,client?:Parameters<IdentityStore['resolveSubject']>[1],clientName:string|null=null){
   const identity=await store.resolveSubject(binding,client);
   // A Gate browser session is the person in the Weave app; a bearer token is a client connection acting for them.
-  const principal=issuePrincipal({...binding,clientId,connectionId,actorKind:credential.kind==='session'?'user':'client',user:identity.user,scopes:['state:read','state:write']});
+  const principal=issuePrincipal({...binding,clientId,connectionId,actorKind:credential.kind==='session'?'user':'client',clientName:credential.kind==='session'?null:clientName,user:identity.user,scopes:['state:read','state:write']});
   credentials.set(principal,{...credential,csrfToken:csrf});
   return principal;
  }
@@ -80,7 +80,7 @@ export function createAuthentication(config:ServiceConfig,store:IdentityStore,ve
     if(!match)fail('unauthenticated','A bearer token is required.',401);
     const verified=await verification.verifyToken(match[1]!);
     const binding={issuer:verified.issuer,subject:verified.userId};
-    return bind(binding,verified.clientId,verified.connectionId,{kind:'bearer',value:match[1]!});
+    return bind(binding,verified.clientId,verified.connectionId,{kind:'bearer',value:match[1]!},undefined,undefined,verified.clientName??null);
    }
 
    if(token===null)fail('unauthenticated','Authentication is required.',401);

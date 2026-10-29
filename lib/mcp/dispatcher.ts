@@ -1,4 +1,4 @@
-import {STATE_RESOURCE_URI,stateResource} from './state-resource';
+import {ASSIGNED_RESOURCE_URI,RESOURCE_URIS,STATE_RESOURCE_URI,assignedResource,stateResource} from './state-resource';
 import {ActionError} from '../domain/core';
 import {privateDefinitions,privateResources} from './tool-definitions';
 import {UI_URI} from '../widget';
@@ -6,7 +6,7 @@ import {createActionUiResource} from './ui-resource';
 import {assistanceInstructions} from '../assistance';
 export type Invoke=(name:string,args:unknown)=>Promise<unknown>;
 /** Stateless protocol adapter; authentication and scope gates precede this entry. */
-export async function dispatchMcp(raw:unknown,invoke:Invoke,canWrite:boolean,subscriptions?:{set(subscribed:boolean):Promise<void>}){
+export async function dispatchMcp(raw:unknown,invoke:Invoke,canWrite:boolean,subscriptions?:{set(resource:string,subscribed:boolean):Promise<void>}){
  const body=raw as {jsonrpc?:unknown;id?:unknown;method?:unknown;params?:Record<string,unknown>};
  if(!body||body.jsonrpc!=='2.0'||typeof body.method!=='string'||(body.id!==undefined&&body.id!==null&&typeof body.id!=='string'&&typeof body.id!=='number'))return {status:400,body:{jsonrpc:'2.0',id:null,error:{code:-32600,message:'Invalid request'}}};
  const id=body.id??null,p=body.params??{};
@@ -16,10 +16,10 @@ export async function dispatchMcp(raw:unknown,invoke:Invoke,canWrite:boolean,sub
   case 'initialize':return reply({protocolVersion:['2025-03-26','2025-06-18','2025-11-25'].includes(String(p.protocolVersion))?p.protocolVersion:'2025-11-25',capabilities:{tools:{},resources:subscriptions?{subscribe:true}:{}},serverInfo:{name:'action-tools',version:'0.3.0'},instructions:assistanceInstructions});
   case 'ping':return reply({});
   case 'tools/list':return reply({tools:privateDefinitions.filter(tool=>tool.name!=='open_verification'&&(canWrite||tool.annotations.readOnlyHint))});
-  case 'resources/list':return reply({resources:[...privateResources.filter(resource=>resource.uri===UI_URI),stateResource]});
+  case 'resources/list':return reply({resources:[...privateResources.filter(resource=>resource.uri===UI_URI),stateResource,assignedResource]});
   case 'resources/templates/list':return reply({resourceTemplates:[]});
-  case 'resources/subscribe':case 'resources/unsubscribe':if(subscriptions&&p.uri===STATE_RESOURCE_URI){await subscriptions.set(body.method==='resources/subscribe');return reply({});}break;
-  case 'resources/read':if(p.uri===STATE_RESOURCE_URI)return reply({contents:[{uri:STATE_RESOURCE_URI,mimeType:'application/json',text:JSON.stringify(await invoke('list_actions',{}))}]});if(p.uri===UI_URI)return reply({contents:[createActionUiResource()]});break;
+  case 'resources/subscribe':case 'resources/unsubscribe':if(subscriptions&&typeof p.uri==='string'&&RESOURCE_URIS.includes(p.uri)){await subscriptions.set(p.uri,body.method==='resources/subscribe');return reply({});}break;
+  case 'resources/read':if(p.uri===STATE_RESOURCE_URI)return reply({contents:[{uri:STATE_RESOURCE_URI,mimeType:'application/json',text:JSON.stringify(await invoke('list_actions',{}))}]});if(p.uri===ASSIGNED_RESOURCE_URI)return reply({contents:[{uri:ASSIGNED_RESOURCE_URI,mimeType:'application/json',text:JSON.stringify(await invoke('list_assigned_collaborations',{}))}]});if(p.uri===UI_URI)return reply({contents:[createActionUiResource()]});break;
   case 'tools/call':{
    if(typeof p.name!=='string')return {status:400,body:{jsonrpc:'2.0',id,error:{code:-32602,message:'Tool name required'}}};
    try{const data=await invoke(p.name,p.arguments??{});return reply({content:[{type:'text',text:JSON.stringify(data)}],structuredContent:data});}

@@ -10,13 +10,20 @@ Use the connected deployment's schemas. These tools share the authenticated user
 
 Each linked Action retains at most three proposal heads, including old withdrawn/rejected records. Save options sequentially using the revision returned by the preceding confirmed write. Do not create a fourth or delete an option to evade the limit. Revise an existing option only within the user's requested changes and preserve later corrections.
 
+## Delegation target and finding work
+
+An Action is the person's work until a proposal is approved or work is requested or adopted with delegation. Each record carries `delegation`: `{mode:"any_ai"}` or `{mode:"specified_ai",client_id}`. Set it with `propose_collaboration`, `accept`, `adopt` with `delegate:true`, or the `assign` command with `payload.delegation`. Any participant may change it at any time; it is recorded in history and never restricts who may start or edit the work.
+
+To find work for this connection, call `list_assigned_collaborations({})`. Each item has a `reason`: `assigned_to_you`, `open_to_any_ai`, `your_run`, or `waiting_on_you` for the person. If you start work specified for another AI, say so to the user; the first `start` wins for open work.
+
 ## Select, edit and cancel approval
 
 `update_collaboration` requires `schemaVersion:2`, `operationId`, `expectedRevision`, the collaboration `id`, `command` and `payload.version` from the current record.
 
 | User intent | Command and additional input | Result |
 | --- | --- | --- |
-| Approve this option | `accept` | Selects one proposal; does not start a process |
+| Approve this option | `accept`, optionally with `payload.delegation` | Selects one proposal; does not start a process |
+| Change who should do it | `assign`, with `payload.delegation` | Records the target in history; restricts nothing |
 | Edit an option | `revise`, with complete `payload.proposal` | Increments version and clears approval; running or unknown work must be resolved first |
 | Cancel approval | `withdraw` | Keeps the proposal pending; running work can receive a stop request |
 | Ask for changes | `request_changes`, with `payload.feedback` | Records feedback for revision |
@@ -36,6 +43,6 @@ Retain exact write arguments. On a missing response, use `operation_status` or i
 
 In ChatGPT, the host owns the Remote MCP connection. Resource subscription and SSE are protocol features, not tools that the model can assume it can call. Use notifications only when the host exposes them. Installation does not establish host subscription, UI cache refresh or model wake-up. Without notifications, reread on the next user request; do not fabricate a subscription or promise automatic execution.
 
-A direct Remote MCP client can check `initialize` for resource subscription support, subscribe to `action-state://current` through `resources/subscribe`, then open authenticated GET `/mcp` with `Accept: text/event-stream`. After `notifications/resources/updated`, reread `resources/read` for that URI or a complete business snapshot. Reconnect with `Last-Event-ID`; on cursor expiry, obtain a fresh snapshot and cursor. Renew expired subscriptions. The local stdio consumer does not relay these streams.
+A direct Remote MCP client can check `initialize` for resource subscription support, subscribe to `action-state://current` (every change) and/or `action-state://assigned` (only when this connection's work changes) through `resources/subscribe`, then open authenticated GET `/mcp` with `Accept: text/event-stream`. After `notifications/resources/updated`, reread `resources/read` for that URI or a complete business snapshot. Reconnect with `Last-Event-ID`; on cursor expiry, obtain a fresh snapshot and cursor. Renew expired subscriptions. The local stdio consumer does not relay these streams.
 
 Notifications can repeat or coalesce. They signal a committed change, not a command or durable approval. Ordinary `get_changes` action deltas omit collaboration heads, so reread a complete snapshot before using proposal decisions. Preserve unsaved edits and exact unknown requests during refresh.

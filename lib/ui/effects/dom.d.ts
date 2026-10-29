@@ -1,4 +1,4 @@
-import type {HostPort,IdPort} from '../ports';
+import type {HostPort,IdPort,ReviewMarkPort} from '../ports';
 import type {UiDiagnosticsPort} from './diagnostics';
 
 export function mountDom(
@@ -11,6 +11,7 @@ export function mountDom(
  createUiController:typeof import('../application/controller').createUiController,
  createDisplayBridge:typeof import('./host').createDisplayBridge,
  diagnostics?:UiDiagnosticsPort,
+ reviewMarks?:ReviewMarkPort,
 ):{
  controller:ReturnType<typeof import('../application/controller').createUiController>;
  bridge:ReturnType<typeof import('./host').createDisplayBridge>;

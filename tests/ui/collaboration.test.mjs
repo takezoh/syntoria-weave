@@ -61,3 +61,20 @@ test('proposal editing DOM retains fields and dispatches save without approving'
  const field=root.querySelector('[aria-label="Proposal scope"]');field.value='Only prepare notes';field.dispatchEvent(new dom.window.Event('input'));panel.render(projectCollaborations(c.state));assert.equal(root.querySelector('[aria-label="Proposal scope"]'),field);assert.equal(c.state.collaborationEdits[id(2)].proposal.scope,'Only prepare notes');assert.equal(root.querySelector('[data-command="accept"]'),null);
  [...root.querySelectorAll('button')].find(b=>b.textContent==='Save proposal changes').click();assert.deepEqual(events,[id(2)]);
 });
+
+test('cards show who should handle the work and who started it, and changing the target sends one assign event',async t=>{
+ const calls=[];const {c}=fixture(async(name,args)=>{calls.push({name,args:structuredClone(args)});const s=snapshot();return {...s,revision:2,clients:[{client_id:'claude-client',name:'Claude'}],result:{operationId:args.operationId,collaboration_id:id(2)},collaborations:[{...s.collaborations[0],delegation:args.payload.delegation,revision:2}]};});
+ const s=snapshot();c.accept({...s,clients:[{client_id:'claude-client',name:'Claude'}]});
+ const dom=new JSDOM('<main></main>');t.after(()=>dom.window.close());const d=dom.window.document,root=d.querySelector('main');
+ const panel=createCollaborationPanel(d,root,{toggle(){},edit(){},request(){},command(){},history(){},copy(){},open(){},assign:(key,delegation)=>c.assignCollaboration(key,delegation)});
+ panel.render(projectCollaborations(c.state));
+ assert.equal(root.querySelector('.collaboration-handler').textContent,'Yours until approved · then for any AI');
+ const select=root.querySelector('select:not([aria-label="Verified outcome"])');assert.deepEqual([...select.options].map(option=>option.textContent),['Any AI','Claude']);assert.equal(select.value,'0');
+ select.value='1';select.dispatchEvent(new dom.window.Event('change'));await new Promise(resolve=>setImmediate(resolve));
+ const sent=calls.filter(row=>row.name==='update_collaboration');assert.equal(sent.length,1);assert.equal(sent[0].args.command,'assign');assert.deepEqual(sent[0].args.payload,{version:1,delegation:{mode:'specified_ai',client_id:'claude-client'}});
+ panel.render(projectCollaborations(c.state));assert.equal(root.querySelector('.collaboration-handler').textContent,'Yours until approved · then for Claude');
+ const accepted=transitionCollaboration(snapshot(),c.state.data.collaborations[0],'accept',{version:1},actor,now),running=transitionCollaboration(snapshot(),accepted,'start',{version:1},actor,now,id(9));
+ c.accept({...snapshot(),revision:3,clients:[{client_id:'claude-client',name:'Claude'}],collaborations:[running]});panel.render(projectCollaborations(c.state));
+ assert.equal(root.querySelector('.collaboration-handler').textContent,'For Claude · Started by AI connection example-');
+ assert.deepEqual([...root.querySelector('select:not([aria-label="Verified outcome"])').options].map(option=>option.textContent),['Any AI','Claude','AI connection example-']);
+});

@@ -28,6 +28,10 @@ export function iconSvg(name:string):string {
   undo:'<path d="M8 5 3 10l5 5M3 10h10a7 7 0 0 1 7 7"/>',
   chevron:'<path d="m9 5 7 7-7 7"/>',
   edit:'<path d="m5 15 10-10 4 4L9 19l-5 1zM13 7l4 4"/>',
+  now:'<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/>',
+  changes:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  later:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4"/>',
  };
  return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]??paths.normal}</svg>`;
 }

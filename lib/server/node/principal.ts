@@ -1,13 +1,16 @@
 import {fail} from '../../domain/core';
+import {validClientName} from '../../data/model/client-name';
 export type Scopes = readonly string[];
 /** Who performed a request: the person in the Weave app (browser session) or a client connection acting for them. */
 export type ActorKind = 'user' | 'client';
-export type Principal = Readonly<{user:string;issuer:string;subject:string;connectionId:string;clientId:string;actorKind:ActorKind;scopes:Scopes}>;
+/** `clientName` is the client's unverified registration name relayed by Gate, for display only. */
+export type Principal = Readonly<{user:string;issuer:string;subject:string;connectionId:string;clientId:string;actorKind:ActorKind;clientName:string|null;scopes:Scopes}>;
 const issued=new WeakSet<object>();
 /** Only authentication composition can mint a request capability. */
-export function issuePrincipal(value:Principal):Principal {
+export function issuePrincipal(value:Omit<Principal,'clientName'>&{clientName?:string|null}):Principal {
  if(!value.user||!value.subject||!value.connectionId||!value.clientId||(value.actorKind!=='user'&&value.actorKind!=='client'))fail('unauthenticated','Verified identity is required.',401);
- const principal=Object.freeze({...value,scopes:Object.freeze([...value.scopes])});issued.add(principal);return principal;
+ const clientName=validClientName(value.clientName)?value.clientName:null;
+ const principal=Object.freeze({...value,clientName,scopes:Object.freeze([...value.scopes])});issued.add(principal);return principal;
 }
 export function verifyPrincipal(value:Principal):Principal {
  if(!issued.has(value))fail('unauthenticated','Verified identity is required.',401);return value;

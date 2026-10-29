@@ -49,7 +49,7 @@ test('action row projection derives badges, accessible title, and stable interac
  const before=structuredClone(input),row=projectActionRow(input);
  assert.equal(row.title,'  Updated   notes ');
  assert.equal(row.accessibleTitle,'  Review   notes ');
- assert.deepEqual(row.badges.map(badge=>badge.text),['In Launch','On hold','Later','Due Oct 14','Work / Design']);
+ assert.deepEqual(row.badges.map(badge=>badge.text),['In Launch','Waiting','Later','Deadline Oct 14','Work / Design']);
  assert.equal(row.batchSelected,true);assert.equal(row.active,false);assert.equal(typeof row.signature,'string');
  assert.deepEqual(input,before);
  assert.equal(projectActionRow(input).signature,row.signature);
@@ -72,7 +72,7 @@ test('action inspector projection joins saved labels, retained edits, date state
  const projects=[{id:'p',name:'Plan',parent_id:null}],tags=[{id:'t',name:'Urgent',parent_id:null}];
  const dates={due:pair('2026-10-15','09:00'),defer:pair('','')},before=structuredClone({action,draft,projects,tags,dates});
  const view=projectActionInspector({id:'a',draft,action,targetAvailable:true,conflicts:['title','project_id'],projects,tags,dates,projectPickerFocused:false,formatInstant:value=>'formatted '+value,textEditing:false,richText});
- assert.equal(view.title,'Edited');assert.equal(view.notes,'unsaved notes');assert.equal(view.flagged,true);assert.equal(view.lifecycle,'Active');
+ assert.equal(view.title,'Edited');assert.equal(view.notes,'unsaved notes');assert.equal(view.flagged,true);assert.equal(view.lifecycle,'Open');
  assert.equal(Object.hasOwn(view,'metadata'),false);assert.equal(JSON.stringify(view).includes(action.metadata),false);
  assert.equal(view.projectValue,'Plan');assert.deepEqual(view.tags,[{id:'t',label:'Urgent',focusKey:'tag:a:t'}]);
  assert.equal(view.dateSummary,'Parent Release · Deferred until: formatted 2026-10-20T09:00:00Z');

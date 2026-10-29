@@ -8,5 +8,5 @@ export function createD1ActionStore(db) {
 export function actionCallForUser(ports,user,name,args) {
  const store=ports.store;
  const userScope=()=>createHash('sha256').update('action-tools/change-cursor/scope/v1\0').update(user).digest('base64url');
- return actionCall({...ports,store:{readSnapshot:()=>store.readSnapshot(user),readOperationState:op=>store.readOperationState(user,op),readChangeWindow:(after,through)=>store.readChangeWindow(user,after,through),readReceipt:op=>store.readReceipt(user,op),hasUndo:op=>store.hasUndo(user,op),commit:command=>store.commit({...command,user})},changeCursorScope:ports.changeCursorScope?()=>ports.changeCursorScope(user):async()=>userScope()},name,args);
+ return actionCall({...ports,store:{readSnapshot:()=>store.readSnapshot(user),readOperationState:op=>store.readOperationState(user,op),readChangeWindow:(after,through)=>store.readChangeWindow(user,after,through),...(store.readRecentChanges?{readRecentChanges:(before,limit)=>store.readRecentChanges(user,before,limit)}:{}),readReceipt:op=>store.readReceipt(user,op),hasUndo:op=>store.hasUndo(user,op),commit:command=>store.commit({...command,user})},changeCursorScope:ports.changeCursorScope?()=>ports.changeCursorScope(user):async()=>userScope()},name,args);
 }

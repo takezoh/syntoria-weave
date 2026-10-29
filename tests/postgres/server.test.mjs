@@ -206,6 +206,32 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   assert.deepEqual(await operations(),[...before,'user','client']);
  });
 
+ await t.test('change review crosses Gate client names, MCP summaries, browser corrections and recent history',async()=>{
+  const named=gate.token({client:'dcr-named',name:'Desktop AI'}),unnamed=gate.token({client:'dcr-unnamed',name:' padded '});
+  const tool=async(token,name,args)=>{const response=await server.inject({method:'POST',url:'/mcp',headers:{...base,authorization:'Bearer '+token},payload:{jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}}});assert.equal(response.statusCode,200,response.body);const result=response.json().result;assert.equal(result.isError,undefined,response.body);return result.structuredContent;};
+  const revision=(await tool(named,'list_actions',{})).revision;
+  const added=await tool(named,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:revision,kind:'add',payload:{title:'From a named client'},summary:'Saved the item you mentioned.'});
+  const id=added.result.resolved.actions[0].id;
+  assert.deepEqual(added.actions.find(row=>row.id===id).created_by,{kind:'client',client_id:'dcr-named',client_name:'Desktop AI'});
+  const person=gate.session({subject:'person',client:'web'});
+  const corrected=await browserWrite(person,'synthetic-csrf','https://app.example.com',{name:'apply_change',arguments:{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:added.revision,kind:'edit',payload:{id,title:'Corrected in the app'}}});
+  assert.equal(corrected.statusCode,200,corrected.body);
+  const action=corrected.json().actions.find(row=>row.id===id);
+  assert.equal(action.created_by.client_name,'Desktop AI');assert.deepEqual(action.updated_by,{kind:'user',client_id:'web',client_name:null});
+  const unnamedWrite=await tool(unnamed,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:corrected.json().revision,kind:'add',payload:{title:'From a client with an invalid name'}});
+  assert.equal(unnamedWrite.actions.find(row=>row.id===unnamedWrite.result.resolved.actions[0].id).created_by.client_name,null);
+  const recent=await browserWrite(person,'synthetic-csrf','https://app.example.com',{name:'list_recent_changes',arguments:{limit:3}});
+  assert.equal(recent.statusCode,200,recent.body);
+  const [unnamedChange,correction,original]=recent.json().changes;
+  assert.deepEqual([unnamedChange.client_id,unnamedChange.client_name],['dcr-unnamed',null]);
+  assert.deepEqual([correction.actor_kind,correction.client_name,correction.summary,correction.undo.status],['user',null,null,'available']);
+  assert.deepEqual([original.actor_kind,original.client_id,original.client_name,original.summary,original.undo.status],['client','dcr-named','Desktop AI','Saved the item you mentioned.','conflict']);
+  const feed=await tool(named,'get_changes',{cursor:added.change_cursor});
+  assert.deepEqual(feed.changes.map(row=>[row.actor_kind,row.client_name]),[['user',null],['client',null]]);
+  const other=await tool(gate.token({subject:'other-person',client:'dcr-named',name:'Desktop AI'}),'list_recent_changes',{});
+  assert.equal(other.changes.some(row=>row.changes.actions.some(change=>(change.after??change.before).id===id)),false);
+ });
+
  await t.test('Gate and subject mapping are rechecked online inside locked writes',async()=>{
   await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',[config.issuer,'lock-person','lock-user']);
   const owner=gate.session({subject:'lock-person'});

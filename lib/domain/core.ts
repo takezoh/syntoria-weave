@@ -16,6 +16,9 @@ export function text(v:unknown,max=200) {if(typeof v!=='string'||!v.trim()||v.le
 export function description(v:unknown):string {if(typeof v!=='string'||v.length>65536)fail('invalid_input','説明は65536文字以内の文字列で指定してください。');return v;}
 /** Action metadata is exact caller-provided text, separate from human-facing notes. */
 export function actionMetadata(v:unknown):string {if(typeof v!=='string'||v.length>65536)fail('invalid_input','メタデータは65536文字以内の文字列で指定してください。');return v;}
+export const MAX_OPERATION_SUMMARY_LENGTH=500;
+/** A caller's own description of a write: exact nonempty text, displayed as a claim beside the actual changes. */
+export function operationSummary(v:unknown):string|null {if(v===undefined)return null;if(typeof v!=='string'||!v.trim()||v.length>MAX_OPERATION_SUMMARY_LENGTH)fail('invalid_input','summary must be nonempty text of at most 500 characters.');return v;}
 export function integer(v:unknown) {if(!Number.isSafeInteger(v)||Number(v)<0)fail('invalid_input','版が不正です。');return Number(v);}
 export function actionTitle(v:unknown) {return text(v,200);}
 export function initialTagIds(s:Snapshot,v:unknown):string[] {if(v===undefined)return [];if(!Array.isArray(v))fail('invalid_input','tag_ids must be an array.');const ids=v.map(id);if(new Set(ids).size!==ids.length)fail('invalid_input','tag_ids must be unique.');for(const gid of ids)if(!s.tags.some(x=>x.id===gid))fail('not_found','タグがありません。',404);return ids;}

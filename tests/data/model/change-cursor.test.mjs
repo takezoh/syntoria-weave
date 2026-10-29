@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decodeChangeCursor, encodeChangeCursor, pageChangeWindow, projectRetainedOperation } from '../../../lib/data/model/change-cursor.ts';
+import { decodeChangeCursor, encodeChangeCursor, pageChangeWindow, pageRecentChanges, projectRetainedOperation } from '../../../lib/data/model/change-cursor.ts';
 import { persistedAction, persistedProject, persistedTag, persistedPerspective, persistedActionTag } from '../../../lib/domain/persisted-dto.ts';
 
 const scope = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 const now = '2026-10-14T09:00:00.000Z';
 const uuid = value => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`;
 const emptyDelta = () => ({ actions: [], projects: [], tags: [], perspectives: [], action_tags: [] });
-const retained = (revision, delta = emptyDelta()) => ({ operation_id: uuid(revision), revision_before: revision - 1, revision_after: revision, committed_at: now, undo_of: null, client_id: null, actor_kind: null, delta: JSON.stringify(delta) });
+const retained = (revision, delta = emptyDelta()) => ({ operation_id: uuid(revision), revision_before: revision - 1, revision_after: revision, committed_at: now, undo_of: null, client_id: null, actor_kind: null, summary: null, client_name: null, delta: JSON.stringify(delta) });
 const window = (head, operations, oldest = operations[0]?.revision_after ?? null) => ({ head_revision: head, oldest_revision: oldest, operations });
 const utf8Length = value => new TextEncoder().encode(JSON.stringify(value)).length;
 
@@ -106,4 +106,49 @@ test('history rejects non-UUID identities, noncanonical instants and duplicated 
   ]) assert.throws(() => projectRetainedOperation(retained(1, { ...emptyDelta(), actions: [{ before: null, after: changed }] })), error => error.code === 'invalid_state');
   const perspective = { id: uuid(2), name: 'View', description: '', filter: { statuses: ['active', 'active'] }, definition_version: 1, revision: 1, created_at: now, updated_at: now };
   assert.throws(() => projectRetainedOperation(retained(1, { ...emptyDelta(), perspectives: [{ before: null, after: perspective }] })), error => error.code === 'invalid_state');
+});
+
+test('caller summaries and reported client names are projected verbatim and malformed values fail closed', () => {
+  const exact = ' Saved the 3 items from your trip message 😀 ';
+  const projected = projectRetainedOperation({ ...retained(1), client_id: 'client-A', summary: exact, client_name: 'ChatGPT' });
+  assert.equal(projected.summary, exact);
+  assert.equal(projected.client_name, 'ChatGPT');
+  assert.equal(projectRetainedOperation(retained(1)).summary, null);
+  for (const summary of [undefined, '', '   ', 'x'.repeat(501), 7]) {
+    assert.throws(() => projectRetainedOperation({ ...retained(1), summary }), error => error.code === 'invalid_state');
+  }
+  for (const client_name of [undefined, '', ' padded', 'x'.repeat(101), 'line\nbreak', 42]) {
+    assert.throws(() => projectRetainedOperation({ ...retained(1), client_id: 'client-A', client_name }), error => error.code === 'invalid_state');
+  }
+  assert.throws(() => projectRetainedOperation({ ...retained(1), client_name: 'Orphan name' }), error => error.code === 'invalid_state');
+});
+
+test('recent pages read newest first below a revision, report undo markers and stop at retained history', () => {
+  const result = revision => JSON.stringify({ operationId: uuid(revision), revision, changedIds: [] });
+  const recent = (revision, extra = {}) => ({ ...retained(revision), result: result(revision), undone_by: null, ...extra });
+  const head = pageRecentChanges({ head_revision: 5, oldest_revision: 2, through_revision: 5, operations: [recent(5, { undo_of: uuid(4) }), recent(4, { undone_by: uuid(5) })] }, null, 2);
+  assert.deepEqual(head.changes.map(row => row.revision_after), [5, 4]);
+  assert.equal(head.changes[0].undo_of, uuid(4));
+  assert.equal(head.changes[1].undone_by, uuid(5));
+  assert.equal(head.changes[1].collaboration_id, null);
+  assert.equal(head.next_before_revision, 4);
+  const older = pageRecentChanges({ head_revision: 5, oldest_revision: 2, through_revision: 3, operations: [recent(3), recent(2, { result: JSON.stringify({ operationId: uuid(2), revision: 2, changedIds: [], collaboration_id: uuid(9) }) })] }, 4, 20);
+  assert.deepEqual(older.changes.map(row => row.revision_after), [3, 2]);
+  assert.equal(older.changes[1].collaboration_id, uuid(9));
+  assert.equal(older.next_before_revision, null);
+  const beyond = pageRecentChanges({ head_revision: 5, oldest_revision: 2, through_revision: 1, operations: [] }, 2, 20);
+  assert.deepEqual(beyond.changes, []);
+  assert.equal(beyond.next_before_revision, null);
+  const empty = pageRecentChanges({ head_revision: 0, oldest_revision: null, through_revision: 0, operations: [] }, null, 20);
+  assert.deepEqual([empty.changes, empty.next_before_revision], [[], null]);
+});
+
+test('recent pages reject gaps, misordered rows, mismatched ranges and invalid limits', () => {
+  const recent = revision => ({ ...retained(revision), result: JSON.stringify({ operationId: uuid(revision), revision, changedIds: [] }), undone_by: null });
+  assert.throws(() => pageRecentChanges({ head_revision: 5, oldest_revision: 1, through_revision: 5, operations: [recent(5), recent(3)] }, null, 2), error => error.code === 'invalid_state');
+  assert.throws(() => pageRecentChanges({ head_revision: 5, oldest_revision: 1, through_revision: 5, operations: [recent(5)] }, null, 2), error => error.code === 'invalid_state');
+  assert.throws(() => pageRecentChanges({ head_revision: 5, oldest_revision: 1, through_revision: 5, operations: [recent(4), recent(5)] }, null, 2), error => error.code === 'invalid_state');
+  assert.throws(() => pageRecentChanges({ head_revision: 5, oldest_revision: 1, through_revision: 4, operations: [recent(4)] }, null, 1), error => error.code === 'invalid_state');
+  assert.throws(() => pageRecentChanges({ head_revision: 5, oldest_revision: 1, through_revision: 5, operations: [{ ...recent(5), undone_by: 'not-a-uuid' }] }, null, 1), error => error.code === 'invalid_state');
+  for (const limit of [0, 51, 1.5]) assert.throws(() => pageRecentChanges({ head_revision: 0, oldest_revision: null, through_revision: 0, operations: [] }, null, limit), error => error.code === 'invalid_input');
 });

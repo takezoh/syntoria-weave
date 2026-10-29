@@ -10,3 +10,11 @@ export function createDateInputModel(){
  function editPair(current:ReturnType<typeof pair>,part:'date'|'time',raw:string,badInput:boolean,formatAt:(milliseconds:number)=>string){const next={...current,[part]:part==='time'?clock(raw):raw,...(part==='time'?{timeEdited:true}:{}),[part==='date'?'badDate':'badTime']:badInput};if(part==='date'&&!raw&&!badInput)return {...pair(null,formatAt),value:''};if(part==='date'&&raw&&!next.time&&!next.timeEdited)next.time='09:00';if(next.badDate||next.badTime)return {...next,error:'Finish choosing the date and time.'};if(!next.date||!next.time)return {...next,error:'Choose a complete date and time.'};const resolved=resolve(next.date+'T'+next.time,formatAt);return {...next,value:resolved.value||'',error:resolved.error};}
  return {localValue,resolve,pair,editPair,clock,clockMask,feedback};
 }
+
+/** Calendar shortcuts from today's local date: tomorrow and the next Monday after today. */
+export function quickDates(today:string):{tomorrow:string;nextMonday:string} {
+ const [year,month,day]=today.split('-').map(Number),start=Date.UTC(year,month-1,day);
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(today)||!Number.isFinite(start)||new Date(start).toISOString().slice(0,10)!==today)return {tomorrow:'',nextMonday:''};
+ const weekday=new Date(start).getUTCDay(),toMonday=(8-weekday)%7||7,date=(offset:number)=>new Date(start+offset*86_400_000).toISOString().slice(0,10);
+ return {tomorrow:date(1),nextMonday:date(toMonday)};
+}

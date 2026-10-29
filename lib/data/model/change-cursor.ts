@@ -1,6 +1,7 @@
-import { ActionError, fail, id, instant } from '../../domain/core';
+import { ActionError, fail, id, instant, MAX_OPERATION_SUMMARY_LENGTH } from '../../domain/core';
 import { persistedAction, persistedActionTag, persistedPerspective, persistedProject, persistedTag } from '../../domain/persisted-dto';
-import type { Action, ActionTag, ChangeWindow, Perspective, Project, RetainedOperation, Tag } from '../types';
+import type { ChangeOperation, ChangeWindow, EntityDelta, RecentChange, RecentChangePage, RecentChangeWindow, RetainedOperation } from '../types';
+import { validClientName } from './client-name';
 
 export const MAX_CHANGE_CURSOR_LENGTH = 512;
 export const MAX_CHANGE_PAGE_BYTES = 1_048_576;
@@ -13,25 +14,7 @@ export type ChangeCursor = Readonly<{
   through_revision: number | null;
 }>;
 
-export type EntityDelta<T> = Readonly<{ before: T | null; after: T | null }>;
-export type ChangeOperation = Readonly<{
-  operation_id: string;
-  revision_before: number;
-  revision_after: number;
-  committed_at: string;
-  undo_of: string | null;
-  /** Provenance only: which OAuth client committed the operation. It never grants access. */
-  client_id: string | null;
-  /** Provenance only: the person in the Weave app (`user`) or a client connection acting for them (`client`). */
-  actor_kind: 'user' | 'client' | null;
-  changes: Readonly<{
-    actions: readonly EntityDelta<Action>[];
-    projects: readonly EntityDelta<Project>[];
-    tags: readonly EntityDelta<Tag>[];
-    perspectives: readonly EntityDelta<Perspective>[];
-    action_tags: readonly EntityDelta<ActionTag>[];
-  }>;
-}>;
+export type { EntityDelta, ChangeOperation } from '../types';
 
 export type ChangePage = Readonly<{
   schemaVersion: 2;
@@ -138,6 +121,9 @@ export function projectRetainedOperation(operation: RetainedOperation): ChangeOp
   if (committedAt === null || (operation.undo_of !== null && undoOf === null)) return fail('invalid_state', 'Retained operation metadata is malformed.');
   if (operation.client_id !== null && !(typeof operation.client_id === 'string' && /^[\x21-\x7e]{1,255}$/u.test(operation.client_id))) return fail('invalid_state', 'Retained operation metadata is malformed.');
   if (operation.actor_kind !== null && operation.actor_kind !== 'user' && operation.actor_kind !== 'client') return fail('invalid_state', 'Retained operation metadata is malformed.');
+  if (operation.summary !== null && !(typeof operation.summary === 'string' && operation.summary.trim() !== '' && operation.summary.length <= MAX_OPERATION_SUMMARY_LENGTH)) return fail('invalid_state', 'Retained operation metadata is malformed.');
+  if (operation.client_name !== null && !validClientName(operation.client_name)) return fail('invalid_state', 'Retained operation metadata is malformed.');
+  if (operation.client_name !== null && operation.client_id === null) return fail('invalid_state', 'Retained operation metadata is malformed.');
   let delta: unknown;
   try { delta = JSON.parse(operation.delta); } catch { return fail('invalid_state', 'Retained operation delta is malformed.'); }
   const changes = record(delta, 'operation delta');
@@ -146,6 +132,7 @@ export function projectRetainedOperation(operation: RetainedOperation): ChangeOp
   try { return {
     operation_id: operationId, revision_before: operation.revision_before, revision_after: operation.revision_after,
     committed_at: committedAt, undo_of: undoOf, client_id: operation.client_id, actor_kind: operation.actor_kind,
+    summary: operation.summary, client_name: operation.client_name,
     changes: {
       actions: sorted(changes.actions, 'Action delta', persistedAction, item => item.id),
       projects: sorted(changes.projects, 'Project delta', persistedProject, item => item.id),
@@ -214,5 +201,46 @@ export function pageChangeWindow(window: ChangeWindow, cursor: ChangeCursor, sco
 
 export function changeWindowInput(cursor: ChangeCursor) {
   return { afterRevision: cursor.position, throughRevision: cursor.through_revision } as const;
+}
+
+export const DEFAULT_RECENT_CHANGE_LIMIT = 20;
+export const MAX_RECENT_CHANGE_LIMIT = 50;
+
+export type { RecentChange, RecentChangePage } from '../types';
+
+/** The newest revision a recent-history read covers: everything below `beforeRevision`, capped at the head. */
+export function recentChangeThrough(head: number, beforeRevision: number | null): number {
+  return beforeRevision === null ? head : Math.min(beforeRevision - 1, head);
+}
+
+/** Validate a newest-first window for contiguity and project only current persisted fields. */
+export function pageRecentChanges(window: RecentChangeWindow, beforeRevision: number | null, limit: number): RecentChangePage {
+  const { head_revision: head, oldest_revision: oldest } = window;
+  if (!nonnegativeInteger(head) || (oldest !== null && (!nonnegativeInteger(oldest) || oldest < 1 || oldest > head))) return fail('invalid_state', 'Change history metadata is malformed.');
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_RECENT_CHANGE_LIMIT) return fail('invalid_input', 'limit must be an integer from 1 through 50.');
+  const through = recentChangeThrough(head, beforeRevision);
+  if (window.through_revision !== through) return fail('invalid_state', 'Recent change history does not match its requested range.');
+  const lowest = oldest === null ? through + 1 : Math.max(oldest, through - limit + 1);
+  const expected = Math.max(0, through - lowest + 1);
+  if (!Array.isArray(window.operations) || window.operations.length !== expected) return fail('invalid_state', 'Retained operation history contains a gap.');
+  const changes = window.operations.map((operation, index): RecentChange => {
+    const projected = projectRetainedOperation(operation);
+    if (projected.revision_after !== through - index) return fail('invalid_state', 'Retained operation history is not contiguous.');
+    let undoneBy: string | null, collaborationId: string | null;
+    try {
+      undoneBy = operation.undone_by === null ? null : id(operation.undone_by);
+      const result = record(JSON.parse(operation.result), 'operation result');
+      collaborationId = result.collaboration_id === undefined ? null : id(result.collaboration_id);
+    } catch { return fail('invalid_state', 'Retained operation metadata is malformed.'); }
+    return { ...projected, undone_by: undoneBy, collaboration_id: collaborationId };
+  });
+  const last = changes.at(-1);
+  return {
+    schemaVersion: 2,
+    head_revision: head,
+    oldest_revision: oldest,
+    changes,
+    next_before_revision: last && oldest !== null && last.revision_after > oldest ? last.revision_after : null,
+  };
 }
 

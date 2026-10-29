@@ -18,6 +18,7 @@ import {createNavigationModel} from './model/navigation';
 import {iconSvg} from './model/icons';
 import {createToolClient} from './effects/tool-client';
 import {mountDom} from './effects/dom.js';
+import {createReviewMarkStore} from './effects/review-mark';
 import {createHostTransport,createDisplayBridge} from './effects/host';
 import {editDraft,discardDraft,mergeDrafts,draftPayload,acknowledgeDraft} from './model/drafts';
 import type {HostEffects,MessageEvent as HostMessageEvent,HostMessage} from './ports';
@@ -54,4 +55,6 @@ const diagnostics:UiDiagnosticsPort|undefined=document.documentElement.dataset.u
  increment(counter){const metrics=(window as Window&{__actionToolsMetrics?:Record<UiDiagnosticCounter,number>}).__actionToolsMetrics||Object.fromEntries(diagnosticCounters.map(name=>[name,0])) as Record<UiDiagnosticCounter,number>;(window as Window&{__actionToolsMetrics?:Record<UiDiagnosticCounter,number>}).__actionToolsMetrics=metrics;metrics[counter]++;},
  record(phase:UiDiagnosticPhase,durationMs:number){const target=window as Window&{__actionToolsPhases?:{phase:UiDiagnosticPhase;durationMs:number;at:number}[]};const phases=target.__actionToolsPhases||[];target.__actionToolsPhases=phases;phases.push({phase,durationMs,at:window.performance.now()});},
 }:undefined;
-mountDom(document,window,transport,{next:()=>crypto.randomUUID()},model,createToolClient,createUiController,createDisplayBridge,diagnostics);
+// Browser storage can throw on access in sandboxed host frames; the adapter then keeps the mark in memory.
+const reviewMarks=createReviewMarkStore(()=>{try{return window.localStorage;}catch{return null;}});
+mountDom(document,window,transport,{next:()=>crypto.randomUUID()},model,createToolClient,createUiController,createDisplayBridge,diagnostics,reviewMarks);

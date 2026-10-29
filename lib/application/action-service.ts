@@ -1,9 +1,9 @@
-import {fail,object,exact,text,id,integer,canonical,change,validateGraph} from '../domain/core';
+import {ActionError,fail,object,exact,text,id,integer,canonical,change,validateGraph,operationSummary} from '../domain/core';
 import {response,undo,preview,queryResponse,listPerspectives,queryPerspective} from '../domain/operations';
-import type {Change, OperationResolution, Snapshot} from '../data/types';
+import type {Change, OperationResolution, RecentOperation, Snapshot, UndoAvailability} from '../data/types';
 import {finalizeChange,normalizeChange,type PreparedChange} from '../data/model/request';
 import {parseReceiptResult} from '../data/model/storage';
-import {decodeChangeCursor,DEFAULT_CHANGE_PAGE_SIZE,encodeChangeCursor,pageChangeWindow} from '../data/model/change-cursor';
+import {decodeChangeCursor,DEFAULT_CHANGE_PAGE_SIZE,DEFAULT_RECENT_CHANGE_LIMIT,encodeChangeCursor,MAX_RECENT_CHANGE_LIMIT,pageChangeWindow,pageRecentChanges,type RecentChange} from '../data/model/change-cursor';
 import type {UserActionPorts} from './ports';
 import {collaborationCall} from './collaboration-service';
 
@@ -32,8 +32,19 @@ function previewResolution(resolved:OperationResolution|undefined,createdActionI
  };
 }
 
+/**
+ * Whether Undo of a retained operation would currently be accepted, from the same pure rules the Undo
+ * write uses. This is an advisory read: the Undo commit still revalidates under the revision guard.
+ */
+export function undoAvailability(current:Snapshot,operation:RecentOperation,change:RecentChange,now:string):UndoAvailability {
+ if(change.undo_of!==null||change.collaboration_id!==null)return 'not_undoable';
+ if(change.undone_by!==null)return 'undone';
+ try{undo(current,JSON.parse(operation.delta),now,operation.revision_after);return 'available';}
+ catch(error){if(error instanceof ActionError)return error.code==='undo_conflict'?'conflict':'not_undoable';throw error;}
+}
+
 export async function actionCall(ports:UserActionPorts,name:string,args:unknown) {
- if(['list_collaborations','get_collaboration','propose_collaboration','update_collaboration'].includes(name))return collaborationCall(ports,name,args);
+ if(['list_collaborations','list_assigned_collaborations','get_collaboration','propose_collaboration','update_collaboration'].includes(name))return collaborationCall(ports,name,args);
  async function readCurrent(){const snapshot=await ports.store.readSnapshot();validateGraph(snapshot);return snapshot;}
  async function fullSnapshot(snapshot:Snapshot,now:string,result:unknown=null){const scope=await ports.changeCursorScope();return response(snapshot,now,result,encodeChangeCursor(scope,snapshot.revision));}
  const {store,clock,newId}=ports;
@@ -50,6 +61,16 @@ export async function actionCall(ports:UserActionPorts,name:string,args:unknown)
   if(!Number.isSafeInteger(pageSize)||Number(pageSize)<1||Number(pageSize)>100)fail('invalid_input','page_size must be an integer from 1 through 100.');
   const window=await store.readChangeWindow(cursor.position,cursor.through_revision);
   return pageChangeWindow(window,cursor,scope,Number(pageSize));
+ }
+ if(name==='list_recent_changes'){
+  exact(a,['before_revision','limit']);
+  const before=a.before_revision===undefined?null:a.before_revision,limit=a.limit===undefined?DEFAULT_RECENT_CHANGE_LIMIT:a.limit;
+  if(before!==null&&(!Number.isSafeInteger(before)||Number(before)<1))fail('invalid_input','before_revision must be a positive integer.');
+  if(!Number.isSafeInteger(limit)||Number(limit)<1||Number(limit)>MAX_RECENT_CHANGE_LIMIT)fail('invalid_input','limit must be an integer from 1 through 50.');
+  if(!store.readRecentChanges)fail('unavailable','Recent change history is not available from this store.',503);
+  const window=await store.readRecentChanges(before as number|null,Number(limit)),page=pageRecentChanges(window,before as number|null,Number(limit));
+  const current=await readCurrent();
+  return {...page,changes:page.changes.map((item,index)=>({...item,undo:{status:undoAvailability(current,window.operations[index],item,now)}}))};
  }
  if(name==='list_perspectives'){exact(a,[]);return listPerspectives(await readCurrent(),now);}
  if(name==='query_perspective'){exact(a,['id']);return queryPerspective(await readCurrent(),now,a.id);}
@@ -69,11 +90,12 @@ export async function actionCall(ports:UserActionPorts,name:string,args:unknown)
   return {...result,kind:requested.kind,payload:publicPayload,affected,affected_projects,affected_tags,affected_perspectives,...(prepared.resolved?{resolved:previewResolution(prepared.resolved,prepared.createdActionIds)}:{})};
  }
  let operationId:string,expected:number|undefined,c:Change,undoOf:string|null=null;
- if(name==='add_action'){exact(a,['title','metadata','request_id','expected_revision','schemaVersion']);if(a.schemaVersion!==2)fail('schema_mismatch','画面を再表示してください。未保存案は保持してください。',409);operationId=id(a.request_id);expected=integer(a.expected_revision);c={kind:'add',payload:{title:a.title,...(a.metadata!==undefined?{metadata:a.metadata}:{})}};}
- else if(name==='rename_action'){exact(a,['id','title','request_id','expected_revision','schemaVersion']);if(a.schemaVersion!==2)fail('schema_mismatch','画面を再表示してください。',409);operationId=id(a.request_id);expected=integer(a.expected_revision);c={kind:'edit',payload:{id:a.id,title:a.title}};}
- else if(name==='capture_intent'){exact(a,['operationId','expectedRevision','schemaVersion','title','text','source','metadata']);if(a.schemaVersion!==2)fail('schema_mismatch','版を確認してください。');operationId=id(a.operationId);expected=integer(a.expectedRevision);c={kind:'capture',payload:{title:a.title,text:a.text,source:a.source??'conversation',...(a.metadata!==undefined?{metadata:a.metadata}:{})}};}
+ const summary=operationSummary(a.summary);
+ if(name==='add_action'){exact(a,['title','metadata','request_id','expected_revision','schemaVersion','summary']);if(a.schemaVersion!==2)fail('schema_mismatch','画面を再表示してください。未保存案は保持してください。',409);operationId=id(a.request_id);expected=integer(a.expected_revision);c={kind:'add',payload:{title:a.title,...(a.metadata!==undefined?{metadata:a.metadata}:{})}};}
+ else if(name==='rename_action'){exact(a,['id','title','request_id','expected_revision','schemaVersion','summary']);if(a.schemaVersion!==2)fail('schema_mismatch','画面を再表示してください。',409);operationId=id(a.request_id);expected=integer(a.expected_revision);c={kind:'edit',payload:{id:a.id,title:a.title}};}
+ else if(name==='capture_intent'){exact(a,['operationId','expectedRevision','schemaVersion','title','text','source','metadata','summary']);if(a.schemaVersion!==2)fail('schema_mismatch','版を確認してください。');operationId=id(a.operationId);expected=integer(a.expectedRevision);c={kind:'capture',payload:{title:a.title,text:a.text,source:a.source??'conversation',...(a.metadata!==undefined?{metadata:a.metadata}:{})}};}
  else if(name==='apply_change'||name==='undo_change'){
-  exact(a,name==='undo_change'?['operationId','expectedRevision','schemaVersion','undoOf']:['operationId','expectedRevision','schemaVersion','kind','payload']);if(a.schemaVersion!==2)fail('schema_mismatch','版を確認してください。');operationId=id(a.operationId);expected=integer(a.expectedRevision);c={kind:text(a.kind??'undo',40),payload:object(a.payload??{})};if(name==='undo_change')undoOf=id(a.undoOf);
+  exact(a,name==='undo_change'?['operationId','expectedRevision','schemaVersion','undoOf','summary']:['operationId','expectedRevision','schemaVersion','kind','payload','summary']);if(a.schemaVersion!==2)fail('schema_mismatch','版を確認してください。');operationId=id(a.operationId);expected=integer(a.expectedRevision);c={kind:text(a.kind??'undo',40),payload:object(a.payload??{})};if(name==='undo_change')undoOf=id(a.undoOf);
  } else fail('unknown_tool','未対応の操作です。',404);
 
  const original=canonical({name,args:a}),operationState=await store.readOperationState(operationId),prior=operationState.receipt;
@@ -87,5 +109,5 @@ export async function actionCall(ports:UserActionPorts,name:string,args:unknown)
  if(new TextEncoder().encode(original).length>262144)fail('operation_too_large','入力が大きすぎます。');
  if(undoOf){const target=await store.readReceipt(undoOf);if(target&&parseReceiptResult(target).collaboration_id)fail('invalid_state','Use a collaboration decision or correction; collaboration records cannot be undone.');}
  if(after.collaborations?.some(row=>row.action_id&&!after.actions.some(action=>action.id===row.action_id)))fail('undo_conflict','An action with collaboration history cannot be removed. Withdraw it instead.',409);
- const result=await store.commit({operationId,payload:original,before,after,now,undoOf,resolved});return fullSnapshot(await readCurrent(),now,result);
+ const result=await store.commit({operationId,payload:original,before,after,now,undoOf,resolved,summary});return fullSnapshot(await readCurrent(),now,result);
 }

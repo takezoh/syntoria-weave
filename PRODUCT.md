@@ -28,6 +28,8 @@ Weave supports personal workflows. Shared state stays within the authenticated u
 | Stay in control without watching every change | Writes based on an outdated revision are rejected instead of overwriting newer edits; the UI retains unsaved proposals; identical retries are recognized and not applied twice; lost responses can be checked or resent exactly; Undo refuses to erase later corrections |
 | See and fix anything | Conversation and UI read and update the same saved actions |
 | See relevant work | Your AI presents candidates with reasons, distinct from the complete list |
+| Start from what needs you | Now gathers your AI's questions and proposals, recent changes by connected apps, flagged actions and deadlines in the next seven days, in a fixed order without ranking or hiding anything |
+| See what your AI changed | Changes lists every retained save newest first, tells your own changes apart from each connected app's, shows the app's own description beside the actual saved changes, and offers Undo where it would not erase a later correction |
 
 Your AI handles interpretation, judgment, organization, recommendations and management policy. Weave stores, retrieves and updates structured state through API/MCP operations and a dedicated UI, with validation, revisions, atomicity, replay, Undo and ownership. Reading state gives the AI information to consider; the AI remains responsible for understanding it and revising its judgment. The API entity is named action. Containment, projects, tags, order, direct flags, dates and perspectives support GTD or another caller-chosen management method without requiring a fixed workflow.
 
@@ -39,7 +41,8 @@ User prompts, the user's AI and caller-side schedulers can use the same tools. A
 - Weave has no AI of its own and does not decide what matters.
 - Weave saves what the caller requests. It cannot prove that your AI interpreted you correctly; inspect and correct actions as needed.
 - Undo works only within retained history: 30 days of operations per user, always the latest 100 and never more than the latest 5000. It refuses when it would erase later corrections. Not every change can be undone.
-- The change history tells your own changes in the Weave app apart from changes an AI or other connected app made, and records which one made them. A change you make inside an AI's embedded view counts as that AI's connection.
+- The change history tells your own changes in the Weave app apart from changes an AI or other connected app made, and records which one made them. A change you make inside an AI's embedded view counts as that AI's connection. An app's name is the one it registered with the sign-in service and is not verified, and its description of a change is its own claim; the listed changes show what was actually saved.
+- "Mark as reviewed" is kept only in the browser where you choose it. It does not tell your AI or your other devices what you have seen.
 - Confirmation steps shown by the host are outside Weave.
 - Current host acceptance evidence concerns ChatGPT; other client integrations require their own verification.
 - Reduced management effort is an intended benefit, not a measured result.
@@ -76,7 +79,7 @@ Completing all children never automatically completes the parent. A descendant c
 
 ## Conversation, UI and reliability
 
-Conversation accepts uncertainty, helps organize relationships and explains candidate choices. The dedicated UI provides the saved list, notes, dates, order and Flag controls for direct correction. Titles and notes are shown formatted with clickable links; choose Edit to change the original text. Conversations and UI use one durable state for the authenticated user.
+Conversation accepts uncertainty, helps organize relationships and explains candidate choices. The dedicated UI opens on Now, with what is waiting on you and what changed recently, and provides the saved lists, notes, dates, order and Flag controls for direct correction, plus a Changes view to review and undo recent saves. Titles and notes are shown formatted with clickable links; choose Edit to change the original text. Conversations and UI use one durable state for the authenticated user.
 
 For example, correct a trip action's title in the UI, then ask ChatGPT in another conversation to read the current action before planning the next step. That read retrieves the saved correction even if the conversation still contains the old title. An authorized AI workflow can use the same state to continue its own work. Weave preserves the shared records; each caller decides what the correction means for its recommendations or actions.
 
@@ -96,7 +99,7 @@ Success means fewer missed important matters and less total remembering, explana
 
 ## Work with AI on an action
 
-An action can remain entirely human-managed. When assistance would help, enter instructions on a saved action or review a caller's proposal, including its scope, expected result, exclusions and source. Keep up to three proposals for an action, choose one to approve, or edit its contents without changing the action's completion state. Saving edits clears approval. Cancelling approval keeps the proposal available for review and reuse. New-work suggestions can be adopted as actions separately from delegation.
+An action can remain entirely human-managed. When assistance would help, enter instructions on a saved action or review a caller's proposal, including its scope, expected result, exclusions and source. Keep up to three proposals for an action, choose one to approve and say whether any AI or a particular one should do it, or edit its contents without changing the action's completion state. Saying who should do it records your intent only: any connected AI can still pick the work up or change the choice, and the history shows who did. Saving edits clears approval. Cancelling approval keeps the proposal available for review and reuse. New-work suggestions can be adopted as actions separately from delegation.
 
 An accepted request stays visibly unstarted until a caller reports starting it. Copy the request context to a capable AI to continue; saving a request does not wake an agent. Progress reports identify who needs to respond and retain results, remaining work, artifact links and history. A stop request awaits confirmation; unknown outcomes require verification before another attempt. Completing the person's action remains an explicit, separate action.
 

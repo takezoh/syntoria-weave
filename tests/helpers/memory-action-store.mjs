@@ -17,6 +17,13 @@ export function memoryActionStore() {
    const retained=[...receipts].filter(([receiptKey])=>JSON.parse(receiptKey)[0]===user).map(([receiptKey,value])=>({operation_id:JSON.parse(receiptKey)[1],...value})).sort((a,b)=>a.revision_after-b.revision_after);
    return structuredClone({head_revision:users.get(user)?.revision??0,oldest_revision:retained[0]?.revision_after??null,operations:retained.filter(row=>row.revision_after>afterRevision&&(throughRevision===null||row.revision_after<=throughRevision))});
   },
+  async readRecentChanges(user,beforeRevision,limit){
+   const head=users.get(user)?.revision??0,through=beforeRevision===null?head:Math.min(beforeRevision-1,head);
+   const retained=[...receipts].filter(([receiptKey])=>JSON.parse(receiptKey)[0]===user).map(([receiptKey,value])=>({operation_id:JSON.parse(receiptKey)[1],...value}));
+   const undoneBy=id=>retained.filter(row=>row.undo_of===id).sort((a,b)=>a.revision_after-b.revision_after)[0]?.operation_id??null;
+   const operations=retained.filter(row=>row.revision_after<=through).sort((a,b)=>b.revision_after-a.revision_after).slice(0,limit).map(row=>({...row,undone_by:undoneBy(row.operation_id)}));
+   return structuredClone({head_revision:head,oldest_revision:retained.reduce((oldest,row)=>oldest===null||row.revision_after<oldest?row.revision_after:oldest,null),through_revision:through,operations});
+  },
   async readReceipt(user,id){return structuredClone(receipts.get(key(user,id))??null);},
   async hasUndo(user,undoOf){return [...receipts].some(([k,r])=>JSON.parse(k)[0]===user&&r.undo_of===undoOf);},
   async commit(r){
@@ -25,7 +32,7 @@ export function memoryActionStore() {
    if(prior){if(prior.canonical_payload!==r.payload)fail('idempotency_conflict','same ID, different input',409);return JSON.parse(prior.result);}
    if((users.get(r.user)?.revision??0)!==r.before.revision)fail('conflict','stale revision',409);
    users.set(r.user,structuredClone({...r.after,revision:r.before.revision+1}));
-   receipts.set(key(r.user,r.operationId),{canonical_payload:r.payload,result:JSON.stringify(result),delta:JSON.stringify(changes),revision_before:r.before.revision,revision_after:result.revision,committed_at:r.now,undo_of:r.undoOf,client_id:null,actor_kind:null});
+   receipts.set(key(r.user,r.operationId),{canonical_payload:r.payload,result:JSON.stringify(result),delta:JSON.stringify(changes),revision_before:r.before.revision,revision_after:result.revision,committed_at:r.now,undo_of:r.undoOf,client_id:null,actor_kind:null,summary:r.summary??null,client_name:null});
    const owned=[...receipts].filter(([k])=>JSON.parse(k)[0]===r.user),cutoff=operationRetentionCutoff(r.now);
    const firstRecent=owned.map(([,receipt])=>receipt).filter(receipt=>receipt.committed_at>=cutoff).reduce((first,receipt)=>Math.min(first,receipt.revision_after),Infinity);
    const through=operationPruneThrough(result.revision,firstRecent===Infinity?null:firstRecent);

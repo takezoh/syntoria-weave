@@ -103,8 +103,8 @@ export async function gateFixture({issuerHost = '127.0.0.1'} = {}) {
     issuer, port: server.address().port, cert, tokens, sessions,
     get requests() { return requests; }, get sessionRequests() { return sessionRequests; }, get refreshes() { return refreshes; }, get authorizations() { return authorizations; },
     set unavailable(value) { unavailable = value; },
-    token({subject = 'person', client = 'mcp', audience = 'https://api.example.com/mcp', expiry = Math.floor(Date.now() / 1_000) + 900, connectionId = randomUUID()} = {}) {
-      const token = randomUUID(); tokens.set(token, {active: true, token_type: 'Bearer', gate_approved: true, iss: issuer, sub: subject, client_id: client, aud: audience, exp: expiry, connection_id: connectionId}); return token;
+    token({subject = 'person', client = 'mcp', audience = 'https://api.example.com/mcp', expiry = Math.floor(Date.now() / 1_000) + 900, connectionId = randomUUID(), name} = {}) {
+      const token = randomUUID(); tokens.set(token, {active: true, token_type: 'Bearer', gate_approved: true, iss: issuer, sub: subject, client_id: client, aud: audience, exp: expiry, connection_id: connectionId, ...(name === undefined ? {} : {client_name: name})}); return token;
     },
     session({subject = 'person', client = 'web', audience = 'https://api.example.com/mcp', expiry = Math.floor(Date.now() / 1_000) + 900, connectionId = randomUUID(), csrfToken = 'synthetic-csrf'} = {}) {
       const session = randomBytes(32).toString('base64url'); sessions.set(session, {active: true, iss: issuer, sub: subject, client_id: client, aud: audience, exp: expiry, connection_id: connectionId, gate_approved: true, session_type: 'browser', csrf_token: csrfToken}); return session;

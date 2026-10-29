@@ -29,8 +29,8 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  legacyValue.tables['state.operations'][0].delta=JSON.stringify(preservedDelta);value.tables['state.operations'][0].delta=JSON.stringify(preservedDelta);
  // Populate the applied schema using its exact column names before the forward migration.
  // Provenance did not exist yet, so migrated operations have an unknown client and actor.
- for(const [table,rows] of Object.entries(legacyValue.tables))for(const row of rows){
-  const entries=Object.entries(row).filter(([key])=>!(table==='state.operations'&&(key==='client_id'||key==='actor_kind'))),columns=entries.map(([key])=>'"'+(key==='user_id'?'owner':key)+'"');
+ for(const [table,rows] of Object.entries(legacyValue.tables))if(table!=='state.client_names')for(const row of rows){
+  const entries=Object.entries(row).filter(([key])=>!(table==='state.operations'&&['client_id','actor_kind','summary'].includes(key))&&!(table==='state.actions'&&/^(created|updated)_by_/.test(key))),columns=entries.map(([key])=>'"'+(key==='user_id'?'owner':key)+'"');
   await target.admin.query(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${entries.map((_,i)=>'$'+(i+1)).join(',')})`,entries.map(([,value])=>value));
  }
  await target.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes,enabled) VALUES($1,$2,$3,$4,false)',['test','person','fixed-client',['state:read','state:write']]);
@@ -46,8 +46,9 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  await grantRuntime(target.admin,'action_runtime');
  await checkRuntime(target.pool);
  assert.deepEqual((await target.admin.query('SELECT version,checksum FROM schema_migrations WHERE version=$1',['0001_state.sql'])).rows,journal);
- const migrated=structuredClone(value);for(const row of migrated.tables['state.operations']){row.client_id=null;row.actor_kind=null;}
- const actualTransfer=await exportData(target.admin);assert.equal(actualTransfer.version,7);assert.deepEqual(actualTransfer.tables['state.actions'],migrated.tables['state.actions']);
+ const migrated=structuredClone(value);for(const row of migrated.tables['state.operations']){row.client_id=null;row.actor_kind=null;row.summary=null;}
+ for(const row of migrated.tables['state.actions'])for(const column of ['created_by_kind','created_by_client_id','updated_by_kind','updated_by_client_id'])row[column]=null;
+ const actualTransfer=await exportData(target.admin);assert.equal(actualTransfer.version,9);assert.deepEqual(actualTransfer.tables['state.client_names'],[]);assert.deepEqual(actualTransfer.tables['state.actions'],migrated.tables['state.actions']);
  for(let index=0;index<actualTransfer.tables['state.operations'].length;index++){
   const actual=actualTransfer.tables['state.operations'][index],expected=migrated.tables['state.operations'][index];
   assert.equal(actual.canonical_payload,expected.canonical_payload);assert.equal(actual.result,expected.result);assert.deepEqual(JSON.parse(actual.delta),JSON.parse(expected.delta));
@@ -56,7 +57,9 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  assert.deepEqual(actualTransfer,migrated);
  assert.equal(JSON.parse(actualTransfer.tables['state.operations'][0].delta).actions[0].after.metadata,'pre-existing operational metadata');
  assert.equal((await target.admin.query("SELECT to_regclass('identity.client_grants') AS table_name")).rows[0].table_name,null);
- const saved=await invoke(target.pool,'A','list_actions');assert.deepEqual(saved.actions,edited.actions);
+ const saved=await invoke(target.pool,'A','list_actions'),withoutProvenance=rows=>rows.map(row=>Object.fromEntries(Object.entries(row).filter(([key])=>key!=='created_by'&&key!=='updated_by')));
+ // Actions saved before provenance existed have an unknown creator and changer.
+ assert.deepEqual(withoutProvenance(saved.actions),withoutProvenance(edited.actions));assert.deepEqual(saved.actions.map(row=>[row.created_by,row.updated_by]),[[null,null]]);
  const replay=await invoke(target.pool,'A','apply_change',request);assert.deepEqual(replay.result,created.result);assert.deepEqual(replay.actions,saved.actions);
  const undone=await invoke(target.pool,'A','undo_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:2,undoOf:correction.operationId});assert.equal(undone.actions[0].status,'active');assert.equal(undone.actions[0].notes,request.payload.notes);assert.equal(undone.actions[0].metadata,'');
  assert.equal((await invoke(target.pool,'B','list_actions')).actions.length,0);

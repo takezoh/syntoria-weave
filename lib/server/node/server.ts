@@ -154,7 +154,7 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
   const principal=await identity(req,false);authorize(principal,'list_actions',config);
   const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');if(version&&!['2025-03-26','2025-06-18','2025-11-25'].includes(version))fail('invalid_input','Unsupported MCP protocol version.');
   const body=req.body as {method?:string;params?:{name?:string}};if(body?.method==='tools/call'&&typeof body.params?.name==='string')authorize(principal,body.params.name,config);
-  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'),subscriptions?{set:subscribed=>subscriptions.set(principal,subscribed)}:undefined);
+  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'),subscriptions?{set:(resource,subscribed)=>subscriptions.set(principal,resource,subscribed)}:undefined);
   return result.body===null?reply.code(result.status).send():reply.code(result.status).send(result.body);
  });
  app.get('/mcp',async(req,reply)=>{
@@ -163,7 +163,7 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
   if(!String(req.headers.accept??'').split(',').some(part=>part.trim().split(';')[0]==='text/event-stream'))fail('invalid_input','Accept text/event-stream to receive MCP notifications.',406);
   const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');if(version&&!['2025-03-26','2025-06-18','2025-11-25'].includes(version))fail('invalid_input','Unsupported MCP protocol version.');
   const principal=await identity(req,false);authorize(principal,'list_actions',config);
-  if(!await subscriptions.has(principal))fail('invalid_state','Subscribe to action-state://current before opening the event stream.',409);
+  if(!(await subscriptions.list(principal)).length)fail('invalid_state','Subscribe to action-state://current or action-state://assigned before opening the event stream.',409);
   if(streamCount>=64||(streams.get(principal.user)??0)>=4)fail('unavailable','Too many active event streams. Reconnect later.',429);
   const cursor=oneHeader(req.headers['last-event-id'],'Last-Event-ID')??(await run(req,principal,'get_change_cursor',{}) as {cursor:string}).cursor;
   const initial=await run(req,principal,'get_changes',{cursor}) as ChangePage;
@@ -172,8 +172,10 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
   const close=()=>{if(closed)return;closed=true;controller.abort();streamControllers.delete(controller);streamCount--;const count=(streams.get(principal.user)??1)-1;if(count)streams.set(principal.user,count);else streams.delete(principal.user);};
   streamCount++;streams.set(principal.user,(streams.get(principal.user)??0)+1);const {raw:rawReply}=reply;rawReply.once('close',close);
   const stream=mcpEventStream(initial,{
-   authorized:async()=>{const current=await identity(req,false);authorize(current,'list_actions',config);return current.user===principal.user&&current.connectionId===principal.connectionId&&await subscriptions.has(current);},
+   // Revalidate the connection before every subscription check; a changed identity ends the stream.
+   subscriptions:async()=>{const current=await identity(req,false);authorize(current,'list_actions',config);return current.user===principal.user&&current.connectionId===principal.connectionId?await subscriptions.list(current):[];},
    poll:async current=>await run(req,principal,'get_changes',{cursor:current}) as ChangePage,
+   assigned:async()=>{const value=await run(req,principal,'list_assigned_collaborations',{}) as {items:unknown[]};return JSON.stringify(value.items);},
   },{signal:controller.signal});
   stream.once('close',close);reply.header('Content-Type','text/event-stream').header('X-Accel-Buffering','no');return reply.send(stream);
  });

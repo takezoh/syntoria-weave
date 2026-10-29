@@ -1,4 +1,4 @@
-import type { CollaborationActor, CollaborationHistory, ChangeWindow, OperationResult, UserCommitRequest, Receipt, Snapshot } from '../data/types';
+import type { CollaborationActor, CollaborationHistory, ChangeWindow, OperationResult, UserCommitRequest, Receipt, RecentChangeWindow, Snapshot } from '../data/types';
 
 /** Receipt and user state acquired together; snapshot decoding stays lazy for conflict precedence. */
 export type ReadOperationState = Readonly<{
@@ -16,6 +16,8 @@ export interface UserActionStore {
   readOperationState(operationId: string): Promise<ReadOperationState>;
   /** Reads the retained user operation window, head and oldest revision atomically. */
   readChangeWindow(afterRevision: number, throughRevision: number | null): Promise<ChangeWindow>;
+  /** Reads up to `limit` retained operations below `beforeRevision` (or from the head), newest first, atomically. */
+  readRecentChanges?(beforeRevision: number | null, limit: number): Promise<RecentChangeWindow>;
   readReceipt(operationId: string): Promise<Receipt | null>;
   hasUndo(undoOf: string): Promise<boolean>;
   commit(command: UserCommitRequest): Promise<OperationResult>;

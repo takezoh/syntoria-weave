@@ -8,7 +8,7 @@ async function dispatch(method, params = {}, canWrite = true) {
   return response.body.result;
 }
 
-test('Node MCP exposes one shared UI launcher and the current action resource', async () => {
+test('Node MCP exposes one shared UI launcher, the current action resource and the assigned work resource', async () => {
   const tools = (await dispatch('tools/list')).tools;
   const open = tools.find(tool => tool.name === 'open_actions');
   const list = tools.find(tool => tool.name === 'list_actions');
@@ -19,7 +19,7 @@ test('Node MCP exposes one shared UI launcher and the current action resource', 
   assert.equal(list._meta.ui.resourceUri, open._meta.ui.resourceUri);
 
   const resources = (await dispatch('resources/list')).resources;
-  assert.deepEqual(resources.map(resource => resource.uri), [open._meta.ui.resourceUri,'action-state://current']);
+  assert.deepEqual(resources.map(resource => resource.uri), [open._meta.ui.resourceUri,'action-state://current','action-state://assigned']);
 });
 
 test('Node MCP resource retains HTML identity and bounded host metadata', async () => {
@@ -40,7 +40,7 @@ test('Node MCP publishes the current typed tool and Perspective schemas', async 
   const tools = (await dispatch('tools/list')).tools;
   assert.deepEqual(tools.map(tool => tool.name).sort(), [
     'add_action', 'apply_change', 'capture_intent', 'get_change_cursor', 'get_changes', 'get_relevant_context',
-    'list_actions', 'list_perspectives', 'open_actions', 'operation_status', 'preview_change',
+    'list_actions', 'list_assigned_collaborations', 'list_perspectives', 'list_recent_changes', 'open_actions', 'operation_status', 'preview_change',
     'query_actions', 'query_perspective', 'rename_action', 'undo_change',
     'list_collaborations','get_collaboration','propose_collaboration','update_collaboration',
   ].sort());
@@ -54,6 +54,22 @@ test('Node MCP publishes the current typed tool and Perspective schemas', async 
   assert.equal(tools.find(tool => tool.name === 'capture_intent').inputSchema.properties.title.minLength, 1);
   assert.deepEqual(tools.find(tool => tool.name === 'capture_intent').inputSchema.properties.metadata, {type: 'string', maxLength: 65536});
   assert.deepEqual(tools.find(tool => tool.name === 'add_action').inputSchema.properties.metadata, {type: 'string', maxLength: 65536});
+  for (const name of ['add_action', 'rename_action', 'capture_intent', 'apply_change', 'undo_change']) {
+    const summary = tools.find(tool => tool.name === name).inputSchema.properties.summary;
+    assert.equal(summary.type, 'string');assert.equal(summary.minLength, 1);assert.equal(summary.maxLength, 500);
+    assert.equal(tools.find(tool => tool.name === name).inputSchema.required.includes('summary'), false);
+  }
+  assert.equal(tools.find(tool => tool.name === 'preview_change').inputSchema.properties.summary, undefined);
+  const update = tools.find(tool => tool.name === 'update_collaboration'), propose = tools.find(tool => tool.name === 'propose_collaboration');
+  assert.ok(update.inputSchema.properties.command.enum.includes('assign'));
+  for (const delegation of [update.inputSchema.properties.payload.properties.delegation, propose.inputSchema.properties.delegation]) {
+    assert.deepEqual(delegation.properties.mode.enum, ['any_ai', 'specified_ai']);
+    assert.deepEqual(delegation.required, ['mode']);
+  }
+  assert.equal(tools.find(tool => tool.name === 'list_assigned_collaborations').annotations.readOnlyHint, true);
+  const recent = tools.find(tool => tool.name === 'list_recent_changes');
+  assert.equal(recent.annotations.readOnlyHint, true);
+  assert.deepEqual(recent.inputSchema.properties, {before_revision: {type: 'integer', minimum: 1}, limit: {type: 'integer', minimum: 1, maximum: 50}});
   assert.match(apply.description, /tag_ids/);
   assert.match(apply.description, /one request/);
   assert.match(apply.description, /Notes and metadata are optional exact text fields/);

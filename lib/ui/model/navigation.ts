@@ -2,7 +2,9 @@ import { perspectiveFilter } from '../../domain/core';
 import { evaluatePerspectiveQuery, normalizePerspectiveQuery, perspectiveReferenceIds } from '../../domain/perspective-query';
 import type { PerspectiveFilter, PerspectiveQuery, PerspectiveQueryCondition, ProjectedPerspectiveAction, PerspectiveQueryCatalog } from '../../domain/perspective-query';
 
-export type NavigationView='inbox'|'projects'|'tags'|'flagged'|'history'|'perspective';
+/** `now` and `changes` are review views without an Action outline. */
+export type NavigationView='now'|'inbox'|'projects'|'tags'|'flagged'|'history'|'changes'|'perspective';
+export const REVIEW_VIEWS:readonly NavigationView[]=['now','changes'];
 export type NavigationStatus='active'|'on-hold'|'completed'|'dropped';
 export interface NavigationSettings {classificationId:string;perspectiveId:string|null;includeDescendants:boolean;statuses:NavigationStatus[];includeDeferred:boolean}
 export interface NavigationSelection extends NavigationSettings {view:NavigationView;remembered?:Partial<Record<NavigationView,NavigationSettings>>}
@@ -43,7 +45,7 @@ export function validPerspectiveSnapshot(value:unknown):boolean {
 }
 /** Closed pure factory also embeds unchanged into the self-contained UI resource. */
 export function createNavigationModel(){
- const names:Record<string,string>={inbox:'Inbox',projects:'Projects',tags:'Tags',flagged:'Flagged',history:'History',perspective:'Perspectives'};
+ const names:Record<string,string>={now:'Now',inbox:'Inbox',projects:'Projects',tags:'Tags',flagged:'Flagged',history:'Done & dropped',changes:'Changes',perspective:'Perspectives'};
  function initial(view:NavigationView='inbox'):NavigationSelection{return {view,classificationId:'all',perspectiveId:null,includeDescendants:false,statuses:view==='history'?['completed','dropped']:['active','on-hold'],includeDeferred:false};}
  function settings(current:NavigationSettings):NavigationSettings{return {classificationId:current.classificationId,perspectiveId:current.perspectiveId,includeDescendants:current.includeDescendants,statuses:[...current.statuses],includeDeferred:current.includeDeferred};}
  function select(current:NavigationSelection,patch:Partial<NavigationSelection>):NavigationSelection {
@@ -51,7 +53,7 @@ export function createNavigationModel(){
   if(view!==current.view)remembered[current.view]=settings(current);
   const next={...initial(view),...(view===current.view?current:remembered[view]),...patch,view,remembered};return {...next,statuses:[...next.statuses]};
  }
- function displayOptions(selection:NavigationSelection){return selection.view==='inbox'||selection.view==='perspective'?[]:selection.view==='history'?['completed','dropped']:['active','on-hold','completed','dropped','deferred'];}
+ function displayOptions(selection:NavigationSelection){return selection.view==='inbox'||selection.view==='perspective'||REVIEW_VIEWS.includes(selection.view)?[]:selection.view==='history'?['completed','dropped']:['active','on-hold','completed','dropped','deferred'];}
  function toggleDisplay(selection:NavigationSelection,choice:string):NavigationSelection {if(!displayOptions(selection).includes(choice))return select(selection,{});if(choice==='deferred')return select(selection,{includeDeferred:!selection.includeDeferred});const statuses=['active','on-hold','completed','dropped'].filter(status=>status===choice?!selection.statuses.includes(status as NavigationStatus):selection.statuses.includes(status as NavigationStatus)) as NavigationStatus[];return select(selection,{statuses});}
  function displayFilter(selection:NavigationSelection):NavigationFilter{return {statuses:[...selection.statuses],...(selection.includeDeferred?{}:{is_deferred:false})};}
  function historyNewestFirst(actions:readonly NavigationAction[]):NavigationAction[]{return [...actions].sort((left,right)=>left.updated_at===right.updated_at?(left.id<right.id?-1:left.id>right.id?1:0):left.updated_at>right.updated_at?-1:1);}
@@ -124,7 +126,8 @@ export function createNavigationModel(){
  function present(snapshot:NavigationSnapshot,selection:NavigationSelection){
   const {view,classificationId,perspectiveId,includeDescendants,statuses}=selection;let heading=names[view],summary='',description='',actions:NavigationAction[]=[],unavailable=false;
   const catalog=view==='projects'?snapshot.projects??[]:snapshot.tags??[];const options=view==='projects'?[{id:'all',label:'All projects'},{id:'unassigned',label:'Unassigned'},...catalog.map(item=>({id:item.id,label:item.path??item.name}))]:view==='tags'?[{id:'all',label:'All tags'},{id:'untagged',label:'Untagged'},...catalog.map(item=>({id:item.id,label:item.path??item.name}))]:[];
-  if(view==='inbox'){const ids=new Set(snapshot.list_scopes?.inbox??[]);actions=snapshot.actions.filter(action=>ids.has(action.id));}
+  if(REVIEW_VIEWS.includes(view)){/* Review views present their own content, not an Action list. */}
+  else if(view==='inbox'){const ids=new Set(snapshot.list_scopes?.inbox??[]);actions=snapshot.actions.filter(action=>ids.has(action.id));}
   else if(view==='history'){actions=historyNewestFirst(snapshot.actions.filter(a=>['completed','dropped'].includes(a.status)&&statuses.includes(a.status as NavigationStatus)));}
   else if(view==='perspective'){const saved=snapshot.perspectives?.find(p=>p.id===perspectiveId);if(!saved){heading='Unavailable perspective';summary='This saved view is no longer available. Refresh to check its definition.';unavailable=true;}else{heading=saved.name;description=saved.description??'';const matching=evaluateSavedPerspective(snapshot,saved);if(matching===null){unavailable=true;summary='A referenced classification or definition is unavailable';}else{actions=matching;try{summary=savedPerspectiveSummary(snapshot,saved);}catch{unavailable=true;actions=[];summary='A referenced classification or definition is unavailable';}}}}
   else {

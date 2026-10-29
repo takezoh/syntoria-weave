@@ -108,13 +108,28 @@ export type Snapshot = Readonly<{
   perspectives: readonly Perspective[];
   /** Present only when the store supports the collaboration contract. */
   collaborations?: readonly Collaboration[];
+  /** Present only when the store records provenance. Display data outside the persisted Action DTO, deltas and Undo. */
+  action_provenance?: readonly ActionProvenance[];
+  /** Present only when the store records client names. Unverified names reported by connected clients. */
+  client_names?: readonly ClientName[];
 }>;
+
+/** Who committed an operation: the person in the dedicated app (`user`) or a client connection acting for them (`client`). */
+export type ActorKind = 'user' | 'client';
+/** Provenance only: it never grants, selects or restricts anything. */
+export type ActorRef = Readonly<{ kind: ActorKind; client_id: string | null }>;
+/** The latest known creator and changer of an Action; null when it was saved before provenance was recorded. */
+export type ActionProvenance = Readonly<{ action_id: string; created_by: ActorRef | null; updated_by: ActorRef | null }>;
+/** The display name a client reported at registration, as relayed by the authorization server. Unverified. */
+export type ClientName = Readonly<{ client_id: string; name: string }>;
 
 /** Business decisions and reports; these records never grant external permissions. */
 export type CollaborationActor = Readonly<{kind:'user'|'client';client_id:string;connection_id:string}>;
 export type CollaborationProposal = Readonly<{title:string;instructions:string;scope:string;outcome:string;exclusions:string;source:string}>;
+/** Who should handle the work once it is approved or requested: any AI, or one client. State only; it never restricts writes. */
+export type CollaborationDelegation = Readonly<{mode:'any_ai';client_id:null}|{mode:'specified_ai';client_id:string}>;
 export type Collaboration = Readonly<{
- id:string;action_id:string|null;revision:number;version:number;proposal:CollaborationProposal;
+ id:string;action_id:string|null;revision:number;version:number;proposal:CollaborationProposal;delegation:CollaborationDelegation;
  decision:'pending'|'accepted'|'changes_requested'|'rejected'|'deferred'|'withdrawn';
  progress:'not_started'|'running'|'waiting'|'reported'|'stopped';
  next_actor:'user'|'ai'|'external'|'none';
@@ -142,14 +157,27 @@ export type RetainedOperation = Readonly<{
   undo_of: string | null;
   /** OAuth client that committed the operation; null when the store does not record it. */
   client_id: string | null;
-  /** The person in the Weave app (`user`) or a client connection acting for them (`client`); null when unknown. */
+  /** The person in the dedicated app (`user`) or a client connection acting for them (`client`); null when unknown. */
   actor_kind: 'user' | 'client' | null;
+  /** The caller's own description of the write; null when none was supplied or the store does not record it. */
+  summary: string | null;
+  /** The committing client's current reported name; null when unknown. Unverified display data. */
+  client_name: string | null;
   delta: string;
 }>;
 export type ChangeWindow = Readonly<{
   head_revision: number;
   oldest_revision: number | null;
   operations: readonly RetainedOperation[];
+}>;
+/** Retained operations ending at a revision, newest first, with the receipt result and the operation that undid each one. */
+export type RecentOperation = RetainedOperation & Readonly<{ result: string; undone_by: string | null }>;
+export type RecentChangeWindow = Readonly<{
+  head_revision: number;
+  oldest_revision: number | null;
+  /** The newest revision included in this window. */
+  through_revision: number;
+  operations: readonly RecentOperation[];
 }>;
 export type OperationResolution = Readonly<{
   perspective?: Readonly<{ id: string }>;
@@ -174,4 +202,48 @@ export type UserCommitRequest = Readonly<{
   undoOf: string | null;
   resolved?: OperationResolution;
   collaboration?:Readonly<{command:string;actor:CollaborationActor;record:Collaboration}>;
+  /** The caller's own description of the write, already part of the canonical payload. */
+  summary?: string | null;
 }>;
+
+/** One retained operation as the change feed publishes it: provenance plus persisted before/after DTOs. */
+export type EntityDelta<T> = Readonly<{ before: T | null; after: T | null }>;
+export type ChangeOperation = Readonly<{
+  operation_id: string;
+  revision_before: number;
+  revision_after: number;
+  committed_at: string;
+  undo_of: string | null;
+  /** Provenance only: which OAuth client committed the operation. It never grants access. */
+  client_id: string | null;
+  /** Provenance only: the person in the dedicated app (`user`) or a client connection acting for them (`client`). */
+  actor_kind: 'user' | 'client' | null;
+  /** The caller's own description of the write. A claim to display beside `changes`, never interpreted. */
+  summary: string | null;
+  /** The committing client's current reported name. Unverified display data. */
+  client_name: string | null;
+  changes: Readonly<{
+    actions: readonly EntityDelta<Action>[];
+    projects: readonly EntityDelta<Project>[];
+    tags: readonly EntityDelta<Tag>[];
+    perspectives: readonly EntityDelta<Perspective>[];
+    action_tags: readonly EntityDelta<ActionTag>[];
+  }>;
+}>;
+
+
+/** A retained operation read newest first, with the operation that undid it and its collaboration record, if any. */
+export type RecentChange = ChangeOperation & Readonly<{ undone_by: string | null; collaboration_id: string | null }>;
+export type RecentChangePage = Readonly<{
+  schemaVersion: 2;
+  head_revision: number;
+  oldest_revision: number | null;
+  changes: readonly RecentChange[];
+  /** Pass as before_revision to read older operations; null when no older retained operation exists. */
+  next_before_revision: number | null;
+}>;
+
+/** Whether Undo of a retained operation would currently be accepted; advisory, evaluated at read time. */
+export type UndoAvailability = 'available' | 'conflict' | 'undone' | 'not_undoable';
+/** A recent change as `list_recent_changes` returns it. */
+export type RecentChangeItem = RecentChange & Readonly<{ undo: Readonly<{ status: UndoAvailability }> }>;

@@ -524,7 +524,7 @@ try {
   const retained = await fixture.admin.query('SELECT status FROM state.actions WHERE user_id = $1', ['integration-user']);
   assert.deepEqual(retained.rows.map(row => row.status), ['dropped']);
 
-  const dynamicWrite = {schemaVersion: 2, operationId: randomUUID(), expectedRevision: 2, kind: 'add', payload: {title: 'DCR authorized MCP write'}};
+  const dynamicWrite = {schemaVersion: 2, operationId: randomUUID(), expectedRevision: 2, kind: 'add', payload: {title: 'DCR authorized MCP write'}, summary: 'Saved through the approved MCP connection.'};
   const mcpHeaders = {'content-type': 'application/json', authorization: 'Bearer ' + mcpTokens.access_token};
   const callMcp = (name, args) => apiRequest(apiPort, '/mcp', {
     method: 'POST', headers: mcpHeaders,
@@ -536,6 +536,14 @@ try {
   const dynamicReplayed = await callMcp('apply_change', dynamicWrite);
   assert.equal(dynamicReplayed.status, 200, dynamicReplayed.text);
   assert.equal(json(dynamicReplayed).result.structuredContent.revision, 3, dynamicReplayed.text);
+  // Gate relays the DCR registration name; the service records it and shows it beside the caller's summary.
+  assert.equal((await verification.verifyToken(mcpTokens.access_token)).clientName, 'MCP integration');
+  const dynamicId = json(dynamicSaved).result.structuredContent.result.resolved.actions[0].id;
+  assert.deepEqual(json(dynamicSaved).result.structuredContent.actions.find(action => action.id === dynamicId).created_by, {kind: 'client', client_id: registered.client_id, client_name: 'MCP integration'});
+  const recentReply = await callMcp('list_recent_changes', {limit: 1});
+  assert.equal(recentReply.status, 200, recentReply.text);
+  const recent = json(recentReply).result.structuredContent.changes[0];
+  assert.deepEqual([recent.operation_id, recent.actor_kind, recent.client_id, recent.client_name, recent.summary, recent.undo.status], [dynamicWrite.operationId, 'client', registered.client_id, 'MCP integration', dynamicWrite.summary, 'available']);
   const dynamicUndone = await callMcp('undo_change', {schemaVersion: 2, operationId: randomUUID(), expectedRevision: 3, undoOf: dynamicWrite.operationId});
   assert.equal(dynamicUndone.status, 200, dynamicUndone.text);
   assert.equal(json(dynamicUndone).result.structuredContent.revision, 4, dynamicUndone.text);

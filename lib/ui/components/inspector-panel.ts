@@ -14,6 +14,9 @@ export interface ActionDetailsElements {
   readonly timestamps?: HTMLElement;
   readonly createdTimestamp?: HTMLElement;
   readonly updatedTimestamp?: HTMLElement;
+  readonly createdBy?: HTMLElement;
+  readonly updatedBy?: HTMLElement;
+  readonly statusHint?: HTMLElement;
   readonly flagged: HTMLButtonElement;
   readonly statusChoices: readonly HTMLButtonElement[];
   readonly text: {
@@ -151,6 +154,15 @@ export function ActionDetails(props: ActionDetailsProps): void {
   if (elements.timestamps) elements.timestamps.hidden = !view.timestamps;
   if (elements.createdTimestamp) elements.createdTimestamp.textContent = view.timestamps?.created || '—';
   if (elements.updatedTimestamp) elements.updatedTimestamp.textContent = view.timestamps?.updated || '—';
+  for (const [node, text] of [[elements.createdBy, view.provenance.created], [elements.updatedBy, view.provenance.updated]] as const) {
+    if (!node) continue;
+    node.hidden = !text;
+    node.textContent = text ?? '';
+  }
+  if (elements.statusHint) {
+    elements.statusHint.hidden = !view.statusHint;
+    elements.statusHint.textContent = view.statusHint;
+  }
   elements.dateSummary.textContent = view.dateSummary;
   elements.releaseControls.replaceChildren();
   for (const release of view.releases) {

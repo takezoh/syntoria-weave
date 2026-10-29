@@ -29,9 +29,13 @@ lib/ui/
 ├── client.ts                         composition root
 ├── ports.ts                          host, ID, and message effect contracts
 ├── application/
+│   ├── changes.ts                    recent-change reads and the review mark for review views
 │   └── controller.ts                 state transitions, normalization, orchestration
 ├── components/
+│   ├── change-cards.ts               keyed change cards with claims, lines and Undo
+│   ├── changes-panel.ts              Changes view rendering from typed feed data
 │   ├── inspector-panel.ts            inspector rendering from typed view data
+│   ├── now-panel.ts                  Now view rendering: capture, attention, digest, flags, deadlines
 │   ├── rich-text.ts                  Title/Notes rich text rendering from typed nodes
 │   └── outline-list.ts               outline rendering from typed row data
 ├── effects/
@@ -39,12 +43,14 @@ lib/ui/
 │   ├── dom.d.ts                      DOM adapter type boundary
 │   ├── dom.js                        generated-resource DOM events and rendering
 │   ├── host.ts                       trusted bidirectional transport and display-mode adapter
+│   ├── review-mark.ts                browser-storage review mark with in-memory fallback
 │   ├── tool-client.ts                tool request/response adapter
 │   └── verification.ts               response-discard verification adapter
 └── model/
     ├── autosave.ts                   pure save planning and acknowledgment
     ├── catalog-drafts.ts             pure Project/Tag draft state
     ├── catalog-tree.ts               pure catalog occurrence projection
+    ├── changes.ts                    pure change descriptions, filters, review counts and Undo reasons
     ├── controls.ts                   pure control availability decisions
     ├── date-input.ts                 pure calendar/date input decisions
     ├── display.ts                    pure display and host-context data
@@ -54,6 +60,7 @@ lib/ui/
     ├── interaction.ts                pure typed occurrence selection and interaction state
     ├── movement.ts                   pure movement decisions and indexes
     ├── navigation.ts                 pure view and picker navigation
+    ├── now.ts                        pure Now flags, deadlines and capture titles
     ├── operations.ts                 pure operation, recovery, and committed completion feedback
     ├── picker.ts                     pure picker filtering and ranking
     ├── presentation.ts               pure text and presentation helpers
@@ -97,4 +104,17 @@ The UI displays acceptance as requested/not started until a start report arrives
 
 UI model/application modules may use type-only imports from `lib/data/types.ts`. Dependency lint still rejects runtime data imports and storage/adapter imports; fixtures exercise both the allowed type boundary and forbidden effects.
 
-Proposal cards show up to three retained alternatives for the selected Action, including cancelled approvals. Approving a card selects it; other approval controls are unavailable until cancellation and unresolved-run reconciliation. There is no rejection button. Direct editing retains all six proposal fields in controller state with the original version. Save explicitly clears approval; conflicting refreshes preserve unsaved fields. Components retain keyed editor nodes and never create drafts during rendering. Remote MCP notifications concern connected AI clients; the SPA continues to use its existing shared controller paths.
+Each card states who handles the work (the person until approval, then any AI or the specified AI) and who started it, and lets the person change the delegation target among any AI and the clients the snapshot names; the change is sent as one `assign` write through the controller lane. Proposal cards show up to three retained alternatives for the selected Action, including cancelled approvals. Approving a card selects it; other approval controls are unavailable until cancellation and unresolved-run reconciliation. There is no rejection button. Direct editing retains all six proposal fields in controller state with the original version. Save explicitly clears approval; conflicting refreshes preserve unsaved fields. Components retain keyed editor nodes and never create drafts during rendering. Remote MCP notifications concern connected AI clients; the SPA continues to use its existing shared controller paths.
+
+## Views by intent and change review
+
+The widget lands on Now. Navigation lists Now, Inbox, Flagged, Projects, Tags, Changes and Done & dropped, plus saved perspectives, in the header menu and in a view rail: a column beside the list on wide layouts and a horizontal strip on narrow ones. Now and Changes are review views without an Action outline; the outline's selection and movement controls are hidden there, while save status, unknown-outcome recovery, retained proposals and the inspector stay available.
+
+Now shows, from the confirmed snapshot and an explicit read time: a capture box that saves through `capture_intent` with the first visible line as the title and the exact text as Notes; collaboration records waiting on the person (questions, proposals, reported results, unverified outcomes and pending stops for unfinished Actions), rendered by the shared collaboration panel; the latest changes by AI and connected apps; flagged normal-view Actions; and unfinished Actions whose deadline passed or falls within seven days, in date order. Nothing is ranked or hidden. The capture text is view state retained until its save is confirmed; an unknown outcome keeps it and the exact request.
+
+Changes reads `list_recent_changes` through `application/changes.ts`, which reloads only while a review view is visible and the confirmed revision changed, ignores responses to superseded requests and keeps the last confirmed list when a reload fails. `model/changes.ts` turns persisted before/after records into plain-language lines, shows the writer's summary as its claim, filters by the person or connections, groups by local day and explains unavailable Undo. Undo of a listed save goes through the controller's serialized write lane with exact unknown-outcome recovery.
+
+The review mark is the newest revision the person marked as reviewed. `effects/review-mark.ts` keeps it in browser storage, falling back to memory when storage is absent or throws, as in sandboxed host frames. It is per browser and is never sent to the server. A mark beyond the loaded head is ignored as belonging to another account or timeline. Connection changes after the mark count as new.
+
+The inspector labels lifecycle choices Open, Waiting, Done and Dropped with a short explanation of the chosen state, names Defer "Hide until" and Due "Deadline" with quick dates that feed the existing date inputs, labels Notes as kept exactly as written, and shows who added and last changed the Action when the snapshot carries provenance.
+

@@ -27,7 +27,7 @@ export async function grantRuntime(pool:Pool,role:string,{collaboration=true}:{c
  // Identifiers are closed by the role-name grammar; values never become SQL identifiers.
  await pool.query(`GRANT USAGE ON SCHEMA state,identity TO "${role}"`);
  await pool.query(`GRANT SELECT,INSERT,UPDATE,DELETE ON state.actions,state.projects,state.tags,state.action_tags,state.catalog_identity_ledger,state.perspectives TO "${role}"`);
- if(collaboration){await pool.query(`GRANT SELECT,INSERT,UPDATE,DELETE ON state.mcp_subscriptions TO "${role}"`);await pool.query(`GRANT SELECT,INSERT,UPDATE ON state.collaborations TO "${role}"`);await pool.query(`GRANT SELECT,INSERT ON state.collaboration_history TO "${role}"`);}
+ if(collaboration){await pool.query(`GRANT SELECT,INSERT,UPDATE,DELETE ON state.mcp_subscriptions TO "${role}"`);await pool.query(`GRANT SELECT,INSERT,UPDATE ON state.collaborations TO "${role}"`);await pool.query(`GRANT SELECT,INSERT,UPDATE ON state.client_names TO "${role}"`);await pool.query(`GRANT SELECT,INSERT ON state.collaboration_history TO "${role}"`);}
  await pool.query(`GRANT SELECT,INSERT,DELETE ON state.operations TO "${role}"`);
  await pool.query(`GRANT SELECT ON identity.subjects,public.schema_migrations TO "${role}"`);
  await pool.query(`GRANT SELECT,INSERT,UPDATE,DELETE ON identity.sessions,identity.login_attempts TO "${role}"`);
@@ -43,7 +43,7 @@ export async function checkRuntime(pool:Pool) {
  const capacity=(await pool.query('SHOW max_connections')).rows[0].max_connections;if(Number(capacity)<64)throw new Error('Database connection capacity must be at least 64.');
  if(owned.rowCount)throw new Error('Runtime role must not own application tables.');
  const schema=await pool.query("SELECT version FROM public.schema_migrations ORDER BY version");
- if(schema.rows.map(row=>row.version).filter(version=>version!=='0007_action_metadata_text.sql').join(',')!=='0001_state.sql,0002_user_identity.sql,0003_gate_sessions.sql,0004_subject_only_identity.sql,0005_operation_client_provenance.sql,0006_operation_actor_kind.sql,0007_collaboration.sql,0008_mcp_subscriptions.sql,0009_application_user_scope.sql')throw new Error('Incompatible schema version.');
+ if(schema.rows.map(row=>row.version).filter(version=>version!=='0007_action_metadata_text.sql').join(',')!=='0001_state.sql,0002_user_identity.sql,0003_gate_sessions.sql,0004_subject_only_identity.sql,0005_operation_client_provenance.sql,0006_operation_actor_kind.sql,0007_collaboration.sql,0008_mcp_subscriptions.sql,0009_application_user_scope.sql,0010_change_review.sql,0011_collaboration_delegation.sql')throw new Error('Incompatible schema version.');
 }
 export async function grantExport(pool:Pool,role:string) {
  if(!/^[a-z][a-z0-9_]{0,62}$/.test(role))throw new Error('Invalid role identifier.');

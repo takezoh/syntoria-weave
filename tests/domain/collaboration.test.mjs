@@ -67,3 +67,27 @@ test('three retained proposals, one approval, cancellation preserves proposal, a
  const again=move(cancelled,'accept');assert.equal(again.decision,'accepted');
  const edited=move(again,'revise',{proposal:{...proposal,scope:'A user correction'}});assert.equal(edited.version,2);assert.equal(edited.decision,'pending');assert.equal(edited.proposal.scope,'A user correction');
 });
+
+test('delegation is separate mode and client state that anyone may change and that never restricts a start',async()=>{
+ const {collaborationHandler,assignmentReason,persistedCollaboration}=await import('../../lib/domain/collaboration.ts');
+ const record=created();assert.deepEqual(record.delegation,{mode:'any_ai',client_id:null});assert.deepEqual(collaborationHandler(record),{kind:'person'},'unapproved work stays with the person');
+ const specified=createCollaboration(snapshot,id(2),id(1),proposal,now,{mode:'specified_ai',client_id:'claude-client'});
+ assert.deepEqual(specified.delegation,{mode:'specified_ai',client_id:'claude-client'});
+ for(const invalid of [{mode:'specified_ai'},{mode:'specified_ai',client_id:''},{mode:'specified_ai',client_id:'two words'},{mode:'any_ai',client_id:'x'},{mode:'any'},'any_ai',{mode:'any_ai',client_id:null,extra:1}])assert.throws(()=>createCollaboration(snapshot,id(2),id(1),proposal,now,invalid),e=>e.code==='invalid_input');
+ const accepted=move(specified,'accept');assert.deepEqual(accepted.delegation,specified.delegation,'acceptance keeps the target unless it supplies one');
+ assert.deepEqual(collaborationHandler(accepted),{kind:'specified_ai',client_id:'claude-client'});
+ assert.deepEqual(move(record,'accept',{delegation:{mode:'specified_ai',client_id:'chatgpt-client'}}).delegation,{mode:'specified_ai',client_id:'chatgpt-client'});
+ const started=move(accepted,'start');assert.equal(started.progress,'running');assert.equal(started.run_actor.client_id,'example-client','another client may start work specified for someone else');
+ const reassigned=transitionCollaboration(snapshot,started,'assign',{version:1,delegation:{mode:'any_ai'}},{kind:'client',client_id:'third-client',connection_id:'c3'},now);
+ assert.deepEqual(reassigned.delegation,{mode:'any_ai',client_id:null});assert.equal(reassigned.progress,'running');assert.deepEqual(reassigned.run_actor,started.run_actor);
+ assert.throws(()=>move(record,'assign'),e=>e.code==='invalid_input');assert.throws(()=>move(record,'assign',{delegation:{mode:'any_ai'},version:2}),e=>e.code==='conflict');
+ assert.equal(move(record,'revise',{proposal:{...proposal,scope:'Narrower'}}).delegation,record.delegation);
+ const stored=JSON.parse(JSON.stringify(accepted));assert.deepEqual(persistedCollaboration(stored),stored);
+ const {delegation,...missing}=stored;assert.equal(delegation.mode,'specified_ai');assert.throws(()=>persistedCollaboration(missing),e=>e.code==='invalid_state');
+ for(const bad of [{mode:'any_ai'},{mode:'specified_ai',client_id:null},{mode:'all'}])assert.throws(()=>persistedCollaboration({...stored,delegation:bad}),e=>e.code==='invalid_state');
+ const me={kind:'client',client_id:'claude-client',connection_id:'claude-1'},other={kind:'client',client_id:'other-client',connection_id:'other-1'},person={kind:'user',client_id:'app',connection_id:'app-1'};
+ assert.equal(assignmentReason(accepted,me,'active'),'assigned_to_you');assert.equal(assignmentReason(accepted,other,'active'),null);
+ const open=move(record,'accept');assert.equal(assignmentReason(open,other,'active'),'open_to_any_ai');assert.equal(assignmentReason(open,other,'completed'),null);assert.equal(assignmentReason(move(open,'start'),other,'active'),null);
+ const mine=transitionCollaboration(snapshot,open,'start',{version:1},other,now,id(5));assert.equal(assignmentReason(mine,other,'active'),'your_run');assert.equal(assignmentReason(mine,{...other,connection_id:'other-2'},'active'),null);
+ assert.equal(assignmentReason(record,person,'active'),'waiting_on_you');assert.equal(assignmentReason(record,other,'active'),null);assert.equal(assignmentReason(open,person,'active'),null);
+});

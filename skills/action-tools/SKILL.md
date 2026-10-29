@@ -29,6 +29,8 @@ Actions have containment only. Order never blocks execution; flags are direct bo
 - Retain the exact tool name, operation ID and complete arguments until the outcome is known. On a missing response, use `operation_status` or resend identically. Never substitute a new ID or revision for an unknown-result retry.
 - On an explicit revision conflict, keep the proposal, reread and reconcile it with later corrections before submitting a new operation. Seek consent when reconciliation would erase later corrections; ordinary authorized edits need no extra approval ceremony.
 - After a confirmed write, inspect current state before reporting the saved result. A replay receipt describes an earlier operation and can accompany a newer snapshot.
+- Add a short `summary` to writes: one sentence in the user's terms saying what the change does and why, for example which message it came from. The user reviews it beside the actual saved changes, so never claim more than the write changes. It is part of the request: an unknown-result retry repeats it exactly.
+- To review recent changes, read `list_recent_changes` (newest first, with `undo.status`). It never marks changes as reviewed by the person.
 - Use `undo_change` for an explicit Undo. Refuse to erase later corrections after an Undo conflict. Operations are retained per user for 30 days, always the latest 100 and never more than the latest 5000; `not_observed` is not proof that an unknown write failed.
 
 Use `open_actions` for the shared UI. Opening the UI or retrieving schemas does not itself save a change.

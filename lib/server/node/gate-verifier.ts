@@ -1,5 +1,6 @@
 import process from 'node:process';
 import { Buffer } from 'node:buffer';
+import { validClientName } from '../../data/model/client-name';
 
 /** Online authorization: accepted credentials are never cached across requests. */
 export interface GatePrincipal {
@@ -7,6 +8,8 @@ export interface GatePrincipal {
   readonly userId: string;
   readonly connectionId: string;
   readonly clientId: string;
+  /** The client's unverified registration name, when Gate relays a valid one; display only. */
+  readonly clientName?: string | null;
 }
 
 export interface GateSessionPrincipal extends GatePrincipal {
@@ -167,7 +170,9 @@ export function createGateVerifier(config: GateConfig, dependencies: GateDepende
       if (!Array.isArray(audiences) || audiences.length === 0 || !audiences.every(nonempty) || !audiences.includes(audience)) {
         throw new GateError(401);
       }
-      return Object.freeze({ issuer, userId: data.sub, connectionId: data.connection_id, clientId });
+      // An absent or malformed display name never affects authorization.
+      const clientName = validClientName(data.client_name) ? data.client_name : null;
+      return Object.freeze({ issuer, userId: data.sub, connectionId: data.connection_id, clientId, clientName });
     }
     try { return await Promise.race([authorize(), timeout]); }
     catch (error) { throw error instanceof GateError ? error : new GateError(503); }

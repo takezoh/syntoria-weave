@@ -17,3 +17,5 @@ export interface HostPort {
  dispose(): void;
 }
 export interface IdPort {next(): string}
+/** Where this browser keeps the person's review mark: the newest revision they marked as reviewed. */
+export interface ReviewMarkPort {read(): number|null; write(revision: number): void}

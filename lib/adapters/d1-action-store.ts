@@ -42,8 +42,8 @@ async function operationState(db:D1Database,user:string,operationId:string):Prom
 async function changeWindow(db:D1Database,user:string,afterRevision:number,throughRevision:number|null):Promise<ChangeWindow> {
  // The head, retention boundary and selected receipts share one D1 read batch.
  const operationQuery=throughRevision===null
-  ?db.prepare('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,NULL AS client_id,NULL AS actor_kind,delta FROM operations WHERE owner=? AND revision_after>? ORDER BY revision_after ASC LIMIT 101').bind(user,afterRevision)
-  :db.prepare('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,NULL AS client_id,NULL AS actor_kind,delta FROM operations WHERE owner=? AND revision_after>? AND revision_after<=? ORDER BY revision_after ASC LIMIT 101').bind(user,afterRevision,throughRevision);
+  ?db.prepare('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,NULL AS client_id,NULL AS actor_kind,NULL AS summary,NULL AS client_name,delta FROM operations WHERE owner=? AND revision_after>? ORDER BY revision_after ASC LIMIT 101').bind(user,afterRevision)
+  :db.prepare('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,NULL AS client_id,NULL AS actor_kind,NULL AS summary,NULL AS client_name,delta FROM operations WHERE owner=? AND revision_after>? AND revision_after<=? ORDER BY revision_after ASC LIMIT 101').bind(user,afterRevision,throughRevision);
  const rows=await db.batch([
   db.prepare('SELECT COALESCE(MAX(revision_after),0) AS revision FROM operations WHERE owner=?').bind(user),
   db.prepare('SELECT MIN(revision_after) AS revision FROM operations WHERE owner=?').bind(user),
