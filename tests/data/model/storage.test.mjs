@@ -5,7 +5,7 @@ import { assertBoundJson, decodeSnapshotRows, OPERATION_HISTORY, operationPruneT
 const uuid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const now = '2026-10-14T09:00:00.000Z';
 const empty = revision => ({ revision, catalog_identity_ledger: [], actions: [], projects: [], tags: [], action_tags: [], perspectives: [] });
-const action = (id, title) => ({ id, title, revision: 1, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: '', order: 0, flagged: false, created_at: now, updated_at: now });
+const action = (id, title) => ({ id, title, revision: 1, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: '', metadata: '', order: 0, flagged: false, created_at: now, updated_at: now });
 
 function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

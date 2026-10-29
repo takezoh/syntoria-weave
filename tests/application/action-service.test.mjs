@@ -16,6 +16,29 @@ test('action IDs are generated separately from operation IDs and preview does no
  const before=await store.readSnapshot('A');await actionCall(p,'A','preview_change',{expectedRevision:1,kind:'edit',payload:{id:actionId,title:'draft'}});assert.deepEqual(await store.readSnapshot('A'),before);assert.equal(commits,1);
 });
 
+test('metadata crosses API create/read/edit, exact replay and Undo without changing Notes',async()=>{
+ const store=memoryActionStore(),p=ports(store,[uuid(2)]),note='human input\0\ud800',metadata='caller state\n\udfff';
+ const request={schemaVersion:2,operationId:uuid(1),expectedRevision:0,kind:'add',payload:{title:'Separate fields',notes:note,metadata}};
+ const created=await actionCall(p,'A','apply_change',request),id=created.result.resolved.actions[0].id;
+ assert.equal(created.actions[0].notes,note);assert.equal(created.actions[0].metadata,metadata);
+ const cleared=await actionCall(p,'A','apply_change',{schemaVersion:2,operationId:uuid(3),expectedRevision:1,kind:'edit',payload:{id,metadata:''}});
+ assert.equal(cleared.actions[0].metadata,'');assert.equal(cleared.actions[0].notes,note);
+ await actionCall(p,'A','undo_change',{schemaVersion:2,operationId:uuid(4),expectedRevision:2,undoOf:uuid(3)});
+ const noteEdit=await actionCall(p,'A','apply_change',{schemaVersion:2,operationId:uuid(5),expectedRevision:3,kind:'edit',payload:{id,notes:'updated human text'}});
+ assert.equal(noteEdit.actions[0].metadata,metadata);assert.equal(noteEdit.actions[0].notes,'updated human text');
+ const replay=await actionCall(p,'A','apply_change',request);
+ assert.deepEqual(replay.actions[0],noteEdit.actions[0]);assert.equal(replay.result.operationId,request.operationId);
+ const target=await actionCall(p,'A','apply_change',{schemaVersion:2,operationId:uuid(6),expectedRevision:4,kind:'edit',payload:{id,metadata:'first correction'}});
+ await actionCall(p,'A','apply_change',{schemaVersion:2,operationId:uuid(7),expectedRevision:5,kind:'edit',payload:{id,metadata:'later correction'}});
+ await assert.rejects(actionCall(p,'A','undo_change',{schemaVersion:2,operationId:uuid(8),expectedRevision:6,undoOf:target.result.operationId}),error=>error.code==='undo_conflict');
+ const shortcut=await actionCall(p,'A','add_action',{schemaVersion:2,request_id:uuid(9),expected_revision:6,title:'Shortcut',metadata:'shortcut metadata'});
+ assert.equal(shortcut.actions.at(-1).metadata,'shortcut metadata');assert.equal(shortcut.actions.at(-1).notes,'');
+ const captured=await actionCall(p,'A','capture_intent',{schemaVersion:2,operationId:uuid(10),expectedRevision:7,title:'Captured',text:'raw human input',metadata:'captured metadata'});
+ assert.equal(captured.actions.find(action=>action.id===captured.result.resolved.actions[0].id).notes,'raw human input');
+ assert.equal(captured.actions.find(action=>action.id===captured.result.resolved.actions[0].id).metadata,'captured metadata');
+ assert.equal((await actionCall(p,'B','list_actions',{})).actions.length,0);
+});
+
 test('new entity IDs cannot be supplied by callers and validation precedes generation',async()=>{
  const store=memoryActionStore(),p=ports(store,[uuid(2)]);
  await assert.rejects(actionCall(p,'A','apply_change',{schemaVersion:2,operationId:uuid(1),expectedRevision:0,kind:'add',payload:{id:uuid(9),title:'action'}}),e=>e.code==='invalid_input');

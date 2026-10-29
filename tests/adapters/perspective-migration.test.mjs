@@ -23,7 +23,7 @@ test('perspective migration preserves populated action/catalog/receipt/identity 
  const pid=crypto.randomUUID();for(const user of ['A','B'])sql.prepare('INSERT INTO perspectives VALUES(?,?,?,?,?,?,?,?)').run(user,pid,user+' view','{}',1,1,now,now);
  assert.throws(()=>sql.prepare('INSERT INTO perspectives VALUES(?,?,?,?,?,?,?,?)').run('A',pid,'Duplicate','{}',1,1,now,now),/UNIQUE/);
  for(const [filter,version] of [['[]',1],['invalid',1],['{}',2]])assert.throws(()=>sql.prepare('INSERT INTO perspectives VALUES(?,?,?,?,?,?,?,?)').run('A',crypto.randomUUID(),'Bad',filter,version,1,now,now));
- sql.exec(readFileSync('drizzle/0011_catalog_descriptions.sql','utf8'));sql.exec(readFileSync('drizzle/0013_project_order.sql','utf8'));sql.exec(readFileSync('drizzle/0016_tag_order.sql','utf8'));
+ sql.exec(readFileSync('drizzle/0011_catalog_descriptions.sql','utf8'));sql.exec(readFileSync('drizzle/0013_project_order.sql','utf8'));sql.exec(readFileSync('drizzle/0016_tag_order.sql','utf8'));sql.exec(readFileSync('drizzle/0018_action_metadata.sql','utf8'));
  const store=createD1ActionStore(fixture.db),ports={store,clock:()=>now,newId:()=>crypto.randomUUID()};
  assert.equal((await actionCall(ports,'A','query_perspective',{id:pid})).perspective.name,'A view');assert.equal((await actionCall(ports,'B','query_perspective',{id:pid})).perspective.name,'B view');
  const baseline=await actionCall(ports,'A','get_change_cursor',{}),legacyRequest={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:1,kind:'perspective_edit',payload:{id:pid,name:'Version one edit'}};

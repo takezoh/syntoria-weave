@@ -13,6 +13,7 @@ export type Action = Readonly<{
   due_at: string | null;
   defer_until: string | null;
   notes: string;
+  metadata: string;
   order: number;
   flagged: boolean;
   created_at: string;

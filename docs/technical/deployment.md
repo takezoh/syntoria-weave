@@ -46,6 +46,8 @@ Rotate runtime DB passwords under WRITE_MODE=blocked: drain requests, stop/resta
 
 Run migrations once as a Cloud Run job using the same immutable release image but a separate migrator identity/DB role. Protect the checksummed `schema_migrations` journal with a transaction advisory migration lock. Ordinary transactional DDL and journal updates commit together. For a nontransactional operation, declare its separate guarded step and recovery state explicitly; do not mark it complete on partial failure. API startup checks its supported schema range and fails readiness on incompatibility; scale-out never runs migrations.
 
+The PostgreSQL migration role must have `BYPASSRLS` or superuser status for migrations that update retained rows in FORCE-RLS state tables. Migration 0007 checks this before changing the schema/history and aborts transactionally when the role cannot see all operation deltas. Keep this privilege on the dedicated migrator identity; the runtime role must remain unable to bypass RLS. Logical transfer is version 6 after migration 0007: imports reject version 5 exports. Re-export from the migrated source before transferring data, then verify metadata and retained deltas before opening writes on the target.
+
 Use additive expand/contract releases when revisions overlap. Schema removal follows verification that no serving revision depends on removed objects. Release concurrency is one per environment. Do not automatically reverse a schema migration when rolling back an image. Database constraints, encoded text values and identity grants are part of compatibility testing.
 
 ## Initial data cutover

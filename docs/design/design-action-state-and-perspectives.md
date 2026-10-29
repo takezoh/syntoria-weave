@@ -54,7 +54,7 @@ Project/tag classification is separate from action containment. A project hierar
 
 ## State and perspectives
 
-Lifecycle is active/on-hold/completed/dropped. Original unresolved input is an ordinary action retaining the caller's title and raw notes; saving does not manufacture an execution commitment. Inbox is unfinished project-unassigned actions, including deferred ones. Waiting is explicit on-hold, not a prerequisite-derived projection.
+Lifecycle is active/on-hold/completed/dropped. Original unresolved input is an ordinary action retaining the caller's title and raw notes; caller-managed operational data uses separate exact-text metadata returned through API/MCP but omitted from UI Action Detail. Saving does not manufacture an execution commitment. Inbox is unfinished project-unassigned actions, including deferred ones. Waiting is explicit on-hold, not a prerequisite-derived projection.
 
 Defer determines temporary visibility on read; Due is a deadline. Neither is a planned-work date. Date-only Defer resolves 09:00 in the explicit client timezone to a durable UTC instant. Expiry does not rewrite state or reopen work.
 

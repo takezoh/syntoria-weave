@@ -5,7 +5,7 @@ import { finalizeChange, normalizeChange } from '../../../lib/data/model/request
 const uuid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const inboxId = uuid(1);
 const now = '2026-10-14T09:00:00.000Z';
-const inbox = { id: inboxId, title: 'Inbox', revision: 1, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: '', order: 0, flagged: false, created_at: now, updated_at: now };
+const inbox = { id: inboxId, title: 'Inbox', revision: 1, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: '', metadata: '', order: 0, flagged: false, created_at: now, updated_at: now };
 const snapshot = { revision: 0, catalog_identity_ledger: [], actions: [inbox], projects: [], tags: [], action_tags: [], perspectives: [] };
 
 function deepFreeze(value) {
@@ -25,8 +25,16 @@ test('normalization is deterministic and leaves frozen request and snapshot valu
   assert.equal(first.idSlots, 1);
   assert.equal(first.change.payload.title, 'Keep title');
   assert.equal(first.change.payload.notes, '  raw\ntext  ');
+  assert.equal(Object.hasOwn(first.change.payload, 'metadata'), false);
   assert.deepEqual(request.payload, { title: '  Keep title  ', notes: '  raw\ntext  ', tag_ids: [] });
   assert.equal(state.actions[0].title, 'Inbox');
+});
+
+test('add and structure normalization preserves explicit metadata independently from notes',()=>{
+ const add=normalizeChange(snapshot,{kind:'add',payload:{title:'Action',notes:'human',metadata:'operations'}});
+ assert.equal(add.change.payload.notes,'human');assert.equal(add.change.payload.metadata,'operations');
+ const structure=normalizeChange(snapshot,{kind:'structure_create',payload:{inbox_action_id:inboxId,actions:[{ref:'inbox',title:'Inbox',metadata:'first'},{ref:'new',title:'New',metadata:'second'}]}});
+ assert.equal(structure.change.payload.actions[0].metadata,'first');assert.equal(structure.change.payload.actions[1].metadata,'second');
 });
 
 test('explicit finalization resolves generated slots while preserving forward refs and first-ref Inbox reuse', () => {

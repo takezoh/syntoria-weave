@@ -7,7 +7,7 @@ async function receipt(db:D1Database,user:string,operationId:string){return db.p
 function snapshotStatements(db:D1Database,user:string) {
  return [
   db.prepare('SELECT COALESCE(MAX(revision_after),0) AS revision FROM operations WHERE owner=?').bind(user),
-  db.prepare('SELECT id,title,revision,parent_id,project_id,status,due_at,defer_until,notes,"order",flagged,created_at,updated_at FROM actions WHERE owner=?').bind(user),
+  db.prepare('SELECT id,title,revision,parent_id,project_id,status,due_at,defer_until,notes,metadata,"order",flagged,created_at,updated_at FROM actions WHERE owner=?').bind(user),
   db.prepare('SELECT id,name,description,parent_id,"order",revision,created_at,updated_at FROM projects WHERE owner=?').bind(user),
   db.prepare('SELECT id,name,description,parent_id,"order",revision,created_at,updated_at FROM tags WHERE owner=?').bind(user),
   db.prepare('SELECT action_id,tag_id,revision FROM action_tags WHERE owner=?').bind(user),
@@ -56,7 +56,7 @@ async function changeWindow(db:D1Database,user:string,afterRevision:number,throu
 
 /** Closed, immutable table descriptors. Callers cannot supply table, column or key identifiers. */
 const TABLES={
- actions:{name:'actions',columns:['id','title','revision','parent_id','project_id','status','due_at','defer_until','notes','order','flagged','created_at','updated_at'],keys:['id']},
+ actions:{name:'actions',columns:['id','title','revision','parent_id','project_id','status','due_at','defer_until','notes','metadata','order','flagged','created_at','updated_at'],keys:['id']},
  projects:{name:'projects',columns:['id','name','description','parent_id','order','revision','created_at','updated_at'],keys:['id']},
  tags:{name:'tags',columns:['id','name','description','parent_id','order','revision','created_at','updated_at'],keys:['id']},
  perspectives:{name:'perspectives',columns:['id','name','description','filter','definition_version','revision','created_at','updated_at'],keys:['id']},

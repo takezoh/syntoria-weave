@@ -1,7 +1,7 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {change,actionMoveEdits,orderedActions} from '../../lib/domain/core.ts';import {delta,undo,preview} from '../../lib/domain/operations.ts';
 const now='2026-10-03T00:00:00.000Z',uid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const row=(n,p={})=>({id:uid(n),title:'Action '+n,notes:' exact\n日本語 ',revision:1,status:'active',parent_id:null,project_id:null,due_at:null,defer_until:null,order:n,flagged:false,created_at:now,updated_at:now,...p});
+const row=(n,p={})=>({id:uid(n),title:'Action '+n,notes:' exact\n日本語 ',metadata:'',revision:1,status:'active',parent_id:null,project_id:null,due_at:null,defer_until:null,order:n,flagged:false,created_at:now,updated_at:now,...p});
 const snapshot=actions=>({revision:5,actions,projects:[],tags:[],action_tags:[],catalog_identity_ledger:[],perspectives:[]});
 const move=(s,ids,placement,anchor)=>change(s,{kind:'action_move',payload:{ids:ids.map(uid),placement,...(anchor===undefined?{}:{anchor_id:uid(anchor)})}},now);
 test('move bundle uses explicit input order and full hidden siblings, preserving source gaps and untouched values',()=>{

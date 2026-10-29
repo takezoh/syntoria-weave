@@ -19,14 +19,15 @@ function timestamp(value: unknown): string {
 /** Select only the current persisted Action columns and apply their domain validators. */
 export function persistedAction(value: unknown): Action {
   const row = object(value);
-  requireFields(row, ['id', 'title', 'revision', 'parent_id', 'project_id', 'status', 'due_at', 'defer_until', 'notes', 'order', 'flagged', 'created_at', 'updated_at']);
+  requireFields(row, ['id', 'title', 'revision', 'parent_id', 'project_id', 'status', 'due_at', 'defer_until', 'notes', 'metadata', 'order', 'flagged', 'created_at', 'updated_at']);
   if (!['active', 'on-hold', 'completed', 'dropped'].includes(String(row.status))) fail('invalid_state', 'Persisted Action status is invalid.');
   const dueAt = instant(row.due_at), deferUntil = instant(row.defer_until);
   if (typeof row.notes !== 'string') fail('invalid_state', 'Persisted Action notes are invalid.');
+  if (typeof row.metadata !== 'string' || row.metadata.length > 65536) fail('invalid_state', 'Persisted Action metadata is invalid.');
   return {
     id: id(row.id), title: actionTitle(row.title), revision: integer(row.revision),
     parent_id: nullableId(row.parent_id), project_id: nullableId(row.project_id), status: row.status as Action['status'],
-    due_at: dueAt, defer_until: deferUntil, notes: row.notes, order: actionOrder(row.order), flagged: booleanFlag(row.flagged),
+    due_at: dueAt, defer_until: deferUntil, notes: row.notes, metadata: row.metadata, order: actionOrder(row.order), flagged: booleanFlag(row.flagged),
     created_at: timestamp(row.created_at), updated_at: timestamp(row.updated_at),
   };
 }

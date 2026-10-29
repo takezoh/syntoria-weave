@@ -8,7 +8,7 @@ import {verifyPrincipal,type Principal} from '../../server/node/principal';
 
 type Row=Record<string,unknown>;
 const tables={
- actions:{columns:['id','title','revision','parent_id','project_id','status','due_at','defer_until','notes','order','flagged','created_at','updated_at'],keys:['id'],text:['title','notes']},
+ actions:{columns:['id','title','revision','parent_id','project_id','status','due_at','defer_until','notes','metadata','order','flagged','created_at','updated_at'],keys:['id'],text:['title','notes','metadata']},
  projects:{columns:['id','name','description','parent_id','order','revision','created_at','updated_at'],keys:['id'],text:['name','description']},
  tags:{columns:['id','name','description','parent_id','order','revision','created_at','updated_at'],keys:['id'],text:['name','description']},
  perspectives:{columns:['id','name','description','filter','definition_version','revision','created_at','updated_at'],keys:['id'],text:['name','description']},
