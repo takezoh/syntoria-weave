@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-29T05:39:01.248Z",
+  "results": [
+    {
+      "scenario": "Public SPA without a session shows Sign in",
+      "pass": true
+    },
+    {
+      "scenario": "Public workspace default View, Edit/Done, structured notes, proposal retention",
+      "width": 390,
+      "pass": true,
+      "layout": {
+        "viewport": 390,
+        "scrollWidth": 408
+      },
+      "host": "isolated synthetic in-browser host; external API requests blocked",
+      "errors": []
+    },
+    {
+      "scenario": "Public workspace default View, Edit/Done, structured notes, proposal retention",
+      "width": 1280,
+      "pass": true,
+      "layout": {
+        "viewport": 1280,
+        "scrollWidth": 1280
+      },
+      "host": "isolated synthetic in-browser host; external API requests blocked",
+      "errors": []
+    }
+  ],
+  "actualAuthenticatedBrowserAcceptance": "not performed: no existing browser session available"
+}

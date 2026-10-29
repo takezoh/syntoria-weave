@@ -1,0 +1,86 @@
+{
+  "checkedAt": "2026-10-29T05:37:28.802Z",
+  "origin": "https://weave.example.com",
+  "checks": [
+    {
+      "path": "/assets/authReturn-CK6eip8z.js",
+      "status": 200,
+      "sha256": "acdd0ce2fa43831263fb187b37edf779c4ff4f27639eb8814df5db3d4fc06081",
+      "expectedSha256": "acdd0ce2fa43831263fb187b37edf779c4ff4f27639eb8814df5db3d4fc06081",
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "text/javascript"
+    },
+    {
+      "path": "/assets/index-CRJZoJNY.js",
+      "status": 200,
+      "sha256": "c0e065699fd86cb2fdb24e6b4de1dc97a76c0c842442089a557e53d90d33f583",
+      "expectedSha256": "c0e065699fd86cb2fdb24e6b4de1dc97a76c0c842442089a557e53d90d33f583",
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "text/javascript"
+    },
+    {
+      "path": "/assets/modulepreload-polyfill-wMinxHhO.js",
+      "status": 200,
+      "sha256": "785597bca2e7dd97a652a20a197c077079e635a5663433448e0e1d9fd8c98a64",
+      "expectedSha256": "785597bca2e7dd97a652a20a197c077079e635a5663433448e0e1d9fd8c98a64",
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "text/javascript"
+    },
+    {
+      "path": "/auth-return.html",
+      "status": 200,
+      "sha256": "0c7babf5602838a2575deacd7aad7bdd467e26c5bc2ac3fdc242d888215bf69b",
+      "expectedSha256": "0c7babf5602838a2575deacd7aad7bdd467e26c5bc2ac3fdc242d888215bf69b",
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "contentType": "text/html"
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "sha256": "ca0f7b83c5a89a4ba07301d02e58eb1c5d6dd56dc383c13a6c560a2d20e23102",
+      "expectedSha256": "ca0f7b83c5a89a4ba07301d02e58eb1c5d6dd56dc383c13a6c560a2d20e23102",
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "contentType": "text/html"
+    },
+    {
+      "path": "/index.html",
+      "status": 200,
+      "sha256": "ca0f7b83c5a89a4ba07301d02e58eb1c5d6dd56dc383c13a6c560a2d20e23102",
+      "expectedSha256": "ca0f7b83c5a89a4ba07301d02e58eb1c5d6dd56dc383c13a6c560a2d20e23102",
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "contentType": "text/html"
+    },
+    {
+      "path": "/runtime-config.json",
+      "status": 200,
+      "sha256": "84b6a4201de02bfd3004b3e0d92ef4cb8955bf51ad4425944c283df529830277",
+      "expectedSha256": "84b6a4201de02bfd3004b3e0d92ef4cb8955bf51ad4425944c283df529830277",
+      "match": true,
+      "cacheControl": "no-store",
+      "contentType": "application/json"
+    },
+    {
+      "path": "/workspace.html",
+      "status": 200,
+      "sha256": "b36e996c8dcd8d6dfc4a5e7d6a22824504702cca38b6f038368ccb0d985fcad4",
+      "expectedSha256": "b36e996c8dcd8d6dfc4a5e7d6a22824504702cca38b6f038368ccb0d985fcad4",
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "contentType": "text/html"
+    }
+  ],
+  "apiReady": 200,
+  "unauthenticatedSession": 401,
+  "cors": {
+    "status": 204,
+    "allowOrigin": "https://weave.example.com",
+    "allowCredentials": "true"
+  },
+  "pass": true
+}
