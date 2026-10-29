@@ -1,6 +1,6 @@
 import {delta} from '../../lib/domain/operations.ts';
 import {fail} from '../../lib/domain/core.ts';
-import {OPERATION_HISTORY_LIMIT} from '../../lib/application/ports.ts';
+import {operationPruneThrough,operationRetentionCutoff} from '../../lib/data/model/storage.ts';
 /** Semantic fake: no SQL, isolated user snapshots, receipts and atomic CAS. */
 export function memoryActionStore() {
  const users=new Map(),receipts=new Map();
@@ -25,8 +25,11 @@ export function memoryActionStore() {
    if(prior){if(prior.canonical_payload!==r.payload)fail('idempotency_conflict','same ID, different input',409);return JSON.parse(prior.result);}
    if((users.get(r.user)?.revision??0)!==r.before.revision)fail('conflict','stale revision',409);
    users.set(r.user,structuredClone({...r.after,revision:r.before.revision+1}));
-   receipts.set(key(r.user,r.operationId),{canonical_payload:r.payload,result:JSON.stringify(result),delta:JSON.stringify(changes),revision_before:r.before.revision,revision_after:result.revision,committed_at:r.now,undo_of:r.undoOf});
-   for(const [k,receipt] of receipts)if(JSON.parse(k)[0]===r.user&&receipt.revision_after<=result.revision-OPERATION_HISTORY_LIMIT)receipts.delete(k);
+   receipts.set(key(r.user,r.operationId),{canonical_payload:r.payload,result:JSON.stringify(result),delta:JSON.stringify(changes),revision_before:r.before.revision,revision_after:result.revision,committed_at:r.now,undo_of:r.undoOf,client_id:null});
+   const owned=[...receipts].filter(([k])=>JSON.parse(k)[0]===r.user),cutoff=operationRetentionCutoff(r.now);
+   const firstRecent=owned.map(([,receipt])=>receipt).filter(receipt=>receipt.committed_at>=cutoff).reduce((first,receipt)=>Math.min(first,receipt.revision_after),Infinity);
+   const through=operationPruneThrough(result.revision,firstRecent===Infinity?null:firstRecent);
+   for(const [k,receipt] of owned)if(receipt.revision_after<=through)receipts.delete(k);
    if(lose){lose=false;throw new Error('lost response after commit');}
    return structuredClone(result);
   },

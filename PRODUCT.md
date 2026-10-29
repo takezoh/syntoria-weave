@@ -38,7 +38,8 @@ User prompts, the user's AI and caller-side schedulers can use the same tools. A
 - Weave does not remind, notify, plan a calendar or run in the background.
 - Weave has no AI of its own and does not decide what matters.
 - Weave saves what the caller requests. It cannot prove that your AI interpreted you correctly; inspect and correct actions as needed.
-- Undo works only within retained recent history, the latest 100 operations per user, and refuses when it would erase later corrections. Not every change can be undone.
+- Undo works only within retained history: 30 days of operations per user, always the latest 100 and never more than the latest 5000. It refuses when it would erase later corrections. Not every change can be undone.
+- The change history records which connected app or AI made each change.
 - Confirmation steps shown by the host are outside Weave.
 - Current host acceptance evidence concerns ChatGPT; other client integrations require their own verification.
 - Reduced management effort is an intended benefit, not a measured result.

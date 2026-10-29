@@ -22,8 +22,9 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  await source.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3)',['test','person','A']);
  const value=await exportData(source.admin);
  // Populate the applied schema using its exact column names before the forward migration.
+ // Client provenance did not exist yet, so migrated operations have an unknown client.
  for(const [table,rows] of Object.entries(value.tables))for(const row of rows){
-  const entries=Object.entries(row),columns=entries.map(([key])=>'"'+(key==='user_id'?'owner':key)+'"');
+  const entries=Object.entries(row).filter(([key])=>!(table==='state.operations'&&key==='client_id')),columns=entries.map(([key])=>'"'+(key==='user_id'?'owner':key)+'"');
   await target.admin.query(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${entries.map((_,i)=>'$'+(i+1)).join(',')})`,entries.map(([,value])=>value));
  }
  await target.admin.query('INSERT INTO identity.client_grants(issuer,subject,client_id,scopes,enabled) VALUES($1,$2,$3,$4,false)',['test','person','fixed-client',['state:read','state:write']]);
@@ -33,7 +34,8 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  await migrate(target.admin,resolve('db/postgres/migrations'));
  await checkRuntime(target.pool);
  assert.deepEqual((await target.admin.query('SELECT version,checksum FROM schema_migrations WHERE version=$1',['0001_state.sql'])).rows,journal);
- assert.deepEqual(await exportData(target.admin),value);
+ const migrated=structuredClone(value);for(const row of migrated.tables['state.operations'])row.client_id=null;
+ assert.deepEqual(await exportData(target.admin),migrated);
  assert.equal((await target.admin.query("SELECT to_regclass('identity.client_grants') AS table_name")).rows[0].table_name,null);
  const saved=await invoke(target.pool,'A','list_actions');assert.deepEqual(saved.actions,original.actions);
  const replay=await invoke(target.pool,'A','apply_change',request);assert.deepEqual(replay.result,original.result);

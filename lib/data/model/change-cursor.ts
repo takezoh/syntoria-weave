@@ -20,6 +20,8 @@ export type ChangeOperation = Readonly<{
   revision_after: number;
   committed_at: string;
   undo_of: string | null;
+  /** Provenance only: which OAuth client committed the operation. It never grants access. */
+  client_id: string | null;
   changes: Readonly<{
     actions: readonly EntityDelta<Action>[];
     projects: readonly EntityDelta<Project>[];
@@ -132,6 +134,7 @@ export function projectRetainedOperation(operation: RetainedOperation): ChangeOp
     undoOf = operation.undo_of === null ? null : id(operation.undo_of);
   } catch { return fail('invalid_state', 'Retained operation metadata is malformed.'); }
   if (committedAt === null || (operation.undo_of !== null && undoOf === null)) return fail('invalid_state', 'Retained operation metadata is malformed.');
+  if (operation.client_id !== null && !(typeof operation.client_id === 'string' && /^[\x21-\x7e]{1,255}$/u.test(operation.client_id))) return fail('invalid_state', 'Retained operation metadata is malformed.');
   let delta: unknown;
   try { delta = JSON.parse(operation.delta); } catch { return fail('invalid_state', 'Retained operation delta is malformed.'); }
   const changes = record(delta, 'operation delta');
@@ -139,7 +142,7 @@ export function projectRetainedOperation(operation: RetainedOperation): ChangeOp
   if (Object.keys(changes).length !== collections.length || collections.some(key => !Object.hasOwn(changes, key))) return fail('invalid_state', 'Retained operation delta collections are incomplete.');
   try { return {
     operation_id: operationId, revision_before: operation.revision_before, revision_after: operation.revision_after,
-    committed_at: committedAt, undo_of: undoOf,
+    committed_at: committedAt, undo_of: undoOf, client_id: operation.client_id,
     changes: {
       actions: sorted(changes.actions, 'Action delta', persistedAction, item => item.id),
       projects: sorted(changes.projects, 'Project delta', persistedProject, item => item.id),

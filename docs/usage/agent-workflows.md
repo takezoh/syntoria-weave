@@ -31,7 +31,7 @@ For example, a caller with authorized email access can collect requested commitm
 
 For a review, query saved actions or a perspective, then present relevant candidates and reasons. A recommendation does not itself complete, defer or flag an action. A recurring extraction can be saved as a filter-only perspective; a temporary query need not create a saved view.
 
-For writes, read the current user-wide revision and keep the exact tool name, operation ID and full arguments. A timeout means the result is unknown: look up the receipt or resend the identical request. An explicit revision conflict requires rereading and reconciling the proposal. Undo may refuse later target corrections, and receipt history is limited to the latest 100 operations per user. See [recovery](../technical/mcp-api.md#responses-and-recovery) before automating retries.
+For writes, read the current user-wide revision and keep the exact tool name, operation ID and full arguments. A timeout means the result is unknown: look up the receipt or resend the identical request. An explicit revision conflict requires rereading and reconciling the proposal. Undo may refuse later target corrections, and receipt history is kept for 30 days per user, at least the latest 100 and at most the latest 5000 operations. See [recovery](../technical/mcp-api.md#responses-and-recovery) before automating retries.
 
 These examples are workflow designs, not installed schedules or evidence that a particular host has external access.
 

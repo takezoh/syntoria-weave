@@ -7,10 +7,11 @@ import { decodeChangeCursor } from '../../lib/data/model/change-cursor.ts';
 const now = '2026-10-14T09:00:00.000Z';
 function setup() {
   const store = memoryActionStore();
-  const ports = { store, clock: () => now, newId: () => crypto.randomUUID() };
+  const clock = { time: now };
+  const ports = { store, clock: () => clock.time, newId: () => crypto.randomUUID() };
   const call = (user, name, args = {}) => actionCallForUser(ports, user, name, args);
   const write = async (user, kind, payload) => call(user, 'apply_change', { schemaVersion: 2, operationId: crypto.randomUUID(), expectedRevision: (await store.readSnapshot(user)).revision, kind, payload });
-  return { store, call, write };
+  return { store, clock, call, write };
 }
 
 test('snapshot and current cursor share the revision and expose authoritative Action/Tag associations', async () => {
@@ -101,10 +102,14 @@ test('feeds carry all persisted entity and association deltas without changing s
 });
 
 test('strict cursor arguments reject unknown fields, invalid page sizes and pruned positions', async () => {
-  const { call, write } = setup();
+  const { clock, call, write } = setup();
   const baseline = await call('A', 'get_change_cursor');
   await assert.rejects(call('A', 'get_changes', { cursor: baseline.cursor, extra: true }), error => error.code === 'invalid_input');
   for (const page_size of [0, 1.5, 101, '2']) await assert.rejects(call('A', 'get_changes', { cursor: baseline.cursor, page_size }), error => error.code === 'invalid_input');
-  for (let i = 0; i < 101; i++) await write('A', 'add', { title: `Action ${i}` });
+  // Only an operation older than the retention period can be pruned beyond the latest 100.
+  clock.time = '2026-09-01T00:00:00.000Z';
+  await write('A', 'add', { title: 'Expired action' });
+  clock.time = now;
+  for (let i = 0; i < 100; i++) await write('A', 'add', { title: `Action ${i}` });
   await assert.rejects(call('A', 'get_changes', { cursor: baseline.cursor }), error => error.code === 'cursor_expired');
 });

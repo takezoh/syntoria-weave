@@ -8,7 +8,7 @@ import {checkRuntime} from '../../lib/adapters/postgres/migrations.ts';
 const now='2026-10-18T00:00:00.000Z';
 test('real PostgreSQL transaction, replay, user, Undo and feed contract',async t=>{
  const f=await postgresFixture();t.after(()=>f.close());
- const identity=user=>issuePrincipal({user,issuer:'test',subject:user,connectionId:`test:${user}`,clientId:'test',scopes:['state:read','state:write']});
+ const identity=user=>issuePrincipal({user,issuer:'test',subject:user,connectionId:`test:${user}`,clientId:`client-${user}`,scopes:['state:read','state:write']});
  const store=user=>createPostgresActionStore(f.pool,identity(user));
  const call=(user,name,args={})=>actionCall({store:store(user),clock:()=>now,newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope(user,'test-epoch')},name,args);
  const write=async(user,kind,payload)=>call(user,'apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await call(user,'list_actions')).revision,kind,payload});
@@ -53,7 +53,7 @@ test('real PostgreSQL transaction, replay, user, Undo and feed contract',async t
   assert.equal((await store('A').readSnapshot()).actions[0].title,'Later');
   const snapshot=await call('A','list_actions');await write('A','edit',{id:actionId,flagged:true});
   const changes=await call('A','get_changes',{cursor:snapshot.change_cursor});assert.equal(changes.changes.length,1);
-  assert.equal(changes.changes[0].revision_after,7);
+  assert.equal(changes.changes[0].revision_after,7);assert.equal(changes.changes[0].client_id,'client-A');
  });
  await t.test('repeatable reads stay consistent and pooled RLS context is reset',async()=>{
   let release;const hold=new Promise(r=>{release=r;});let pinned;const ready=new Promise(r=>{pinned=r;});
@@ -76,11 +76,27 @@ test('real PostgreSQL transaction, replay, user, Undo and feed contract',async t
   await store('bulk-user').commit({operationId:crypto.randomUUID(),payload:'{}',before:saved,after:{...saved,actions:[]},now,undoOf:null});
   const removed=await store('bulk-user').readSnapshot();assert.equal(removed.actions.length,0);assert.equal(removed.revision,2);
  });
- await t.test('retention prunes only the oldest prefix and expires cursors',async()=>{
-  const bootstrap=await call('Retention','list_actions');let latest;
-  for(let i=0;i<102;i++)latest=await write('Retention','project_get_or_create',{name:'Project '+i});
-  const rows=await store('Retention').readChangeWindow(0,null);assert.equal(rows.operations.length,100);assert.equal(rows.oldest_revision,3);assert.equal(rows.head_revision,102);
+ await t.test('retention keeps the period beyond 100, prunes only the oldest prefix and expires cursors',async()=>{
+  // `now` puts the period start at 2026-09-18T00:00:00.000Z.
+  const clock={time:'2026-09-17T23:59:59.999Z'};
+  const timed=(name,args={})=>actionCall({store:store('Retention'),clock:()=>clock.time,newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope('Retention','test-epoch')},name,args);
+  const timedWrite=async(kind,payload)=>timed('apply_change',{schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:(await timed('list_actions')).revision,kind,payload});
+  const bootstrap=await timed('list_actions');let latest;
+  for(let i=0;i<149;i++){if(i===2)clock.time='2026-09-18T00:00:00.000Z';latest=await timedWrite('project_get_or_create',{name:'Project '+i});}
+  clock.time=now;latest=await timedWrite('project_get_or_create',{name:'Project 149'});
+  const rows=await store('Retention').readChangeWindow(0,null);assert.equal(rows.oldest_revision,3);assert.equal(rows.head_revision,150);
+  assert.equal((await f.admin.query('SELECT count(*)::int AS n FROM state.operations WHERE user_id=$1',['Retention'])).rows[0].n,148);
+  assert(rows.operations.every(row=>row.client_id==='client-Retention'));
   await assert.rejects(call('Retention','get_changes',{cursor:bootstrap.change_cursor}),e=>e.code==='cursor_expired');
   assert.equal((await call('Retention','list_actions')).revision,latest.revision);
+ });
+ await t.test('retention caps the period at the latest 5000 operations',async()=>{
+  await f.admin.query(`INSERT INTO state.operations(user_id,operation_id,canonical_payload,result,delta,revision_before,revision_after,undo_of,created_at)
+   SELECT 'Capped',id,'{}',json_build_object('operationId',id,'revision',r,'changedIds',json_build_array())::text,
+    '{"actions":[],"projects":[],"tags":[],"perspectives":[],"action_tags":[]}',r-1,r,NULL,'2026-09-18T00:00:00.000Z'
+   FROM generate_series(1,5100) AS r,format('00000000-0000-4000-8000-%s',lpad(r::text,12,'0')) AS id`);
+  const saved=await write('Capped','add',{title:'New action'});assert.equal(saved.revision,5101);
+  const remaining=(await f.admin.query('SELECT count(*)::int AS n,min(revision_after)::int AS oldest,max(revision_after)::int AS latest,count(client_id)::int AS attributed FROM state.operations WHERE user_id=$1',['Capped'])).rows[0];
+  assert.deepEqual(remaining,{n:5000,oldest:102,latest:5101,attributed:1});
  });
 });

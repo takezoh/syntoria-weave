@@ -123,7 +123,7 @@ Lead with relief from remembering, then the appeal of designing a workflow with 
 | Reminders, notifications, calendar planning or background execution | Caller and host responsibilities |
 | Weave decides priorities or what matters | Weave has no backend LLM; the caller's AI and the user decide |
 | No confirmation or approval is needed | Host confirmation steps are outside Weave |
-| Every change can be undone | Undo rejects later target corrections and uses only the latest 100 retained operations |
+| Every change can be undone | Undo rejects later target corrections and uses only retained operations: 30 days, at least the latest 100 and at most the latest 5000 |
 | The AI never invents deadlines or commitments | Caller guidance, not backend enforcement; Weave stores requested changes |
 | Works with any AI assistant | Only the ChatGPT delivery has been verified |
 | A cursor marks human reading or updates every AI's understanding | Incremental retrieval is available, but each consumer owns its context and cursor; interpretation, reading acknowledgment and Action completion remain separate |

@@ -122,6 +122,8 @@ export type RetainedOperation = Readonly<{
   revision_after: number;
   committed_at: string;
   undo_of: string | null;
+  /** OAuth client that committed the operation; null when the store does not record it. */
+  client_id: string | null;
   delta: string;
 }>;
 export type ChangeWindow = Readonly<{

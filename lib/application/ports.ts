@@ -1,8 +1,5 @@
 import type { ChangeWindow, OperationResult, UserCommitRequest, Receipt, Snapshot } from '../data/types';
 
-/** Successful writes retain only the latest operations per user, including Undo. */
-export const OPERATION_HISTORY_LIMIT = 100;
-
 /** Receipt and user state acquired together; snapshot decoding stays lazy for conflict precedence. */
 export type ReadOperationState = Readonly<{
   receipt: Receipt | null;

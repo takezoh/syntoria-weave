@@ -1,8 +1,7 @@
 import {fail} from '../domain/core';
-import {assertBoundJson,decodeSnapshotRows,planStorageCommit,type SnapshotRows,type StorageRowChange,type StorageTableKey} from '../data/model/storage';
+import {assertBoundJson,decodeSnapshotRows,planStorageCommit,OPERATION_HISTORY,operationRetentionCutoff,type SnapshotRows,type StorageRowChange,type StorageTableKey} from '../data/model/storage';
 import type {ChangeWindow, UserCommitRequest, Receipt, Snapshot} from '../data/types';
 import type {UserActionStore, ReadOperationState} from '../application/ports';
-import {OPERATION_HISTORY_LIMIT} from '../application/ports';
 
 async function receipt(db:D1Database,user:string,operationId:string){return db.prepare('SELECT canonical_payload,result,delta,revision_after,undo_of FROM operations WHERE owner=? AND operation_id=?').bind(user,operationId).first<Receipt>();}
 function snapshotStatements(db:D1Database,user:string) {
@@ -43,8 +42,8 @@ async function operationState(db:D1Database,user:string,operationId:string):Prom
 async function changeWindow(db:D1Database,user:string,afterRevision:number,throughRevision:number|null):Promise<ChangeWindow> {
  // The head, retention boundary and selected receipts share one D1 read batch.
  const operationQuery=throughRevision===null
-  ?db.prepare('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,delta FROM operations WHERE owner=? AND revision_after>? ORDER BY revision_after ASC LIMIT 101').bind(user,afterRevision)
-  :db.prepare('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,delta FROM operations WHERE owner=? AND revision_after>? AND revision_after<=? ORDER BY revision_after ASC LIMIT 101').bind(user,afterRevision,throughRevision);
+  ?db.prepare('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,NULL AS client_id,delta FROM operations WHERE owner=? AND revision_after>? ORDER BY revision_after ASC LIMIT 101').bind(user,afterRevision)
+  :db.prepare('SELECT operation_id,revision_before,revision_after,created_at AS committed_at,undo_of,NULL AS client_id,delta FROM operations WHERE owner=? AND revision_after>? AND revision_after<=? ORDER BY revision_after ASC LIMIT 101').bind(user,afterRevision,throughRevision);
  const rows=await db.batch([
   db.prepare('SELECT COALESCE(MAX(revision_after),0) AS revision FROM operations WHERE owner=?').bind(user),
   db.prepare('SELECT MIN(revision_after) AS revision FROM operations WHERE owner=?').bind(user),
@@ -94,7 +93,9 @@ async function commit(db:D1Database,request:UserCommitRequest&{user:string}) {
  statements.push(...rowStatements(db,user,'catalog_identity_ledger',markerChanges));
  // Revisions increase by one per write. Undo receipts are newer than their target,
  // so pruning the oldest prefix cannot lose a retained target's Undo marker.
- statements.push(db.prepare('DELETE FROM operations WHERE owner=? AND revision_after<=?').bind(user,result.revision-OPERATION_HISTORY_LIMIT));
+ // The bound mirrors operationPruneThrough; the new receipt above is always inside the period.
+ const head=result.revision;
+ statements.push(db.prepare('DELETE FROM operations WHERE owner=? AND revision_after<=MAX(?,MIN(?,COALESCE((SELECT MIN(revision_after) FROM operations WHERE owner=? AND created_at>=?),?)-1))').bind(user,head-OPERATION_HISTORY.maximum,head-OPERATION_HISTORY.minimum,user,operationRetentionCutoff(now),head+1));
  if(statements.length>50)fail('operation_too_large','Generated query count exceeds the storage budget.',413);
  try{await db.batch(statements);}catch(error){
   // A duplicate invocation may already have committed. Resolve identity before

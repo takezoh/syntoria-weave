@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertBoundJson, decodeSnapshotRows, parseReceiptResult, planStorageCommit } from '../../../lib/data/model/storage.ts';
+import { assertBoundJson, decodeSnapshotRows, OPERATION_HISTORY, operationPruneThrough, operationRetentionCutoff, parseReceiptResult, planStorageCommit } from '../../../lib/data/model/storage.ts';
 
 const uuid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const now = '2026-10-14T09:00:00.000Z';
@@ -82,4 +82,22 @@ test('storage plan is deterministic, readonly-input safe, preserves canonical fi
 test('individual bound JSON budget is measured in UTF-8 bytes and rejects oversize data', () => {
   assert.equal(assertBoundJson('日本語'), new TextEncoder().encode('日本語').length);
   assert.throws(() => assertBoundJson('x'.repeat(100001)), error => error.code === 'operation_too_large');
+});
+
+test('operation history keeps the period, never fewer than the minimum nor more than the maximum', () => {
+  assert.deepEqual(OPERATION_HISTORY, { minimum: 100, maximum: 5000, days: 30 });
+  assert.equal(operationRetentionCutoff('2026-10-31T09:00:00.000Z'), '2026-10-01T09:00:00.000Z');
+  assert.throws(() => operationRetentionCutoff('not a time'), error => error.code === 'invalid_state');
+  // Everything inside the period: only the maximum applies.
+  assert.equal(operationPruneThrough(150, 1), 0);
+  assert.equal(operationPruneThrough(5001, 1), 1);
+  // Everything older than the period: the latest minimum operations remain.
+  assert.equal(operationPruneThrough(150, null), 50);
+  assert.equal(operationPruneThrough(150, 151), 50);
+  // Operations older than the period are pruned only beyond the minimum.
+  assert.equal(operationPruneThrough(150, 120), 50);
+  assert.equal(operationPruneThrough(150, 30), 29);
+  assert.equal(operationPruneThrough(9000, 1000), 4000);
+  // Short histories are never pruned below revision zero.
+  assert.equal(operationPruneThrough(1, null), -99);
 });

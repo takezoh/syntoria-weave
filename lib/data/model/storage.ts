@@ -88,6 +88,30 @@ export function parseReceiptResult(receipt: Pick<Receipt, 'delta' | 'result'>): 
   }
 }
 
+/**
+ * Operation history per user, including Undo and no-op writes, is kept for a period so the user
+ * can review and undo recent changes from any caller. The latest `minimum` operations are always
+ * kept and no more than the latest `maximum` are kept.
+ */
+export const OPERATION_HISTORY = Object.freeze({ minimum: 100, maximum: 5000, days: 30 });
+
+/** Operations committed before this instant are old enough to be pruned beyond the minimum. */
+export function operationRetentionCutoff(now: string): string {
+  const time = Date.parse(now);
+  if (!Number.isFinite(time)) return fail('invalid_state', 'The commit time is invalid.');
+  return new Date(time - OPERATION_HISTORY.days * 86_400_000).toISOString();
+}
+
+/**
+ * The newest revision to prune after committing `head`. Everything at or below it is removed as one
+ * oldest prefix, so retained history stays contiguous and a retained target keeps its newer Undo receipt.
+ * `firstRecent` is the oldest retained revision committed at or after the cutoff, or null.
+ */
+export function operationPruneThrough(head: number, firstRecent: number | null): number {
+  const aged = firstRecent === null ? head : firstRecent - 1;
+  return Math.max(head - OPERATION_HISTORY.maximum, Math.min(head - OPERATION_HISTORY.minimum, aged));
+}
+
 export type StorageRowChange = Readonly<{ before: object | null; after: object | null }>;
 export type StorageTableKey = 'actions' | 'projects' | 'tags' | 'perspectives' | 'action_tags' | 'catalog_identity_ledger';
 export type StorageTablePlan = Readonly<{ key: StorageTableKey; changes: readonly StorageRowChange[] }>;
