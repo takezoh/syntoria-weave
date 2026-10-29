@@ -52,8 +52,12 @@ test('Node MCP publishes the current typed tool and Perspective schemas', async 
     assert.equal(title.minLength, 1);
   }
   assert.equal(tools.find(tool => tool.name === 'capture_intent').inputSchema.properties.title.minLength, 1);
+  assert.deepEqual(tools.find(tool => tool.name === 'capture_intent').inputSchema.properties.metadata, {type: 'string', maxLength: 65536});
+  assert.deepEqual(tools.find(tool => tool.name === 'add_action').inputSchema.properties.metadata, {type: 'string', maxLength: 65536});
   assert.match(apply.description, /tag_ids/);
   assert.match(apply.description, /one request/);
+  assert.match(apply.description, /Notes and metadata are optional exact text fields/);
+  assert.match(tools.find(tool => tool.name === 'get_relevant_context').description, /caller-managed operational data/);
   assert(apply.inputSchema.properties.kind.enum.includes('action_move'));
   assert.match(apply.description, /placement/);
 

@@ -26,7 +26,7 @@ test('cursor encoding is canonical and decoding rejects padding, duplicate keys,
 });
 
 test('feed projection preserves persisted before/after records and omits derived and internal fields', () => {
-  const action = { id: uuid(1), title: 'Action', revision: 2, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: ' exact ', order: 0, flagged: true, created_at: now, updated_at: now, user: 'secret', view: 'normal', tags: ['derived'] };
+  const action = { id: uuid(1), title: 'Action', revision: 2, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: ' exact ', metadata: '', order: 0, flagged: true, created_at: now, updated_at: now, user: 'secret', view: 'normal', tags: ['derived'] };
   const project = { id: uuid(2), name: 'Project', description: '', parent_id: null, order: 0, revision: 2, created_at: now, updated_at: now, path: 'derived' };
   const tag = { id: uuid(3), name: 'Tag', description: '', parent_id: null, order: 0, revision: 2, created_at: now, updated_at: now };
   const perspective = { id: uuid(4), name: 'View', description: '', filter: { statuses: ['active'], flagged: true }, definition_version: 1, revision: 2, created_at: now, updated_at: now };
@@ -36,7 +36,7 @@ test('feed projection preserves persisted before/after records and omits derived
     actions: [{ before: null, after: action }], projects: [{ before: project, after: null }], tags: [{ before: null, after: tag }],
     perspectives: [{ before: null, after: perspective }, { before: null, after: queryPerspective }], action_tags: [{ before: relation, after: null }],
   }));
-  assert.deepEqual(projected.changes.actions[0], { before: null, after: { id: action.id, title: action.title, revision: 2, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: ' exact ', order: 0, flagged: true, created_at: now, updated_at: now } });
+  assert.deepEqual(projected.changes.actions[0], { before: null, after: { id: action.id, title: action.title, revision: 2, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: ' exact ', metadata: '', order: 0, flagged: true, created_at: now, updated_at: now } });
   assert.deepEqual(projected.changes.actions[0].after, persistedAction(action));
   assert.deepEqual(projected.changes.projects[0].before, persistedProject(project));
   assert.deepEqual(projected.changes.projects[0], { before: { id: project.id, name: project.name, description: '', parent_id: null, order: 0, revision: 2, created_at: now, updated_at: now }, after: null });
@@ -87,7 +87,7 @@ test('expired positions, retained gaps, future cursors and a single oversized op
   assert.throws(() => pageChangeWindow(window(3, [retained(1), retained(3)]), decodeChangeCursor(encodeChangeCursor(scope, 0)), scope, 20), error => error.code === 'invalid_state');
   assert.throws(() => pageChangeWindow(window(0, []), decodeChangeCursor(encodeChangeCursor(scope, 1)), scope, 20), error => error.code === 'invalid_cursor');
   const largeOperations = Array.from({ length: 18 }, (_, index) => {
-    const action = { id: uuid(index + 1), title: 'Saved', revision: index + 1, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: 'n'.repeat(60_000), order: 0, flagged: false, created_at: now, updated_at: now };
+    const action = { id: uuid(index + 1), title: 'Saved', revision: index + 1, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: 'n'.repeat(60_000), metadata: '', order: 0, flagged: false, created_at: now, updated_at: now };
     return retained(index + 1, { ...emptyDelta(), actions: [{ before: null, after: action }] });
   });
   const bounded = pageChangeWindow(window(18, largeOperations), decodeChangeCursor(encodeChangeCursor(scope, 0)), scope, 100);
@@ -99,7 +99,7 @@ test('expired positions, retained gaps, future cursors and a single oversized op
 });
 
 test('history rejects non-UUID identities, noncanonical instants and duplicated perspective statuses', () => {
-  const action = { id: uuid(1), title: 'Action', revision: 1, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: '', order: 0, flagged: false, created_at: now, updated_at: now };
+  const action = { id: uuid(1), title: 'Action', revision: 1, parent_id: null, project_id: null, status: 'active', due_at: null, defer_until: null, notes: '', metadata: '', order: 0, flagged: false, created_at: now, updated_at: now };
   for (const changed of [
     { ...action, id: 'not-a-uuid' },
     { ...action, due_at: 'soon' },

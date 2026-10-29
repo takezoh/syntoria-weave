@@ -101,7 +101,7 @@ Weave needs no dedicated connector to each agent or source for these workflows. 
 
 A human may correct a date in the UI while one AI organizes actions and another conversation later reviews them. Shared storage makes the saved correction available; each consumer must read the current state and reconcile its own assumptions. Consumers can know different versions of the same shared state. Saving a change does not automatically refresh their context or prove that they understood it.
 
-The current read contract provides complete snapshots and user-wide revision through `list_actions` or `get_relevant_context`. A resumed conversation uses those reads and the available original notes to continue. Conversational context that was never saved must be supplied or recovered by the caller.
+The current read contract provides complete snapshots and user-wide revision through `list_actions` or `get_relevant_context`. A resumed conversation uses those reads and the available original notes and metadata to continue. Keep human-facing content and exact original input in notes; caller-managed operational data belongs in the separate metadata text field and is not shown in UI Action Detail. Conversational context that was never saved must be supplied or recovered by the caller.
 
 The implemented [Change Cursor API](product.md#change-cursor-api-and-adoption-history) provides `get_change_cursor` and `get_changes` for retrieving retained changes from a consumer-held position. The consumer interprets the records, fetches any additional context and decides whether to revise a recommendation, act or notify. It saves its own position only after processing succeeds. Cursor progress, human read status, Action completion and correct understanding remain distinct. This source contract and local Worker evidence do not establish deployment or host availability.
 
@@ -117,7 +117,7 @@ The repository [Skill](../../skills/action-tools/SKILL.md) documents tool use an
 
 | User-defined workflow | Caller responsibility | Weave capability |
 | --- | --- | --- |
-| Capture a concern during conversation | Preserve uncertainty and choose how to organize it | Save ordinary actions with original notes |
+| Capture a concern during conversation | Preserve uncertainty and choose how to organize it | Save ordinary actions with original notes and separate caller-managed metadata |
 | Apply GTD | Decide capture/clarify/organize/review routines | Actions, containment, projects/tags, dates and queries |
 | Collect commitments from Slack/email | Access sources, identify commitments, avoid duplicate capture and retain source context | Read current actions and save validated changes |
 | Run a periodic review | Arrange execution, judge relevance and present decisions | Consistent reads and saved perspectives |

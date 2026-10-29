@@ -10,7 +10,7 @@ The model represents shared state used by the human and authorized AI consumers:
 
 | Table | Key | Content |
 | --- | --- | --- |
-| actions | user, id | title, notes, lifecycle status, parent_id, project_id, order, flagged, due_at, defer_until, revision, timestamps |
+| actions | user, id | title, notes, metadata, lifecycle status, parent_id, project_id, order, flagged, due_at, defer_until, revision, timestamps |
 | projects | user, id | local name, description, parent_id, sibling order, revision, timestamps |
 | tags | user, id | local name, description, parent_id, revision, timestamps |
 | action_tags | user, action_id, tag_id | many-to-many association and revision |
@@ -33,7 +33,7 @@ Use PostgreSQL 18 with schemas `state` and `identity`. All state tables have an 
 | flagged | BOOLEAN; explicit adapter conversion to/from the pure storage-plan scalar contract |
 | lifecycle | TEXT with active/on-hold/completed/dropped CHECK |
 | due/defer and entity timestamps | Canonical UTC ISO text matching domain output; nullable only where the API permits; no driver Date conversion |
-| title, notes, catalog name/description | TEXT containing canonical JSON.stringify(string); decode exactly with JSON.parse |
+| title, notes, action metadata, catalog name/description | TEXT containing canonical JSON.stringify(string); decode exactly with JSON.parse |
 | canonical_payload, result, delta, perspective body | TEXT containing exact serialized JSON; validate with PostgreSQL json, not jsonb normalization |
 | identity/session expiry and last activity | TIMESTAMPTZ; internal control data, not API text |
 
@@ -131,6 +131,8 @@ Projects, tags and perspectives store non-null `description` text, defaulting to
 
 New Action titles and explicit title edits require nonempty trimmed text (maximum 200 UTF-16 code units). Every stored Action must satisfy the current required-title contract; invalid stored records fail validation without automatic correction or deletion. Notes are optional exact raw text and cannot replace the required title on creation. Perspective names and structure reference names remain nonempty; Project/Tag name writes require nonempty trimmed text. Initial `add.tag_ids` are unique user-scoped tag IDs; their association rows and identity revisions share the action creation CAS transaction, receipt and Undo delta. The Action title and initial Tag-association contract requires no schema migration; catalog indexes enforce the exact sibling-name contract.
 
+Action `metadata` is optional exact text, limited to 65,536 UTF-16 code units, and defaults to empty. It stores caller-managed operational data separately from human-facing content and exact original input in `notes`. Omitted metadata on edit preserves it; an explicit empty string clears it. Reads, deltas, receipts, replay, Undo and transfer include the field. It is not shown in the UI Action Detail. [PostgreSQL migration 0007](../../db/postgres/migrations/0007_action_metadata_text.sql) adds the encoded text-cell and fills metadata in retained Action delta snapshots without extracting notes; it requires a superuser or BYPASSRLS migration role because `state.operations` uses FORCE RLS. The SQLite contract migration is [0018](../../drizzle/0018_action_metadata.sql). Logical export now emits transfer version 7; version 5 imports are rejected so export again after the migration before transferring data.
+
 `action_move` changes only effective selected roots' parent containment and affected destination sibling ranks. Selected descendants of selected ancestors travel with their subtree rather than moving twice. Before/After uses the anchor parent; Into appends children; top-level detach appends separately within each root's unchanged Project group. Root Before/After requires matching direct Project membership. Hidden siblings retain relative order; source-only gaps remain valid. Actual changed rows share the ordinary revision/receipt/delta/Undo transaction.
 
 The UI Projects/Tags outline combines catalog hierarchy with direct Action membership. Action containment changes indentation only within the same membership; it never inherits a Project or Tag. Repeated Tag occurrences share one Action UUID, draft, write and Undo identity. Catalog inspectors use separate typed name/description drafts and the existing catalog revision/receipt path.
@@ -163,8 +165,8 @@ Each mutation shares the existing user-wide CAS transaction with action changes,
 
 Proposal `version` changes only on scope revision. `decision` is business intent; `progress` and `outcome` are reported facts. Run identity and authenticated connection bind ordinary progress reports. Explicit `reconcile` permits an authorized writer to record independently observed evidence for unresolved/stopped work; the event records that writer while retaining original run provenance. This is not an external cancellation or authorization guarantee.
 
-An Action retains up to three proposal heads. At most one is approved; running/waiting work and unknown outcomes block another approval. Cancellation retains the proposal as pending. Legacy withdrawn/rejected heads remain readable and count toward the cap. Accepted scope does not start work; a report does not complete an action. Collaboration events cannot be reversed by generic Undo. Durable collaboration history supplies exact replay receipts after ordinary operation retention; no automatic history pruning is configured. Transfer manifest version 6 includes heads and history.
+An Action retains up to three proposal heads. At most one is approved; running/waiting work and unknown outcomes block another approval. Cancellation retains the proposal as pending. Legacy withdrawn/rejected heads remain readable and count toward the cap. Accepted scope does not start work; a report does not complete an action. Collaboration events cannot be reversed by generic Undo. Durable collaboration history supplies exact replay receipts after ordinary operation retention; no automatic history pruning is configured. Transfer manifest version 7 includes heads and history.
 
 ## MCP delivery metadata
 
-`state.mcp_subscriptions` has `(user_id,connection_id)` as its primary key and an `expires_at` timestamp. It stores only subscription preferences for the fixed shared-state resource, with FORCE RLS and explicit user predicates. It grants no access: every stream is authenticated and revalidated through Gate. Runtime receives SELECT/INSERT/UPDATE/DELETE; export receives explicit SELECT/RLS policies. Subscription updates do not advance business revision or create action receipts. Expired entries are inactive. Logical transfer version 6 intentionally excludes this transient delivery metadata; clients resubscribe after transfer.
+`state.mcp_subscriptions` has `(user_id,connection_id)` as its primary key and an `expires_at` timestamp. It stores only subscription preferences for the fixed shared-state resource, with FORCE RLS and explicit user predicates. It grants no access: every stream is authenticated and revalidated through Gate. Runtime receives SELECT/INSERT/UPDATE/DELETE; export receives explicit SELECT/RLS policies. Subscription updates do not advance business revision or create action receipts. Expired entries are inactive. Logical transfer version 7 intentionally excludes this transient delivery metadata; clients resubscribe after transfer.

@@ -1,4 +1,4 @@
-import {fail,object,exact,text,catalogName,actionTitle,initialTagIds,description,id,actionOrder,booleanFlag,perspectiveFilter,validatePerspectiveReferences} from '../../domain/core';
+import {fail,object,exact,text,catalogName,actionTitle,initialTagIds,description,actionMetadata,id,actionOrder,booleanFlag,perspectiveFilter,validatePerspectiveReferences} from '../../domain/core';
 import {validatePerspectiveQueryReferences} from '../../domain/perspective-query';
 import type {Change,OperationResolution,Snapshot} from '../types';
 
@@ -13,20 +13,21 @@ export function normalizeChange(snapshot:Snapshot,requested:Change):PreparedChan
   return {idSlots,change:{kind,payload:{id:entityId,name,description:initialDescription,...definition}},resolved:{perspective:{id:entityId}}};
  }
  if(kind==='add'){
-  exact(p,['title','parent_id','project_id','notes','order','flagged','tag_ids']);
+  exact(p,['title','parent_id','project_id','notes','metadata','order','flagged','tag_ids']);
   const tagIds=initialTagIds(snapshot,p.tag_ids),projectId=p.project_id===undefined||p.project_id===null?null:id(p.project_id);
   if(projectId&&!snapshot.projects.some(x=>x.id===projectId))fail('not_found','プロジェクトがありません。',404);
   const title=actionTitle(p.title),parentId=p.parent_id===undefined||p.parent_id===null?null:id(p.parent_id);
   if(parentId&&!snapshot.actions.some(x=>x.id===parentId))fail('not_found','親アクションがありません。',404);
   const notes=p.notes===undefined?'':typeof p.notes==='string'&&p.notes.length<=65536?p.notes:fail('invalid_input','メモが不正です。');
+  const metadata=p.metadata===undefined?undefined:actionMetadata(p.metadata);
   if(p.order!==undefined)actionOrder(p.order);if(p.flagged!==undefined)booleanFlag(p.flagged);
   const entityId=generatedId();
-  return {idSlots,change:{kind:'add',payload:{id:entityId,title,parent_id:parentId,notes,tag_ids:tagIds,...(p.project_id!==undefined?{project_id:p.project_id}:{}),...(p.order!==undefined?{order:p.order}:{}),...(p.flagged!==undefined?{flagged:p.flagged}:{})}},resolved:{actions:[{id:entityId}]},createdActionIds:[entityId]};
+  return {idSlots,change:{kind:'add',payload:{id:entityId,title,parent_id:parentId,notes,tag_ids:tagIds,...(p.metadata!==undefined?{metadata}:{}),...(p.project_id!==undefined?{project_id:p.project_id}:{}),...(p.order!==undefined?{order:p.order}:{}),...(p.flagged!==undefined?{flagged:p.flagged}:{})}},resolved:{actions:[{id:entityId}]},createdActionIds:[entityId]};
  }
  if(kind==='capture'){
-  exact(p,['title','text','source']);const title=text(p.title);text(p.text,65536);if((p.text as string).length>65536)fail('invalid_input','元入力が大きすぎます。');const captureText=p.text as string;
+  exact(p,['title','text','source','metadata']);const title=text(p.title);text(p.text,65536);if((p.text as string).length>65536)fail('invalid_input','元入力が大きすぎます。');const captureText=p.text as string,metadata=p.metadata===undefined?undefined:actionMetadata(p.metadata);
   const entityId=generatedId();
-  return {idSlots,change:{kind:'add',payload:{id:entityId,title,notes:captureText}},resolved:{actions:[{id:entityId}]},createdActionIds:[entityId]};
+  return {idSlots,change:{kind:'add',payload:{id:entityId,title,notes:captureText,...(p.metadata!==undefined?{metadata}:{})}},resolved:{actions:[{id:entityId}]},createdActionIds:[entityId]};
  }
  if(kind==='structure_create'){
   exact(p,['inbox_action_id','actions']);
@@ -35,18 +36,19 @@ export function normalizeChange(snapshot:Snapshot,requested:Change):PreparedChan
   if(!Array.isArray(p.actions)||!p.actions.length)fail('invalid_input','構造化結果が不正です。');
   const actions=p.actions.map(object),refSet=new Set<string>();
   const normalizedActions=actions.map(actionValue=>{
-   exact(actionValue,['ref','title','parent_ref','parent_id','notes','order','flagged']);
+   exact(actionValue,['ref','title','parent_ref','parent_id','notes','metadata','order','flagged']);
    const ref=text(actionValue.ref,80);if(refSet.has(ref))fail('invalid_input','refが重複しています。');refSet.add(ref);
    if('parent_ref' in actionValue&&'parent_id' in actionValue)fail('invalid_input','parent_refとparent_idは同時に指定できません。');
    const title=actionTitle(actionValue.title),parent_ref='parent_ref' in actionValue?text(actionValue.parent_ref,80):undefined,parent_id='parent_id' in actionValue?(actionValue.parent_id===null?null:id(actionValue.parent_id)):undefined;
    if(actionValue.notes!==undefined&&(typeof actionValue.notes!=='string'||actionValue.notes.length>65536))fail('invalid_input','メモが不正です。');
+   if(actionValue.metadata!==undefined)actionMetadata(actionValue.metadata);
    if(parent_id&&!snapshot.actions.some(x=>x.id===parent_id))fail('not_found','親アクションがありません。',404);
    if(actionValue.order!==undefined)actionOrder(actionValue.order);if(actionValue.flagged!==undefined)booleanFlag(actionValue.flagged);
-   return {ref,title,parent_ref,parent_id,notes:actionValue.notes,order:actionValue.order,flagged:actionValue.flagged};
+   return {ref,title,parent_ref,parent_id,notes:actionValue.notes,metadata:actionValue.metadata,order:actionValue.order,flagged:actionValue.flagged};
   });
   for(const actionValue of normalizedActions)if(actionValue.parent_ref!==undefined&&!refSet.has(actionValue.parent_ref))fail('invalid_input','親refが未定義です。');
   const refs=new Map<string,string>();for(const [index,ref] of [...refSet].entries())refs.set(ref,index===0?inboxId:generatedId());
-  const internalActions=normalizedActions.map(actionValue=>({id:refs.get(actionValue.ref),title:actionValue.title,...(actionValue.parent_ref!==undefined?{parent_id:refs.get(actionValue.parent_ref)}:actionValue.parent_id!==undefined?{parent_id:actionValue.parent_id}:{}),...(actionValue.notes!==undefined?{notes:actionValue.notes}:{}),...(actionValue.order!==undefined?{order:actionValue.order}:{}),...(actionValue.flagged!==undefined?{flagged:actionValue.flagged}:{})}));
+  const internalActions=normalizedActions.map(actionValue=>({id:refs.get(actionValue.ref),title:actionValue.title,...(actionValue.parent_ref!==undefined?{parent_id:refs.get(actionValue.parent_ref)}:actionValue.parent_id!==undefined?{parent_id:actionValue.parent_id}:{}),...(actionValue.notes!==undefined?{notes:actionValue.notes}:{}),...(actionValue.metadata!==undefined?{metadata:actionValue.metadata}:{}),...(actionValue.order!==undefined?{order:actionValue.order}:{}),...(actionValue.flagged!==undefined?{flagged:actionValue.flagged}:{})}));
   const actionRefs=new Map([...refs].map(([ref,entityId])=>[entityId,ref]));
   return {idSlots,change:{kind:'structure',payload:{inbox_action_id:inboxId,actions:internalActions}},resolved:{actions:[...refs].map(([ref,entityId])=>({ref,id:entityId}))},actionRefs,createdActionIds:[...refs.values()].slice(1)};
  }

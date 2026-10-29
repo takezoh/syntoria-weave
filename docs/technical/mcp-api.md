@@ -45,7 +45,7 @@ See the [caller workflow guide](../usage/agent-workflows.md) for connection boun
 | get_changes | cursor, optional page_size (default 20, 1–100); complete retained operations after the cursor |
 | list_perspectives | Empty arguments; saved user definitions, revision and retrieved_at |
 | query_perspective | id; current definition, matching actions, revision and retrieved_at |
-| capture_intent | Write envelope plus title, text, optional source; preserves exact text in an ordinary Inbox action's notes |
+| capture_intent | Write envelope plus title, text, optional source and metadata; preserves exact text in an ordinary Inbox action's notes |
 | preview_change | expectedRevision, kind, payload; projected effects, warnings and provisional IDs without saving |
 | apply_change | Write envelope plus kind and payload; atomic result and current snapshot |
 | operation_status | operationId; applied/not_observed and saved result |
@@ -71,9 +71,9 @@ The existing latest-100 operation retention is the feed retention boundary. A cu
 
 | Kind | Payload |
 | --- | --- |
-| add | title, optional parent_id, project_id, tag_ids, notes, order, flagged; no caller-supplied ID |
-| structure_create | inbox_action_id, actions: [{ref,title,parent_ref? or parent_id?,notes?,order?,flagged?}] |
-| edit | id, optional title, notes, parent_id, due_at, defer_until, status, order, flagged |
+| add | title, optional parent_id, project_id, tag_ids, notes, metadata, order, flagged; no caller-supplied ID |
+| structure_create | inbox_action_id, actions: [{ref,title,parent_ref? or parent_id?,notes?,metadata?,order?,flagged?}] |
+| edit | id, optional title, notes, metadata, parent_id, due_at, defer_until, status, order, flagged |
 | status | id, status: active/on-hold/completed/dropped |
 | defer | id with until, or date plus explicit client timezone; do not supply date and until together |
 | release / complete / cancel | id |
@@ -90,7 +90,7 @@ The existing latest-100 operation retention is the feed retention boundary. A cu
 | action_project | exactly one of id or ids:nonempty unique UUID array; project_id (required, null clears) |
 | action_tag | exactly one of id or ids:nonempty unique UUID array; tag_id, enabled:boolean |
 
-Structure's first ref reuses any existing action identified by inbox_action_id; omitted notes retain its text. Later refs create actions. Refs must be unique, may reference later parents, and are exclusive with saved parent_id. The retired dependencies payload is rejected. There are no independent prerequisite operations or execution modes.
+Structure's first ref reuses any existing action identified by inbox_action_id; omitted notes or metadata retain their saved values. Notes hold human-facing content and original input; metadata holds caller-managed operational data. Later refs create actions. Refs must be unique, may reference later parents, and are exclusive with saved parent_id. The retired dependencies payload is rejected. There are no independent prerequisite operations or execution modes.
 
 Order is a nonnegative safe integer sibling rank. Defaults append in the parent scope, or project/Inbox root scope. Ties use stable IDs. Order does not gate completion or display. Flagged is a strict boolean with default false; no inheritance. See [data model](data-model.md) for move and filtering rules.
 
@@ -116,7 +116,7 @@ Operations are retained per user for 30 days, always the latest 100 and never mo
 
 The server exposes the normal `ui://action-tools/actions-v4.html` resource (`text/html;profile=mcp-app`). The `ui://action-tools/actions-verification-v4.html` resource is a test acceptance fixture only; it is not registered or served by the deployed Remote MCP dispatcher. The normal loaded widget registers one ephemeral `get_selection_context` App tool and advertises `appCapabilities.tools:{}` during `ui/initialize`. Host `tools/list` and `tools/call` requests are dispatched locally by the loaded widget; this tool is not part of the server-registered `POST /mcp` tool list or the standalone local registry. The call returns `structuredContent` plus JSON text and performs no database/API read, refresh, ID allocation or write.
 
-The tool reports a widget-instance ID and context freshness version separately from the confirmed snapshot revision. Its typed `active` inspector item is independent of the explicit `selected` rows; an empty selection is never replaced by the active item. Persisted items expose only confirmed Action titles or Project/Tag names and visible occurrence identities. Local unsaved items have no durable ID or saved text. The observation excludes notes, descriptions, drafts, user and authentication data, and does not grant write consent. Mixed, missing or local selection blocks Action-only bulk operations rather than silently applying to an Action subset. For a later authorized change, use the existing authenticated server tools and a current revision.
+The tool reports a widget-instance ID and context freshness version separately from the confirmed snapshot revision. Its typed `active` inspector item is independent of the explicit `selected` rows; an empty selection is never replaced by the active item. Persisted items expose only confirmed Action titles or Project/Tag names and visible occurrence identities. Local unsaved items have no durable ID or saved text. The observation excludes notes, metadata, descriptions, drafts, user and authentication data, and does not grant write consent. Mixed, missing or local selection blocks Action-only bulk operations rather than silently applying to an Action subset. For a later authorized change, use the existing authenticated server tools and a current revision.
 
 The adapter accepts only trusted parent-window messages, dispatches method requests before matching same-ID outbound responses and preserves string or numeric request IDs. JSDOM and built-resource checks establish local dispatch and mock-host behavior; they do not establish actual ChatGPT Work tool discovery, caller routing, multi-widget association, close/reopen lifecycle or host caching. Those host behaviors remain unverified until tested on the relevant deployed source. Rendered Title and Notes links use the host `ui/open-link` request with http, https or mailto URLs only; the static SPA shell opens them in a new browsing context without opener. Actual ChatGPT `ui/open-link` support remains unverified until tested in the host. Both widgets retain dirty proposals on refresh or notifications. The verification fixture can discard one client write response while the real write runs, exercising the normal timeout and exact-request recovery.
 
@@ -134,7 +134,7 @@ Projects, tags and perspectives expose `description` as exact caller-controlled 
 Project/tag get-or-create accepts an initial description but never overwrites an existing match, even when a different description is supplied; use an explicit edit to change it. Supplied descriptions are validated even for existing matches. Description does not affect names, uniqueness, hierarchy, associations, action states or filtering. A perspective's versioned definition remains authoritative for deterministic extraction. Text is context for humans/LLMs, never authorization or executable policy.
 
 
-Action creation and explicit title edits require nonempty trimmed text with a maximum of 200 UTF-16 code units. Notes are optional and preserved exactly. Perspective names, structure references and `capture_intent` titles remain nonempty; Project/Tag name writes require nonempty trimmed text. Stored rows and receipts must match the current schema. Missing fields and blank required names fail validation without default values or compatibility conversion. `apply_change` with `kind: add` can supply title, notes, project and unique initial `tag_ids` in one request. All referenced tags must belong to the user. Initial action/tag associations participate in the same revision, receipt and Undo batch.
+Action creation and explicit title edits require nonempty trimmed text with a maximum of 200 UTF-16 code units. Notes and metadata are optional exact text up to 65,536 UTF-16 code units; notes hold human-facing content and original input, while metadata holds caller-managed operational data. Omitted metadata on edit preserves the saved value, and empty text clears it. Metadata is returned by API/MCP reads but never shown in UI Action Detail. Perspective names, structure references and `capture_intent` titles remain nonempty; Project/Tag name writes require nonempty trimmed text. Stored rows and receipts must match the current schema. Missing fields and blank required names fail validation without default values or compatibility conversion. `apply_change` with `kind: add` can supply title, notes, metadata, project and unique initial `tag_ids` in one request. All referenced tags must belong to the user. Initial action/tag associations participate in the same revision, receipt and Undo batch.
 
 The shared UI Add button starts a local temporary proposal in every view, using an appropriate selected tree object or a root fallback. Starting, rendering or dismissing an untouched proposal does not write to storage. An Action commits only after a nonwhitespace Title is supplied; Notes are optional exact raw text. Header Project/Tag Add opens the corresponding tree with a temporary proposal and commits only after a valid nonempty name. The existing `add`, `project_add` and `tag_add` operations create server UUIDs on commit. Unknown creation results retain the exact request; the created ID comes only from the confirmed receipt.
 

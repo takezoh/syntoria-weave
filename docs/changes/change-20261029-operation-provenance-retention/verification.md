@@ -43,7 +43,7 @@ No hosted write has exercised period retention or `client_id` yet. Configuration
 
 ### Production release of actor kind
 
-On 2026-10-29, source `a72872c` was built from a clean worktree, without unrelated uncommitted work in the main checkout. It was released as revision `weave-api-actor-a72872c` with image `sha256:ae54dbd1e6b4c68c815cc3ba69ea2bf37f183a9397587253c71b08f3cadd6996` (OCI index, linux/amd64). Before release, `pnpm check` passed 587 tests in that worktree and `pnpm build` passed.
+On 2026-10-29, source `a72872c` was built from a clean worktree, without unrelated uncommitted work in the main checkout. It was later pushed as `494ce6d`, rebased onto the concurrent UI commit `6e0707c`; the deployed image does not contain `6e0707c`. It was released as revision `weave-api-actor-a72872c` with image `sha256:ae54dbd1e6b4c68c815cc3ba69ea2bf37f183a9397587253c71b08f3cadd6996` (OCI index, linux/amd64). Before release, `pnpm check` passed 587 tests in that worktree and `pnpm build` passed.
 
 - Backup execution `weave-backup-ghkh7` succeeded before migration.
 - Migrator execution `weave-migrator-6zb8d` applied `0006_operation_actor_kind.sql`. The new revision then passed its startup schema check.
@@ -51,4 +51,10 @@ On 2026-10-29, source `a72872c` was built from a clean worktree, without unrelat
 - Public checks: `/health/ready` 200, MCP POST with an invalid bearer 401, untrusted-origin preflight 403.
 
 No hosted write has exercised `actor_kind` yet.
+
+### Release scope, configuration and credentials
+
+- **Scope.** Both releases on 2026-10-29 were API-only. The separately hosted web SPA was not redeployed, and its serving version was not read for this record. The earlier unreleased UI commits `42ac8a5` and `6cdba94` therefore reached only what the API serves, including the MCP UI resource; the web SPA still needs its own release. The concurrent UI commit `6e0707c` is not in either deployed image.
+- **Configuration.** The API and job secret references are unchanged: `weave-runtime-database:2` for the API, `weave-admin-database:2` for the migrator and `weave-backup-database:2` for the backup job. The schema journal now lists `0001_state.sql` to `0006_operation_actor_kind.sql`, which matches the API's startup check. IAM, DNS and runtime settings are unchanged.
+- **Credentials.** After the shared Neon owner password was changed on 2026-10-29, migrator execution `weave-migrator-plnp6` and backup execution `weave-backup-g7pms` both succeeded, so Weave's credentials do not depend on the old password. The runtime role passes the startup check that rejects superuser, row-security-bypassing and table-owning roles. It was not exercised with a new connection after the change.
 

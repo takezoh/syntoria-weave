@@ -1,0 +1,45 @@
+{
+  "sourceCommit": "a72872c969f60c92f188937d821ad11146634c99",
+  "service": "weave-web",
+  "origin": "https://weave.example.com",
+  "deployment": {
+    "id": "994519dd-d0d5-4abc-8b61-052ba735e7ec",
+    "created_on": "2026-10-29T05:37:02.959997Z",
+    "versions": [
+      {
+        "version_id": "8db76c28-486f-4186-8c2a-2a4103051c8e",
+        "percentage": 100
+      }
+    ]
+  },
+  "previousDeployment": {
+    "id": "50800bba-2dd0-461c-832a-c9381f65b739",
+    "created_on": "2026-10-18T13:16:41.318716Z",
+    "versions": [
+      {
+        "version_id": "ab293641-0602-4110-8b20-80f205941680",
+        "percentage": 100
+      }
+    ]
+  },
+  "apiRevision": "weave-api-actor-a72872c",
+  "apiImage": "sha256:ae54dbd1e6b4c68c815cc3ba69ea2bf37f183a9397587253c71b08f3cadd6996",
+  "checks": {
+    "pnpm check": {
+      "exitCode": 0,
+      "tests": 587,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "pnpm build": {
+      "exitCode": 0
+    },
+    "pnpm test:node:built": {
+      "exitCode": 0
+    }
+  },
+  "scope": "Static SPA publication only; API, database, identity and domain configuration unchanged",
+  "authenticatedBrowserAcceptance": "Not performed: no existing authenticated browser session was available. Synthetic-host checks do not close this boundary."
+}

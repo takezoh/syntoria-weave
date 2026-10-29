@@ -74,7 +74,7 @@ The [data model](data-model.md#postgresql-schema-and-transaction-contract) defin
 
 ## Resource configuration
 
-The production Neon database is `weave`. Its separate login roles are `weave_migrator`, `weave_runtime`, and `weave_backup`. Connection URLs are stored in the corresponding `weave-*-database` Secret Manager resources; the API and jobs pin version 2. The database and role names are deployment resources, separate from schema and API identifiers.
+The production Neon database is `weave`. Its separate login roles are `weave_migrator`, `weave_runtime`, and `weave_backup`. The migrator requires `BYPASSRLS` or superuser status for versioned migrations that update FORCE-RLS business history; the runtime role must never receive either privilege. The backup role uses its separate all-row SELECT policy. Connection URLs are stored in the corresponding `weave-*-database` Secret Manager resources; the API and jobs pin version 2. The database and role names are deployment resources, separate from schema and API identifiers.
 
 These are initial operating values, not measured results. IaC validates configuration rather than assuming product-plan capabilities.
 

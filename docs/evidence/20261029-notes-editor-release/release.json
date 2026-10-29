@@ -1,0 +1,61 @@
+{
+  "sourceCommit": "be774a3d28269194e0af94b54174f634f0f450bb",
+  "implementationCommit": "259f3fb",
+  "apiRevision": "weave-api-notes-be774a3",
+  "imageIndex": "sha256:f262aa7d22ef391c52ef9393889fe4659205825c22d1446a88cf010322638170",
+  "runtimeImage": "sha256:f7d4b6a736ac39097708ce63384d52c459f67b3960bd78c41f099eb1bffad076",
+  "migrationExecution": "weave-migrator-mjjqc",
+  "spaDeployment": "58052dea-bc27-4910-89ba-eece59264e3c",
+  "spaVersion": "c06e4014-1665-4313-9e78-feb2e8f17a59",
+  "checks": {
+    "pnpm check": "588 passed; no failed/skipped/cancelled/TODO",
+    "pnpm build": "passed",
+    "pnpm test:node:built": "passed"
+  },
+  "previousApiRevision": "weave-api-actor-a72872c",
+  "previousSpaVersion": "8db76c28-486f-4186-8c2a-2a4103051c8e",
+  "limitations": [
+    "Authenticated browser and ChatGPT host acceptance not performed.",
+    "Existing 390px document overflow remains: measured scroll width 408px.",
+    "Tagged revision rejects noncanonical host with 403; canonical-origin probes run after canary."
+  ],
+  "finalApiStatus": {
+    "latestReadyRevisionName": "weave-api-notes-be774a3",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "weave-api-notes-be774a3"
+      }
+    ]
+  },
+  "migrationResult": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-10-29T06:18:49.057179Z",
+        "message": "Execution completed successfully in 17.39s.",
+        "status": "True",
+        "type": "Completed"
+      },
+      {
+        "lastTransitionTime": "2026-10-29T06:18:29.932285Z",
+        "message": "Provisioned imported containers.",
+        "status": "True",
+        "type": "ResourcesAvailable"
+      },
+      {
+        "lastTransitionTime": "2026-10-29T06:18:43.674944Z",
+        "message": "Started deployed execution in 13.74s.",
+        "status": "True",
+        "type": "Started"
+      },
+      {
+        "lastTransitionTime": "2026-10-29T06:18:29.797041Z",
+        "message": "Imported container image in 1.15s.",
+        "status": "True",
+        "type": "ContainerReady"
+      }
+    ],
+    "succeededCount": 1
+  },
+  "checkedAt": "2026-10-29T06:21:11.698Z"
+}

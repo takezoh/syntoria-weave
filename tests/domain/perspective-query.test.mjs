@@ -18,7 +18,7 @@ const tagNode=(n,name,parent_id=null,order=n)=>({id:id(n),name,description:'',pa
 const action=(n,options={})=>({
   id:id(n),title:options.title??`Action ${n}`,revision:1,parent_id:options.parent_id??null,
   project_id:options.project_id??null,status:options.status??'active',due_at:options.due_at??null,
-  defer_until:options.defer_until??null,notes:'',order:options.order??n,flagged:options.flagged??false,
+  defer_until:options.defer_until??null,notes:'',metadata:'',order:options.order??n,flagged:options.flagged??false,
   created_at:options.created_at??instant(1),updated_at:options.updated_at??instant(1),
 });
 function fixture(){

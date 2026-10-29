@@ -37,7 +37,7 @@ export async function checkRuntime(pool:Pool) {
  const capacity=(await pool.query('SHOW max_connections')).rows[0].max_connections;if(Number(capacity)<64)throw new Error('Database connection capacity must be at least 64.');
  if(owned.rowCount)throw new Error('Runtime role must not own application tables.');
  const schema=await pool.query("SELECT version FROM public.schema_migrations ORDER BY version");
- if(schema.rows.map(row=>row.version).join(',')!=='0001_state.sql,0002_user_identity.sql,0003_gate_sessions.sql,0004_subject_only_identity.sql,0005_operation_client_provenance.sql,0006_operation_actor_kind.sql,0007_collaboration.sql,0008_mcp_subscriptions.sql')throw new Error('Incompatible schema version.');
+ if(schema.rows.map(row=>row.version).join(',')!=='0001_state.sql,0002_user_identity.sql,0003_gate_sessions.sql,0004_subject_only_identity.sql,0005_operation_client_provenance.sql,0006_operation_actor_kind.sql,0007_action_metadata_text.sql,0007_collaboration.sql,0008_mcp_subscriptions.sql')throw new Error('Incompatible schema version.');
 }
 export async function grantExport(pool:Pool,role:string) {
  if(!/^[a-z][a-z0-9_]{0,62}$/.test(role))throw new Error('Invalid role identifier.');
