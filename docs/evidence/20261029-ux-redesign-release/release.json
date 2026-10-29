@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-29",
+  "changes": ["change-20261029-ux-first-redesign", "change-20261029-collaboration-delegation"],
+  "source": {
+    "commit": "dc0b0ef880d98bf1bbd263ad13e77cd4e3d629b3",
+    "includedEarlierUnreleasedCommits": ["7ccf77c", "d185bca"],
+    "cleanWorktree": true
+  },
+  "checks": {
+    "pnpmCheck": {"tests": 655, "passed": 655, "failed": 0, "skipped": 0, "todo": 0, "lint": "passed", "typecheck": "passed"},
+    "pnpmBuild": "passed",
+    "testNodeBuilt": "passed",
+    "gateIntegrationHarness": "passed against the released Gate source 6b69431"
+  },
+  "api": {
+    "image": "sha256:acc07cd68a8e2dd132a9574a6b8319699083a7e93611f75c79906a7ca62199f5",
+    "imageBuild": "Docker Buildx, linux/amd64",
+    "previousRevision": "weave-api-scope-live-8bff54b",
+    "revision": "weave-api-review-dc0b0ef",
+    "traffic": "100% after a no-traffic tagged readiness probe; tag removed",
+    "jobs": {
+      "backupBeforeMigration": "weave-backup-sptzh succeeded with the previous image",
+      "migration": "weave-migrator-pfpjq applied 0010_change_review.sql and 0011_collaboration_delegation.sql",
+      "grantRuntime": "weave-migrator-x8dv6 failed with 42501 at ALTER ROLE ... CONNECTION LIMIT (the migrator lacks CREATEROLE); the preceding table grants were applied",
+      "privilegeCheck": "weave-migrator-z2cj8 (read-only): runtime role has SELECT/INSERT/UPDATE on state.client_names; runtime connection limit already 40; backup role lacks SELECT on state.client_names",
+      "backupJobImage": "updated to the release image; not executed after migration"
+    },
+    "publicChecks": {
+      "healthReady": 200,
+      "mcpInvalidBearer": 401,
+      "untrustedOriginPreflight": 403,
+      "spaOriginPreflight": "204 with exact origin",
+      "protectedResourceMetadata": 200,
+      "unauthenticatedSession": "401 with exact origin"
+    },
+    "revisionErrorLogs": "none at the recorded observation time"
+  },
+  "spa": {
+    "staticHostVersion": "b76270ce-6d05-4070-a98c-8ea9e7d5d045",
+    "uploadedFiles": ["workspace.html"],
+    "publicVerification": "all 7 public files match candidate hashes; no-store runtime configuration; immutable hashed assets; DENY and frame-ancestors 'none' except SAMEORIGIN and 'self' on workspace.html; credentialed CORS 204"
+  },
+  "gate": {
+    "source": "6b69431",
+    "image": "sha256:f2d1a57e27b466c1d63e3028cb6f2234732a6b7a3d9d8d06b24eae88ccde1026",
+    "revision": "gate-api-clientname-6b69431",
+    "record": "syntoria-gate docs/changes/change-20261029-introspection-client-name/verification.md"
+  },
+  "outage": "The previous revision cannot decode collaboration bodies after 0011; it served no logged errors between migration and the traffic switch.",
+  "unverified": [
+    "Authenticated Web UI behavior in a real browser",
+    "MCP writes with summary, client_name relay and delegation on the hosted service",
+    "Assigned-resource notifications on a hosted stream",
+    "ChatGPT widget rendering and browser storage for the review mark",
+    "Nightly backup after migration (blocked until the backup role can read state.client_names)"
+  ]
+}

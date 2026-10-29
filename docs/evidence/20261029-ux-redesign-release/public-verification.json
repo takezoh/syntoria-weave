@@ -1,0 +1,68 @@
+{
+  "sourceCommit": "dc0b0ef880d98bf1bbd263ad13e77cd4e3d629b3",
+  "checkedAt": "2026-10-29T17:13:41.895Z",
+  "allMatch": true,
+  "results": [
+    {
+      "path": "/assets/authReturn-CK6eip8z.js",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/assets/index-CRJZoJNY.js",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/assets/modulepreload-polyfill-wMinxHhO.js",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/auth-return.html",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/runtime-config.json",
+      "status": 200,
+      "match": true,
+      "cacheControl": "no-store",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/workspace.html",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "SAMEORIGIN",
+      "frameAncestors": "frame-ancestors 'self'"
+    }
+  ],
+  "credentialedCors": {
+    "status": 204,
+    "allowOrigin": true,
+    "allowCredentials": "true"
+  }
+}

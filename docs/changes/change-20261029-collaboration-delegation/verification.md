@@ -18,3 +18,15 @@ Local working tree on 2026-10-29; not committed or deployed.
 ## Limitations
 
 Hosted services and real MCP hosts are not exercised; whether a host forwards resource notifications to a model is host-specific. Assigned hints compare item content on each poll; their cost at larger scale is unmeasured.
+
+## Production release
+
+On 2026-10-29, source `dc0b0ef`, pushed to main as a fast-forward that also carries the earlier unreleased commits `7ccf77c` and `d185bca`, was released together with `change-20261029-ux-first-redesign` and `change-20261029-collaboration-delegation` as revision `weave-api-review-dc0b0ef` with image `sha256:acc07cd68a8e2dd132a9574a6b8319699083a7e93611f75c79906a7ca62199f5` (Docker Buildx, linux/amd64). See the [release evidence](../../evidence/20261029-ux-redesign-release/release.json).
+
+- Backup execution `weave-backup-sptzh` succeeded before migration. Migrator execution `weave-migrator-pfpjq` applied 0010 and 0011 with the release image, and the new revision passed its startup schema check before receiving 100% traffic through a no-traffic tagged probe; the tag was removed. The previous revision cannot decode collaboration bodies after 0011; no errors were logged for it between migration and the switch.
+- `grant-runtime weave_runtime` (execution `weave-migrator-x8dv6`) failed with 42501 at its final `ALTER ROLE ... CONNECTION LIMIT`, because the migrator lacks CREATEROLE. A read-only privilege check (`weave-migrator-z2cj8`) showed the earlier table grants applied: the runtime role has SELECT, INSERT and UPDATE on `state.client_names`, and its connection limit is already 40.
+- The backup role does not yet have SELECT on `state.client_names`, so a backup after migration would fail. Granting it was not performed in this session and is pending the operator.
+- Public checks after the switch: readiness 200, MCP with an invalid bearer 401, an untrusted-origin preflight 403, the SPA-origin preflight 204 with its exact origin, protected-resource metadata 200, an unauthenticated session 401. No errors were logged for the new revision at the recorded observation time.
+- The static SPA is version `b76270ce-6d05-4070-a98c-8ea9e7d5d045`, built from the same source with freshly rendered runtime settings and hosting rules. All seven public files matched the candidate hashes with the expected cache, framing and credentialed CORS headers ([asset manifest](../../evidence/20261029-ux-redesign-release/asset-manifest.json), [public checks](../../evidence/20261029-ux-redesign-release/public-verification.json)).
+
+Not verified in production: authenticated Web UI behavior in a real browser, hosted MCP writes with summaries, relayed client names and delegation, hosted assigned-resource notifications, ChatGPT widget rendering and its browser storage, and a backup after migration.
