@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-30",
+  "changes": [
+    "change-20261030-dense-icon-first-ui",
+    "change-20261030-collaboration-metadata"
+  ],
+  "source": {
+    "commit": "0ec4f243661137ad75cfe76d3cd78f1c2454bccc",
+    "includes": [
+      "efcc9c6 (UI), verified alone: pnpm check 680 tests passed"
+    ],
+    "cleanWorktree": true
+  },
+  "checks": {
+    "pnpmCheck": {
+      "tests": 685,
+      "passed": 685,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "lint": "passed",
+      "typecheck": "passed"
+    },
+    "pnpmBuild": "passed",
+    "testNodeBuilt": "passed, including collaboration"
+  },
+  "api": {
+    "image": "sha256:506e4553d82ac4b2bc80f103876d82c175da92f0af2638a0c9146a27357b5e7f",
+    "imageBuild": "Docker Buildx, linux/amd64",
+    "previousRevision": "weave-api-mcp-c6c85bf",
+    "revision": "weave-api-dense-0ec4f24",
+    "traffic": "100% after a no-traffic tagged liveness and readiness probe (both 200); tag removed",
+    "jobs": {
+      "backupBeforeMigration": "weave-backup-brwp7 failed with the previous image, as the nightly backups do; the recovery point is Neon PITR at 2026-10-30T07:32:19Z, recorded before migrating",
+      "migration": "weave-migrator-fpcb7 with the release image applied 0012_collaboration_metadata.sql, completed 2026-10-30T07:32:58Z",
+      "readOnlyCheck": "weave-migrator-rmqdw: latest journal entry 0012_collaboration_metadata.sql; 20 of 20 collaboration heads and 24 of 24 history bodies state metadata; every head parses with string metadata",
+      "migratorAndBackupImages": "updated to the release image"
+    },
+    "publicChecks": {
+      "healthReady": 200,
+      "mcpInvalidBearer": "401 with an authentication challenge",
+      "untrustedOriginPreflight": 403,
+      "spaOriginPreflight": "204 with exact origin and credentials",
+      "protectedResourceMetadata": 200,
+      "unauthenticatedSession": 401
+    },
+    "revisionLogs": "the previous revision logged nothing at warning or above between migration and the switch; the new revision logged only the probes' expected 401 and 403. The stale zero-traffic tagged revision weave-api-collab-3f3a6848 keeps failing its startup schema check, as it already did before this migration"
+  },
+  "spa": {
+    "staticHostVersion": "b0d3f5e2-ecac-4b08-974c-fb3cd0370702",
+    "uploadedFiles": [
+      "workspace.html"
+    ],
+    "publishedAfter": "the API switch, because the new widget requires collaboration metadata and the previous one rejects it",
+    "publicVerification": "all 7 public files match candidate hashes; no-store runtime configuration; immutable hashed assets; DENY except SAMEORIGIN on workspace.html; credentialed CORS 204"
+  },
+  "unverified": [
+    "Authenticated Web UI behavior in a real browser: the redesigned Action Detail, date chips, Markdown collaboration cards and the phone List/Detail pages",
+    "Hosted MCP writes and reads of collaboration metadata",
+    "ChatGPT widget rendering; a widget cached by the host before this release rejects snapshots that carry collaboration metadata until the host refetches the resource",
+    "Nightly backup (still blocked until the backup role can read state.client_names)"
+  ]
+}
