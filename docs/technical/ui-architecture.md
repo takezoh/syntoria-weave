@@ -24,6 +24,8 @@ The widget uses the browser-assigned viewport and applies the four insets as pad
 
 The static SPA shell owns browser safe areas outside its workspace iframe. It opts into the full viewport and applies the browser's four `safe-area-inset-*` values once as body padding, leaving the embedded widget's host-context insets at zero. In portrait standalone or fullscreen mode on WebKit, it adds 20 CSS px to the top padding and shows a fixed opaque band over the same reserved height; the band does not participate in layout. WebKit's Home Screen mode may report `display-mode: fullscreen` instead of `standalone` ([WebKit bug 264218](https://bugs.webkit.org/show_bug.cgi?id=264218)), so the shell applies this clearance to either display mode while retaining the WebKit feature gate and portrait condition. The access/recovery bar and iframe stay within the remaining `100dvh`. Other display modes retain only their reported safe-area padding. The shell surface and browser theme color use light `#fff` and dark `#1d1e23`. Static shell checks and browser geometry checks cover the CSS contract, inset combinations, recovery bar and overflow; actual iOS Home Screen clearance and device rendering still require device acceptance.
 
+The shell temporarily exposes a `Display info D1` button. A user tap reads browser display flags, safe-area and shell padding, viewport and scroll measurements, and iframe/child-header rectangles into a fixed allowlist report. It does not send or retain the values, read workspace content or session data, or reload the iframe. Missing measurement APIs or an inaccessible or not-yet-loaded iframe report as unavailable.
+
 ## Source tree
 
 ```text

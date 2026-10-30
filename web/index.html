@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="layout-probe" content="layout-probe-1">
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1d1e23" media="(prefers-color-scheme: dark)">
     <title>Actions</title>
@@ -80,6 +81,56 @@
         border: 0;
       }
 
+      #safe-area-probe {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      #display-info-d1-button {
+        position: fixed;
+        z-index: 3;
+        left: calc(env(safe-area-inset-left, 0px) + 8px);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+        max-width: calc(100vw - 16px);
+        padding: 4px 8px;
+        font-size: 12px;
+        opacity: 0.88;
+      }
+
+      #display-info-d1-dialog {
+        position: fixed;
+        z-index: 10;
+        inset: 0;
+        margin: auto;
+        box-sizing: border-box;
+        width: min(34rem, calc(100vw - 24px));
+        max-width: calc(100vw - 24px);
+        max-height: calc(100dvh - 24px);
+        overflow: auto;
+        border: 1px solid #777;
+        border-radius: 8px;
+        padding: 16px;
+        color: CanvasText;
+        background: Canvas;
+      }
+
+      #display-info-d1-dialog::backdrop {
+        background: rgb(0 0 0 / 45%);
+      }
+
+      #display-info-d1-report {
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+        font: 12px/1.45 ui-monospace, monospace;
+      }
+
       button {
         font: inherit;
         padding: 6px 12px;
@@ -88,6 +139,7 @@
   </head>
   <body>
     <div id="top-clearance-band" aria-hidden="true"></div>
+    <div id="safe-area-probe" aria-hidden="true"></div>
     <header id="access">
       <span id="message">Loading session…</span>
       <button id="login" hidden>Sign in</button>
@@ -95,6 +147,12 @@
       <button id="logout" hidden>Sign out this device</button>
     </header>
     <iframe id="workspace" title="Actions" hidden></iframe>
+    <button id="display-info-d1-button" type="button" aria-haspopup="dialog" aria-controls="display-info-d1-dialog">Display info D1</button>
+    <dialog id="display-info-d1-dialog" aria-labelledby="display-info-d1-title" aria-modal="true">
+      <h1 id="display-info-d1-title">Display info D1</h1>
+      <button id="display-info-d1-close" type="button">Close</button>
+      <pre id="display-info-d1-report" aria-live="polite"></pre>
+    </dialog>
     <script type="module" src="/client.ts"></script>
   </body>
 </html>

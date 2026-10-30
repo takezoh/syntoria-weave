@@ -8,6 +8,108 @@ const refreshChannelName='action-tools-browser-session-refresh';
 const channel=new BroadcastChannel(refreshChannelName);
 const pending=new Set<string>();
 let runtime:RuntimeConfig|null=null,session:Session|null=null,account:string|null=null,blocked=true,viewTitle:string|null=null;
+const layoutProbeClientMarker='layout-probe-1';
+let workspaceLoaded=false;
+frame.addEventListener('load',()=>{if(frame.hasAttribute('src'))workspaceLoaded=true;});
+
+function installDisplayInfo(){
+ const button=document.querySelector<HTMLButtonElement>('#display-info-d1-button');
+ const dialog=document.querySelector<HTMLDialogElement>('#display-info-d1-dialog');
+ const report=document.querySelector<HTMLElement>('#display-info-d1-report');
+ const closeButton=document.querySelector<HTMLButtonElement>('#display-info-d1-close');
+ const safeAreaProbe=document.querySelector<HTMLElement>('#safe-area-probe');
+ if(!button||!dialog||!report||!closeButton)return;
+
+ function numberMetric(read:()=>unknown){
+  try{const value=read();return typeof value==='number'&&Number.isFinite(value)?String(value):'unavailable';}catch{return 'unavailable';}
+ }
+ function cssPixelMetric(element:Element|null,property:string){
+  try{
+   if(!element)return 'unavailable';
+   const value=window.getComputedStyle(element).getPropertyValue(property).trim();
+   return /^(?:\d+(?:\.\d+)?|\.\d+)px$/u.test(value)?value:'unavailable';
+  }catch{return 'unavailable';}
+ }
+ function mediaFlag(query:string):boolean|null{
+  try{return typeof window.matchMedia==='function'?window.matchMedia(query).matches:null;}catch{return null;}
+ }
+ function flag(value:boolean|null){return value===null?'unavailable':String(value);}
+ function rectLines(label:string,element:Element|null){
+  let rect:DOMRect|null=null;
+  try{rect=element?.getBoundingClientRect()??null;}catch{}
+  return (['top','left','width','height'] as const).map(edge=>`${label} ${edge}: ${rect?numberMetric(()=>rect![edge]):'unavailable'}`);
+ }
+ function childMetric(read:(child:Window)=>unknown){
+  try{
+   const childDocument=frame.contentDocument,child=frame.contentWindow;
+   if(!workspaceLoaded||!child||!childDocument||childDocument.readyState!=='complete'||!childDocument.documentElement)return 'unavailable';
+   const value=read(child);
+   return typeof value==='number'&&Number.isFinite(value)?String(value):'unavailable';
+  }catch{return 'unavailable';}
+ }
+ function childHeaderRectLines(){
+  try{
+   const childDocument=frame.contentDocument,child=frame.contentWindow;
+   if(!workspaceLoaded||!child||!childDocument||childDocument.readyState!=='complete'||!childDocument.documentElement)return rectLines('iframe header rect',null);
+   return rectLines('iframe header rect',childDocument.querySelector('header'));
+  }catch{return rectLines('iframe header rect',null);}
+ }
+ function collectReport(){
+  const rawHtmlMarker=document.querySelector<HTMLMetaElement>('meta[name="layout-probe"]')?.content??'';
+  const htmlMarker=/^layout-probe-\d+$/u.test(rawHtmlMarker)?rawHtmlMarker:'unavailable';
+  const standalone=(window.navigator as Navigator&{standalone?:unknown}).standalone;
+  const standaloneValue=typeof standalone==='boolean'?String(standalone):'null';
+  let webkitCallout:boolean|null=null;
+  try{if(typeof CSS!=='undefined'&&typeof CSS.supports==='function')webkitCallout=CSS.supports('-webkit-touch-callout','none');}catch{}
+  const lines=[
+   `HTML probe marker: ${htmlMarker}`,
+   `Client probe marker: ${layoutProbeClientMarker}`,
+   `Probe markers match: ${htmlMarker===layoutProbeClientMarker}`,
+   `navigator.standalone: ${standaloneValue}`,
+   `display-mode standalone: ${flag(mediaFlag('(display-mode: standalone)'))}`,
+   `display-mode fullscreen: ${flag(mediaFlag('(display-mode: fullscreen)'))}`,
+   `display-mode browser: ${flag(mediaFlag('(display-mode: browser)'))}`,
+   `display-mode minimal-ui: ${flag(mediaFlag('(display-mode: minimal-ui)'))}`,
+   `orientation portrait: ${flag(mediaFlag('(orientation: portrait)'))}`,
+   `CSS.supports -webkit-touch-callout: ${flag(webkitCallout)}`,
+   `Safe-area probe padding top: ${cssPixelMetric(safeAreaProbe,'padding-top')}`,
+   `Safe-area probe padding bottom: ${cssPixelMetric(safeAreaProbe,'padding-bottom')}`,
+   `Body padding top: ${cssPixelMetric(document.body,'padding-top')}`,
+   `Body padding right: ${cssPixelMetric(document.body,'padding-right')}`,
+   `Body padding bottom: ${cssPixelMetric(document.body,'padding-bottom')}`,
+   `Body padding left: ${cssPixelMetric(document.body,'padding-left')}`,
+   `--shell-top-clearance: ${cssPixelMetric(document.documentElement,'--shell-top-clearance')}`,
+   `visualViewport width: ${numberMetric(()=>window.visualViewport?.width)}`,
+   `visualViewport height: ${numberMetric(()=>window.visualViewport?.height)}`,
+   `visualViewport offsetLeft: ${numberMetric(()=>window.visualViewport?.offsetLeft)}`,
+   `visualViewport offsetTop: ${numberMetric(()=>window.visualViewport?.offsetTop)}`,
+   `visualViewport scale: ${numberMetric(()=>window.visualViewport?.scale)}`,
+   `Window innerHeight: ${numberMetric(()=>window.innerHeight)}`,
+   `Document clientHeight: ${numberMetric(()=>document.documentElement.clientHeight)}`,
+   `Screen height: ${numberMetric(()=>window.screen.height)}`,
+   `devicePixelRatio: ${numberMetric(()=>window.devicePixelRatio)}`,
+   `Window scrollY: ${numberMetric(()=>window.scrollY)}`,
+   `iframe load observed: ${workspaceLoaded}`,
+   ...rectLines('iframe rect',frame),
+   `iframe child innerHeight: ${childMetric(child=>child.innerHeight)}`,
+   `iframe child scrollY: ${childMetric(child=>child.scrollY)}`,
+   ...childHeaderRectLines(),
+  ];
+  return lines.join('\n');
+ }
+ button.addEventListener('click',()=>{
+  report.textContent=collectReport();
+  if(dialog.open)return;
+  try{if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');}catch{dialog.setAttribute('open','');}
+ });
+ closeButton.addEventListener('click',()=>{
+  try{if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');}catch{dialog.removeAttribute('open');}
+ });
+ dialog.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&dialog.open&&typeof dialog.close!=='function'){dialog.removeAttribute('open');closeButton.focus();}
+ });
+}
+installDisplayInfo();
 
 function exactHttpsOrigin(value:unknown){
  if(typeof value!=='string')throw new Error('Invalid runtime origin.');
