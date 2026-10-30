@@ -26,7 +26,10 @@
         background: var(--shell-surface);
       }
 
-      body {
+      #app-shell {
+        position: fixed;
+        inset: 0;
+        background: var(--shell-surface);
         box-sizing: border-box;
         height: 100dvh;
         display: flex;
@@ -62,6 +65,7 @@
     </style>
   </head>
   <body>
+    <div id="app-shell">
     <header id="access">
       <span id="message">Loading session…</span>
       <button id="login" hidden>Sign in</button>
@@ -69,6 +73,7 @@
       <button id="logout" hidden>Sign out this device</button>
     </header>
     <iframe id="workspace" title="Actions" hidden></iframe>
+    </div>
     <script type="module" src="/client.ts"></script>
   </body>
 </html>

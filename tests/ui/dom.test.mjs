@@ -546,3 +546,11 @@ test('foreground refresh retains an invalid unsaved editor draft',async t=>{
  assert.equal(f.requests.filter(r=>r.name==='list_actions').length,before+1);assert.equal(input.value,'');assert.equal(d.getElementById('textEdit').hidden,false);
  f.dom.window.dispatchEvent(new f.dom.window.PageTransitionEvent('pagehide',{persisted:true}));f.dom.window.dispatchEvent(new f.dom.window.PageTransitionEvent('pageshow',{persisted:true}));await settle();assert.equal(f.requests.filter(r=>r.name==='list_actions').length,before+2);assert.equal(input.value,'');
 });
+
+test('row touch scrolling is blocked only while a swipe or long press owns the gesture',async t=>{
+ const f=createFixture();t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window,row=d.querySelector('.action-row'),target=row.querySelector('.action-select');
+ const blocked=()=>{const e=new w.Event('touchmove',{bubbles:true,cancelable:true});d.dispatchEvent(e);return e.defaultPrevented;};
+ assert.equal(blocked(),false);touchAt(w,target,'pointerdown',20,130);assert.equal(blocked(),false);touchAt(w,w,'pointermove',25,170);assert.equal(blocked(),false);
+ touchAt(w,target,'pointerdown',20,130,31);touchAt(w,w,'pointermove',100,131,31);assert.equal(blocked(),true);touchAt(w,w,'pointercancel',100,131,31);assert.equal(blocked(),false);
+ touchAt(w,target,'pointerdown',20,130,32);runTimers(f);assert.equal(blocked(),true);touchAt(w,w,'pointerup',20,130,32);assert.equal(blocked(),false);
+});

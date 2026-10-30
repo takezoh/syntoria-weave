@@ -7,10 +7,13 @@ function fixture(){
  const dom=new JSDOM('<button id="refresh">Refresh</button><div id="list"><div id="indicator"></div><span id="row">Row</span><input id="input"></div>'),w=dom.window,d=w.document;
  let count=0,blocked=false,resolve,reject,claims=0;const messages=[];
  Object.defineProperty(d,'visibilityState',{configurable:true,value:'visible'});
+ const moves=new Set(),list=d.getElementById('list'),add=list.addEventListener.bind(list),remove=list.removeEventListener.bind(list);
+ list.addEventListener=(type,fn,options)=>{if(type==='touchmove'&&options?.passive===false)moves.add(fn);add(type,fn,options);};
+ list.removeEventListener=(type,fn,options)=>{if(type==='touchmove')moves.delete(fn);remove(type,fn,options);};
  const api=installRefresh(d,w,{scroller:d.getElementById('list'),indicator:d.getElementById('indicator'),button:d.getElementById('refresh'),refresh:()=>{count++;return new Promise((yes,no)=>{resolve=yes;reject=no;});},blocked:()=>blocked,pullAllowed:()=>true,claimPull:()=>claims++,message:m=>messages.push(m)});
  function touch(type,x=0,y=0,options={}){const e=new w.Event(type,{bubbles:true,cancelable:true});Object.defineProperty(e,'touches',{value:type==='touchend'?[]:Array.from({length:options.count??1},(_,i)=>({identifier:i,clientX:x,clientY:y}))});d.getElementById(options.target??'row').dispatchEvent(e);return e;}
  function visible(value){Object.defineProperty(d,'visibilityState',{configurable:true,value});d.dispatchEvent(new w.Event('visibilitychange'));}
- return {api,w,d,dom,touch,visible,messages,get count(){return count;},get claims(){return claims;},block(v){blocked=v;},complete(){resolve();},fail(){reject(new Error('network'));},close(){api.dispose();dom.window.close();}};
+ return {api,w,d,dom,touch,visible,messages,get blockers(){return moves.size;},get count(){return count;},get claims(){return claims;},block(v){blocked=v;},complete(){resolve();},fail(){reject(new Error('network'));},close(){api.dispose();dom.window.close();}};
 }
 test('button and foreground refresh share a lane, queue while saving and recover after failure',async()=>{
  const f=fixture();try{
@@ -31,5 +34,15 @@ test('pull starts only at top and refreshes once on release; canceled, horizonta
  await settle();assert.equal(f.count,1);
  f.touch('touchstart');assert.equal(f.touch('touchmove',0,160).defaultPrevented,true);assert.equal(f.d.getElementById('indicator').textContent,'Release to refresh');f.touch('touchend');await settle();assert.equal(f.count,2);assert.ok(f.claims>0);
  f.touch('touchstart');f.touch('touchmove',0,160);f.touch('touchend');await settle();assert.equal(f.count,2);f.complete();await settle();assert.equal(f.d.getElementById('indicator').hidden,true);
+ }finally{f.close();}
+});
+
+test('ordinary scrolling has no blocking move listener and pull feedback never changes layout height',async()=>{
+ const f=fixture();try{
+ f.api.start();await settle();f.complete();await settle();assert.equal(f.blockers,0);
+ f.d.getElementById('list').scrollTop=10;f.touch('touchstart');assert.equal(f.blockers,0);assert.equal(f.touch('touchmove',0,-100).defaultPrevented,false);
+ f.d.getElementById('list').scrollTop=0;f.touch('touchstart');assert.equal(f.blockers,1);f.touch('touchmove',0,-20);assert.equal(f.blockers,0);
+ f.touch('touchstart');f.touch('touchmove',0,160);assert.equal(f.d.getElementById('indicator').style.height,'');assert.match(f.d.getElementById('indicator').style.transform,/translateY/);f.touch('touchcancel');assert.equal(f.blockers,0);
+ f.touch('touchstart');f.api.dispose();assert.equal(f.blockers,0);
  }finally{f.close();}
 });

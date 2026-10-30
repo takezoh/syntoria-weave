@@ -185,7 +185,7 @@ header{position:sticky;top:var(--host-safe-area-top);z-index:20;background:var(-
 
 .app-footer{padding:0 24px;background:var(--surface);border-top:1px solid var(--line)}
 .app-footer .feedback{margin:0;min-height:36px}
-.pull-refresh{display:flex;align-items:center;justify-content:center;flex:none;color:var(--muted);font-size:12px;overflow:hidden}
+.list-panel{position:relative}.pull-refresh{position:absolute;top:0;left:0;right:0;height:40px;z-index:2;display:flex;align-items:center;justify-content:center;color:var(--muted);background:var(--bg);font-size:12px;pointer-events:none;transform:translateY(-40px)}
 .pull-refresh[hidden]{display:none}
 #refresh[data-refreshing="true"]>svg{animation:save-spin 1s linear infinite}
 @media(max-width:850px){

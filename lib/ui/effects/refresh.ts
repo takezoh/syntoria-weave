@@ -11,8 +11,8 @@ export function installRefresh(document:Document,window:Window,options:{
  let foreground=document.visibilityState!=='hidden';
  let pull:{id:number;x:number;y:number;state:PullState}|null=null;
  const {scroller,indicator,button}=options;
- const draw=(distance=0,text='')=>{indicator.style.height=`${distance}px`;indicator.textContent=text;indicator.hidden=distance===0;};
- function cancel(){pull=null;if(!inFlight)draw();}
+ const draw=(distance=0,text='')=>{const transform=`translateY(${distance-40}px)`;if(indicator.style.transform!==transform)indicator.style.transform=transform;if(indicator.textContent!==text)indicator.textContent=text;if(indicator.hidden!==(distance===0))indicator.hidden=distance===0;};
+ function cancel(){scroller.removeEventListener('touchmove',move);pull=null;if(!inFlight)draw();}
  function request():Promise<void>{
   if(disposed)return Promise.resolve();
   if(inFlight)return inFlight;
@@ -32,6 +32,7 @@ export function installRefresh(document:Document,window:Window,options:{
   const target=event.target as Element|null;
   if(target?.closest('input,textarea,select,[contenteditable="true"],dialog,.popover,.complete,.flag'))return;
   const touch=event.touches[0];pull={id:touch.identifier,x:touch.clientX,y:touch.clientY,state:{phase:'pending',distance:0}};
+  scroller.addEventListener('touchmove',move,{passive:false});
  };
  const move=(event:TouchEvent)=>{
   if(!pull)return;
@@ -49,7 +50,7 @@ export function installRefresh(document:Document,window:Window,options:{
  const end=()=>{const refresh=pull&&releasePull(pull.state);if(pull?.state.phase==='pulling')options.claimPull();cancel();if(refresh)void request();};
  const click=()=>{void request();};
  button.addEventListener('click',click);
- scroller.addEventListener('touchstart',start,{passive:true});scroller.addEventListener('touchmove',move,{passive:false});
+ scroller.addEventListener('touchstart',start,{passive:true});
  scroller.addEventListener('touchend',end);scroller.addEventListener('touchcancel',cancel);
  document.addEventListener('visibilitychange',visibility);window.addEventListener('focus',active);window.addEventListener('blur',inactive);window.addEventListener('pageshow',pageShow);window.addEventListener('pagehide',inactive);
  return {request,start(){ready=true;return request();},flush(){if(pending&&!options.blocked())void request();},dispose(){disposed=true;cancel();button.removeEventListener('click',click);scroller.removeEventListener('touchstart',start);scroller.removeEventListener('touchmove',move);scroller.removeEventListener('touchend',end);scroller.removeEventListener('touchcancel',cancel);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('focus',active);window.removeEventListener('blur',inactive);window.removeEventListener('pageshow',pageShow);window.removeEventListener('pagehide',inactive);}};
