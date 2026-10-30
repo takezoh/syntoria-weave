@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {projectNow,captureTitle} from '../../lib/ui/model/now.ts';
 import {quickDates} from '../../lib/ui/model/date-input.ts';
 import {describeChange,projectChangeFeed,changeNames,changeActor,actorLabel,isUnreviewed,validRecentChangePage} from '../../lib/ui/model/changes.ts';
 import {needsPerson} from '../../lib/ui/model/collaboration.ts';
@@ -13,35 +12,6 @@ const delta=(actions=[],extra={})=>({actions,projects:[],tags:[],perspectives:[]
 const change=(revision,extra={})=>({operation_id:uuid(100+revision),revision_before:revision-1,revision_after:revision,committed_at:'2026-10-29T09:00:00.000Z',undo_of:null,client_id:'client-1',actor_kind:'client',summary:null,client_name:'ChatGPT',changes:delta(),undone_by:null,collaboration_id:null,undo:{status:'available'},...extra});
 const names=changeNames({actions:[{id:uuid(1),title:'Trip'},{id:uuid(2),title:''}],projects:[{id:uuid(9),name:'Kyoto',path:'Travel / Kyoto'}],tags:[{id:uuid(8),name:'calls'}]});
 const time=value=>'T'+value.slice(0,10);
-
-test('Now lists flagged normal actions in saved order and unfinished deadlines within seven days without mutating the snapshot',()=>{
- const now=Date.parse('2026-10-29T12:00:00.000Z');
- const snapshot={actions:[
-  {...base,id:uuid(1),title:'Overdue',due_at:'2026-10-28T09:00:00.000Z',status:'on-hold'},
-  {...base,id:uuid(2),title:'Soon',due_at:'2026-11-04T09:00:00.000Z',project_id:uuid(9),project_path:'Travel / Kyoto',is_deferred:true},
-  {...base,id:uuid(3),title:'Later',due_at:'2026-11-06T12:00:01.000Z'},
-  {...base,id:uuid(4),title:'Done',due_at:'2026-10-30T09:00:00.000Z',status:'completed'},
-  {...base,id:uuid(5),title:'',flagged:true},
- ],list_scopes:{flagged:[uuid(5),uuid(2)],inbox:[uuid(1),uuid(5)]}};
- const before=structuredClone(snapshot);
- const view=projectNow(snapshot,{now,formatDay:value=>'D'+value.slice(5,10)});
- assert.deepEqual(snapshot,before);
- assert.deepEqual(view.flagged.map(row=>[row.id,row.title]),[[uuid(5),'Untitled'],[uuid(2),'Soon']]);
- assert.equal(view.flagged[1].meta,'Travel / Kyoto · Deadline D11-04');
- assert.deepEqual(view.deadlines.map(row=>[row.title,row.overdue,row.waiting]),[['Overdue',true,true],['Soon',false,false]]);
- assert.equal(view.deadlines[0].meta,'Overdue · D10-28 · Inbox · Waiting');
- assert.equal(view.deadlines[1].meta,'D11-04 · Travel / Kyoto · Hidden for now');
- assert.deepEqual([view.inboxCount,view.flaggedCount],[2,2]);
-});
-
-test('captured text keeps its first visible line as the title within the limit and never splits a surrogate pair',()=>{
- assert.equal(captureTitle('\n   \n  Call the bank  \nabout the card'),'Call the bank');
- assert.equal(captureTitle(' \n\t'),'');
- const long='a'.repeat(198)+'😀😀';
- const title=captureTitle(long);
- assert.equal(title.length<=200,true);assert.equal(title.endsWith('…'),true);assert.equal(/[\ud800-\udbff]…$/u.test(title),false);
- assert.equal(captureTitle('x'.repeat(200)),'x'.repeat(200));
-});
 
 test('quick dates are tomorrow and the next Monday after the local calendar day',()=>{
  assert.deepEqual(quickDates('2026-10-29'),{tomorrow:'2026-10-30',nextMonday:'2026-11-02'});

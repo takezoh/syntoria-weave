@@ -1,4 +1,4 @@
-type RuntimeConfig=Readonly<{apiOrigin:string;gateOrigin:string;appId:string;loginRedirectUri:string}>;
+type RuntimeConfig=Readonly<{apiOrigin:string;gateOrigin:string;appId:string;loginRedirectUri:string;appName:string|null}>;
 type Session=Readonly<{account_scope:string;csrf_token:string}>;
 
 const frame=document.querySelector<HTMLIFrameElement>('#workspace')!;
@@ -7,7 +7,7 @@ const login=document.querySelector<HTMLButtonElement>('#login')!,logoutButton=do
 const refreshChannelName='action-tools-browser-session-refresh';
 const channel=new BroadcastChannel(refreshChannelName);
 const pending=new Set<string>();
-let runtime:RuntimeConfig|null=null,session:Session|null=null,account:string|null=null,blocked=true;
+let runtime:RuntimeConfig|null=null,session:Session|null=null,account:string|null=null,blocked=true,viewTitle:string|null=null;
 
 function exactHttpsOrigin(value:unknown){
  if(typeof value!=='string')throw new Error('Invalid runtime origin.');
@@ -24,7 +24,18 @@ async function readRuntimeConfig():Promise<RuntimeConfig>{
  const redirect=typeof value.loginRedirectUri==='string'?new URL(value.loginRedirectUri):null;
  if(!redirect||redirect.protocol!=='https:'||redirect.username||redirect.password||redirect.search||redirect.hash||redirect.origin!==window.location.origin||redirect.href!==value.loginRedirectUri)throw new Error('Invalid login return URI.');
  if(typeof value.appId!=='string'||!/^[A-Za-z0-9._~-]{1,100}$/.test(value.appId))throw new Error('Invalid registered application ID.');
- return Object.freeze({apiOrigin,gateOrigin,appId:value.appId,loginRedirectUri:redirect.href});
+ return Object.freeze({apiOrigin,gateOrigin,appId:value.appId,loginRedirectUri:redirect.href,appName:displayName(value.appName)});
+}
+
+/** Plain display text of at most `limit` characters without control characters, or null. */
+function displayName(value:unknown,limit=60){
+ return typeof value==='string'&&value===value.trim()&&value.length>0&&value.length<=limit&&!/[\u0000-\u001f\u007f]/u.test(value)?value:null;
+}
+
+/** The tab names the workspace's current view, followed by the configured application name. */
+function applyTitle(){
+ const name=runtime?.appName??null;
+ if(viewTitle)document.title=name?viewTitle+' · '+name:viewTitle;else if(name)document.title=name;
 }
 
 /** The access bar shows only while access needs the person; signed in, the workspace offers Sign out itself. */
@@ -116,9 +127,10 @@ window.addEventListener('message',async event=>{
  pending.add(key);
  let result:unknown;
  try{
-  if(call.method==='ui/initialize')result={protocolVersion:'2026-01-26',hostInfo:{name:'web',version:'0.3.0'},hostCapabilities:{experimental:{signOut:{}}},hostContext:{displayMode:'fullscreen',availableDisplayModes:['fullscreen'],platform:'web'}};
+  if(call.method==='ui/initialize')result={protocolVersion:'2026-01-26',hostInfo:{name:'web',version:'0.3.0'},hostCapabilities:{experimental:{signOut:{},title:{}}},hostContext:{displayMode:'fullscreen',availableDisplayModes:['fullscreen'],platform:'web'}};
   else if(call.method==='ui/request-display-mode')result={mode:'fullscreen'};
   else if(call.method==='web/sign-out'){await performLogout();result={};}
+  else if(call.method==='web/title'){const title=displayName((call.params as {title?:unknown}|undefined)?.title,200);if(title){viewTitle=title;applyTitle();}result=title?{}:{isError:true};}
   else if(call.method==='ui/open-link'){const url=linkTarget((call.params as {url?:unknown}|undefined)?.url);if(url)window.open(url,'_blank','noopener,noreferrer');result=url?{}:{isError:true};}
   else if(call.method==='tools/call'){
    if(blocked||!session||!runtime)result={isError:true,structuredContent:{error:{code:'unauthenticated',message:'Sign into the original account. Your proposal is retained.'}}};
@@ -138,6 +150,7 @@ window.addEventListener('message',async event=>{
 
 void readRuntimeConfig().then(async value=>{
  runtime=value;
+ applyTitle();
  installContentPolicy(value);
  await refreshSession();
 }).catch(()=>showState('This SPA is missing valid runtime configuration.','retry'));

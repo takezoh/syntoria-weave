@@ -220,7 +220,6 @@ export function createUiController({call,ids,instanceId,view,model,timers,intera
   cancelReview(){state.reviewed=null;view.closeReview();},
   confirm(){return action(async()=>{if(!state.reviewed)return;const {p,draftId,captured}=state.reviewed;state.reviewed=null;view.closeReview();await write('apply_change',{schemaVersion:2,operationId:ids.next(),expectedRevision:p.expectedRevision,kind:p.kind,payload:p.payload},()=>{if(draftId){state.drafts=model.acknowledgeDraft(state.drafts,draftId,captured);}});});},
   add(title:string,onSuccess?:()=>void){return action(()=>write('add_action',{schemaVersion:2,request_id:ids.next(),expected_revision:state.data!.revision,title:title.trim()},onSuccess));},
-  capture(title:string,text:string,onSuccess?:()=>void){return action(()=>write('capture_intent',{schemaVersion:2,operationId:ids.next(),expectedRevision:state.data!.revision,title:title.trim(),text,source:'ui'},onSuccess));},
   undo(){if(state.recoveryRequired)return Promise.resolve();return action(()=>write('undo_change',{schemaVersion:2,operationId:ids.next(),expectedRevision:state.data!.revision,undoOf:state.lastOperation},()=>{state.lastOperation=null;}));},
   /** Undo one retained operation through the same serialized write and exact unknown-outcome recovery. */
   undoOperation(undoOf:string){if(state.recoveryRequired||!state.data)return Promise.resolve();return action(()=>write('undo_change',{schemaVersion:2,operationId:ids.next(),expectedRevision:state.data!.revision,undoOf},()=>{if(state.lastOperation===undoOf)state.lastOperation=null;}));},

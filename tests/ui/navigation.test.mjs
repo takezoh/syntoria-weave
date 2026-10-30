@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNavigationModel} from '../../lib/ui/model/navigation.ts';
+import {createNavigationModel,documentTitle} from '../../lib/ui/model/navigation.ts';
 import {change,perspectiveActions} from '../../lib/domain/core.ts';
 import {response,queryResponse} from '../../lib/domain/operations.ts';
 const model=createNavigationModel(),now='2026-10-03T00:00:00Z',id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -82,4 +82,18 @@ test('independent display checks project every lifecycle subset and defer inclus
  const snapshot=response(fixture(),now),all=['active','on-hold','completed','dropped'];
  for(let mask=0;mask<16;mask++)for(const includeDeferred of [false,true]){const statuses=all.filter((_,index)=>mask&(1<<index));const selection=model.select(model.initial(),{view:'projects',classificationId:id(1),statuses,includeDeferred});assert.deepEqual(ids(model.present(snapshot,selection).actions),ids(snapshot.actions.filter(a=>a.project_id===id(1)&&statuses.includes(a.status)&&(includeDeferred||!a.is_deferred))));assert.equal(model.creationContext(snapshot,selection).allowed,true);}
  const empty=model.select(model.initial('history'),{statuses:[]});assert.deepEqual(model.present(snapshot,empty).actions,[]);assert.deepEqual(model.displayOptions(empty),['completed','dropped']);const remembered=model.select(model.select(model.initial(),{view:'projects',statuses:['completed']}),{view:'tags'});const restored=model.select(remembered,{view:'projects'});restored.statuses.push('active');assert.deepEqual(remembered.remembered.projects.statuses,['completed']);const projected=model.displayFilter(restored);projected.statuses.pop();assert.deepEqual(restored.statuses,['completed','active']);const inbox=model.select(model.initial(),{statuses:[]});assert.deepEqual(ids(model.present(snapshot,inbox).actions),snapshot.list_scopes.inbox);
+});
+
+test('the Collaboration view lists unfinished, nondeferred Actions that hold collaboration records, like any list',()=>{
+ const s=fixture(),snapshot={...response(s,now),collaborations:[{action_id:id(10)},{action_id:id(12)},{action_id:id(13)},{action_id:null}]};
+ const view=model.select(model.initial(),{view:'collaboration'}),presented=model.present(snapshot,view);
+ assert.equal(presented.heading,'Collaboration');assert.equal(presented.unavailable,false);
+ assert.deepEqual(ids(presented.actions),[id(12),id(13)],'the deferred parent is hidden by default and unlinked records list no Action');
+ assert.deepEqual(model.displayOptions(view),['active','on-hold','completed','dropped','deferred']);
+ assert.deepEqual(ids(model.present(snapshot,model.toggleDisplay(view,'deferred')).actions).sort(),[id(10),id(12),id(13)],'showing deferred Actions adds the parent');
+ assert.deepEqual(model.present({...snapshot,collaborations:undefined},view).actions,[]);
+});
+
+test('the document title names the view and what waits on the person',()=>{
+ assert.equal(documentTitle('Inbox',0),'Inbox');assert.equal(documentTitle('Collaboration',2),'(2) Collaboration');assert.equal(documentTitle('  ',0),'Actions');
 });

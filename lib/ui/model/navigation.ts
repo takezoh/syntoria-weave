@@ -2,9 +2,11 @@ import { perspectiveFilter } from '../../domain/core';
 import { evaluatePerspectiveQuery, normalizePerspectiveQuery, perspectiveReferenceIds } from '../../domain/perspective-query';
 import type { PerspectiveFilter, PerspectiveQuery, PerspectiveQueryCondition, ProjectedPerspectiveAction, PerspectiveQueryCatalog } from '../../domain/perspective-query';
 
-/** `now` and `changes` are review views without an Action outline. */
-export type NavigationView='now'|'inbox'|'projects'|'tags'|'flagged'|'history'|'changes'|'perspective';
-export const REVIEW_VIEWS:readonly NavigationView[]=['now','changes'];
+/** `changes` is a review view without an Action outline; every other view lists Actions. */
+export type NavigationView='collaboration'|'inbox'|'projects'|'tags'|'flagged'|'history'|'changes'|'perspective';
+export const REVIEW_VIEWS:readonly NavigationView[]=['changes'];
+/** The window title names the current view and how many collaboration records wait on the person, never Action text. */
+export function documentTitle(heading:string,waiting:number):string {return (waiting>0?'('+waiting+') ':'')+(heading.trim()||'Actions');}
 export type NavigationStatus='active'|'on-hold'|'completed'|'dropped';
 export interface NavigationSettings {classificationId:string;perspectiveId:string|null;includeDescendants:boolean;statuses:NavigationStatus[];includeDeferred:boolean}
 export interface NavigationSelection extends NavigationSettings {view:NavigationView;remembered?:Partial<Record<NavigationView,NavigationSettings>>}
@@ -14,7 +16,7 @@ export interface NavigationFilter {statuses?:readonly string[];is_deferred?:bool
 export type NavigationPerspective={id:string;name:string;description?:string}&(
  {definition_version:1;filter:PerspectiveFilter;query?:never}|{definition_version:2;query:PerspectiveQuery;filter?:never}
 );
-export interface NavigationSnapshot {actions:NavigationAction[];projects?:NavigationCatalog[];tags?:NavigationCatalog[];perspectives?:NavigationPerspective[];list_scopes?:Record<string,string[]>}
+export interface NavigationSnapshot {actions:NavigationAction[];projects?:NavigationCatalog[];tags?:NavigationCatalog[];perspectives?:NavigationPerspective[];list_scopes?:Record<string,string[]>;collaborations?:readonly {action_id:string|null}[]}
 /** Validate persisted Perspective variants before a UI snapshot can replace the confirmed state. */
 export function validPerspectiveSnapshot(value:unknown):boolean {
  if(!value||typeof value!=='object'||Array.isArray(value))return false;
@@ -45,7 +47,7 @@ export function validPerspectiveSnapshot(value:unknown):boolean {
 }
 /** Closed pure factory also embeds unchanged into the self-contained UI resource. */
 export function createNavigationModel(){
- const names:Record<string,string>={now:'Now',inbox:'Inbox',projects:'Projects',tags:'Tags',flagged:'Flagged',history:'Done & dropped',changes:'Changes',perspective:'Perspectives'};
+ const names:Record<string,string>={collaboration:'Collaboration',inbox:'Inbox',projects:'Projects',tags:'Tags',flagged:'Flagged',history:'Done & dropped',changes:'Changes',perspective:'Perspectives'};
  function initial(view:NavigationView='inbox'):NavigationSelection{return {view,classificationId:'all',perspectiveId:null,includeDescendants:false,statuses:view==='history'?['completed','dropped']:['active','on-hold'],includeDeferred:false};}
  function settings(current:NavigationSettings):NavigationSettings{return {classificationId:current.classificationId,perspectiveId:current.perspectiveId,includeDescendants:current.includeDescendants,statuses:[...current.statuses],includeDeferred:current.includeDeferred};}
  function select(current:NavigationSelection,patch:Partial<NavigationSelection>):NavigationSelection {
@@ -133,10 +135,12 @@ export function createNavigationModel(){
   else {
    const filter:NavigationFilter=displayFilter(selection);
    if(view==='flagged'){filter.flagged=true;}
+   else if(view==='collaboration'){/* Actions with collaboration records; the filter keeps the display choices. */}
    else if(classificationId!=='all'&&classificationId!=='unassigned'&&classificationId!=='untagged'){
     const item=catalog.find(item=>item.id===classificationId);if(!item){unavailable=true;heading='Unavailable '+(view==='projects'?'project':'tag');options.push({id:classificationId,label:'Unavailable selection'});}else{heading=item.path??item.name;description=item.description??'';if(view==='projects')filter.project_id=item.id;else filter.tag_id=item.id;filter.include_descendants=includeDescendants;}
    }else if(classificationId==='unassigned'){heading='Unassigned';filter.project_id=null;}else if(classificationId==='untagged'){heading='Untagged';}
-   const matching=unavailable?null:filterActions(snapshot,filter);if(matching)actions=matching.filter(a=>view==='projects'&&classificationId==='all'?Boolean(a.project_id):view==='tags'&&classificationId==='all'?Boolean(a.tags?.length):view==='tags'&&classificationId==='untagged'?!a.tags?.length:true);
+   const collaborating=new Set((snapshot.collaborations??[]).map(row=>row.action_id).filter(Boolean));
+   const matching=unavailable?null:filterActions(snapshot,filter);if(matching)actions=matching.filter(a=>view==='collaboration'?collaborating.has(a.id):view==='projects'&&classificationId==='all'?Boolean(a.project_id):view==='tags'&&classificationId==='all'?Boolean(a.tags?.length):view==='tags'&&classificationId==='untagged'?!a.tags?.length:true);
    if(unavailable)summary='This selection is no longer available';
   }
   return {heading,summary,description,actions,options,unavailable};

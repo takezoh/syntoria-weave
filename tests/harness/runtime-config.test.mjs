@@ -51,3 +51,9 @@ test('SPA hosting rules forbid framing except the workspace inside its own shell
  assert.equal(rules.get('/assets/*')[0],'Cache-Control: public, max-age=31536000, immutable');
  assert.equal(redirects,'/ /index.html 200\n');
 });
+
+test('runtime settings accept an optional plain application name for the SPA title',()=>{
+ assert.equal(validateRuntimeSettings(example).appName,null);
+ assert.equal(validateRuntimeSettings({...example,appName:'Example Actions'}).appName,'Example Actions');
+ for(const appName of ['',' padded ','x'.repeat(61),'bell\u0007',7])assert.throws(()=>validateRuntimeSettings({...example,appName}),/appName/);
+});

@@ -20,7 +20,7 @@ await cp(resolve('dist/spa'),spaOutput,{recursive:true});
 const hosting=spaHostingRules();
 await writeFile(resolve(spaOutput,'_headers'),hosting.headers,{mode:0o644});
 await writeFile(resolve(spaOutput,'_redirects'),hosting.redirects,{mode:0o644});
-await writeFile(resolve(spaOutput,'runtime-config.json'),JSON.stringify({apiOrigin:settings.apiOrigin,gateOrigin:settings.gateOrigin,appId:settings.appId,loginRedirectUri:settings.loginRedirectUri})+'\n',{mode:0o644});
+await writeFile(resolve(spaOutput,'runtime-config.json'),JSON.stringify({apiOrigin:settings.apiOrigin,gateOrigin:settings.gateOrigin,appId:settings.appId,loginRedirectUri:settings.loginRedirectUri,...(settings.appName?{appName:settings.appName}:{})})+'\n',{mode:0o644});
 await mkdir(cloudRunOutput,{recursive:true});
 for(const [name,manifest] of Object.entries(manifests))await writeFile(resolve(cloudRunOutput,name+'.json'),JSON.stringify(manifest,null,2)+'\n',{mode:0o600});
 process.stdout.write('Rendered SPA runtime configuration, hosting rules and Cloud Run manifests under .local/.\n');

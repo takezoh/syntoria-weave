@@ -6,7 +6,7 @@ import {createAutosaveModel} from '../../lib/ui/model/autosave.ts';
 import * as drafts from '../../lib/ui/model/drafts.ts';
 import * as operations from '../../lib/ui/model/operations.ts';
 import {createCollaboration,transitionCollaboration} from '../../lib/domain/collaboration.ts';
-import {projectCollaborations,collaborationLabel,actionProposalCount} from '../../lib/ui/model/collaboration.ts';
+import {projectCollaborations,collaborationLabel,actionCollaborationStatus,collaborationStatusKind} from '../../lib/ui/model/collaboration.ts';
 import {createRichTextCache} from '../../lib/ui/model/rich-text.ts';
 import {projectActionRow} from '../../lib/ui/model/ui-projections.ts';
 import {createCollaborationPanel} from '../../lib/ui/components/collaboration-panel.ts';
@@ -39,23 +39,32 @@ test('component preserves editor nodes and exposes explicit scope, direct editin
  assert.equal(root.querySelector('[data-command="reject"]'),null);assert.match(root.textContent,/Edit proposal/);
  const next=snapshot();next.collaborations=[{...next.collaborations[0],action_id:null}];c.accept(next);panel.render(projectCollaborations(c.state,true));assert(root.querySelector('[data-command="adopt"]'));assert(root.querySelector('[data-command="adopt_delegate"]'));assert(root.querySelector('[data-command="link"]'));
 });
-test('list rows count only proposals still awaiting the person and show them first as a marked badge',()=>{
- const s=snapshot(),base=s.collaborations[0],records=[base,{...base,id:id(5),decision:'deferred'},{...base,id:id(6),decision:'changes_requested'},{...base,id:id(7),decision:'accepted'},{...base,id:id(8),decision:'rejected'},{...base,id:id(9),decision:'withdrawn'},{...base,id:id(10),progress:'running'},{...base,id:id(12),action_id:id(11)}],before=structuredClone(records);
- assert.equal(actionProposalCount(records,id(1)),3);assert.equal(actionProposalCount(records,id(11)),1);assert.equal(actionProposalCount(records,id(13)),0);assert.equal(actionProposalCount(null,id(1)),0);assert.deepEqual(records,before);
+test('each Action row shows the most urgent collaboration status as one named icon, muted once the Action is closed',()=>{
+ const s=snapshot(),base=s.collaborations[0],running={...base,decision:'accepted',progress:'running',run_id:id(30),run_actor:actor},kinds=[
+  [{...running,stop_requested:true},'alert'],[{...base,decision:'accepted',progress:'reported',outcome:'unknown'},'alert'],[{...running,progress:'waiting',next_actor:'user'},'reply'],[{...base,decision:'accepted',progress:'reported',outcome:'success'},'result'],
+  [base,'proposal'],[running,'running'],[{...base,decision:'accepted'},'requested'],[{...running,progress:'waiting',next_actor:'external'},'external'],[{...base,decision:'changes_requested'},'revising'],
+  [{...base,decision:'deferred'},'deferred'],[{...running,decision:'accepted',progress:'stopped'},'stopped'],[{...base,decision:'rejected'},'declined'],[{...base,decision:'withdrawn'},'declined']];
+ for(const [record,kind] of kinds)assert.equal(collaborationStatusKind(record),kind,kind);
+ const records=[{...base,decision:'deferred'},{...base,id:id(5)},{...base,id:id(6)},{...base,id:id(7),action_id:id(11),decision:'accepted',progress:'waiting',next_actor:'user',run_id:id(31),run_actor:actor}],before=structuredClone(records);
+ assert.deepEqual(actionCollaborationStatus(records,id(1),'active'),{kind:'proposal',icon:'proposal',tone:'accent',label:'2 proposals to review'});
+ assert.deepEqual(actionCollaborationStatus(records,id(11),'active'),{kind:'reply',icon:'reply',tone:'attention',label:'Your response is needed'});
+ assert.equal(actionCollaborationStatus(records,id(11),'completed').tone,'muted','a closed Action never asks for attention');
+ assert.equal(actionCollaborationStatus(records,id(13),'active'),null);assert.equal(actionCollaborationStatus(null,id(1)),null);assert.deepEqual(records,before);
  const input={entry:{key:id(1),level:0},action:s.actions[0],actions:s.actions,tree:false,visibleActionIds:[id(1)],batchSelected:false,active:false,formattedDue:''};
- assert.deepEqual(projectActionRow({...input,proposals:2}).badges[0],{text:'2 proposals',icon:'proposal',tone:'proposal',iconOnly:true});
- assert.deepEqual(projectActionRow({...input,proposals:1}).badges.map(badge=>badge.text),['Proposal']);
- assert.deepEqual(projectActionRow(input).badges,[]);assert.notEqual(projectActionRow({...input,proposals:1}).signature,projectActionRow(input).signature);
+ const status=actionCollaborationStatus(records,id(1),'active');
+ assert.deepEqual(projectActionRow({...input,collaboration:status}).badges[0],{text:'2 proposals to review',icon:'proposal',tone:'accent',iconOnly:true});
+ assert.deepEqual(projectActionRow(input).badges,[]);assert.notEqual(projectActionRow({...input,collaboration:status}).signature,projectActionRow(input).signature);
 });
 
-test('generated widget marks proposed actions in lists and approves from Now with an ordinary exact-revision write',async t=>{
+test('the Collaboration view lists Actions with collaboration records, shows their status icon and approves from the details with an ordinary exact-revision write',async t=>{
  let current={...snapshot(),list_scopes:{inbox:[id(1)]}};const calls=[];const dom=new JSDOM(widgetHtml,{url:'https://app.example.test',runScripts:'dangerously',beforeParse(w){w.postMessage=message=>{if(!message.id)return;let result={};if(message.method==='tools/call'){const {name,arguments:args}=message.params;calls.push({name,args:structuredClone(args)});if(name==='update_collaboration'){const changed=transitionCollaboration(current,current.collaborations[0],args.command,args.payload,actor,now);current={...current,revision:current.revision+1,collaborations:[changed],result:{operationId:args.operationId,collaboration_id:id(2)}};}result={structuredContent:current};}queueMicrotask(()=>w.dispatchEvent(new w.MessageEvent('message',{source:w,data:{jsonrpc:'2.0',id:message.id,result}})));};}});t.after(()=>dom.window.close());
  const settle=async()=>{for(let i=0;i<30;i++)await new Promise(resolve=>setImmediate(resolve));};await settle();const d=dom.window.document;
  assert.equal(d.getElementById('collaborationOverview'),null);const row=()=>d.querySelector('.action-row[data-action-id="'+id(1)+'"]');
- d.querySelector('#viewRail [data-view="inbox"]').click();await settle();assert.equal(row().querySelector('.badge.proposal').textContent,'Proposal');assert.equal(d.querySelector('[data-rail-count="now"]').textContent,'1 waiting on you');assert.equal(d.querySelector('[data-rail-count="now"]').dataset.badge,'true');assert(row().querySelector('.badge.proposal svg'));
- d.querySelector('#viewRail [data-view="now"]').click();await settle();assert.match(d.getElementById('nowAttention').textContent,/Proposal to review/);d.querySelector('#nowAttention [data-command="accept"]').click();await settle();
+ d.querySelector('#viewRail [data-view="inbox"]').click();await settle();const badge=()=>row().querySelector('.badge.icon-only');assert.equal(badge().title,'Proposal to review');assert(badge().classList.contains('accent'));assert.equal(d.querySelector('[data-rail-count="collaboration"]').textContent,'1 waiting on you');assert.equal(d.querySelector('[data-rail-count="collaboration"]').dataset.badge,'true');assert.equal(d.title,'(1) Inbox');
+ d.querySelector('#viewRail [data-view="collaboration"]').click();await settle();assert.equal(d.getElementById('scopeTitle').textContent,'Collaboration');assert.deepEqual([...d.querySelectorAll('.action-row')].map(item=>item.dataset.actionId),[id(1)]);assert.equal(d.getElementById('collaborationSuggestions').hidden,true,'no unlinked suggestions');
+ row().querySelector('.action-select').click();await settle();d.querySelector('#collaborationPanel [data-command="accept"]').click();await settle();
  assert.equal(calls.filter(row=>row.name==='update_collaboration').length,1);assert.equal(calls.find(row=>row.name==='update_collaboration').args.payload.version,1);assert.equal(current.actions[0].status,'active');
- d.querySelector('#viewRail [data-view="inbox"]').click();await settle();assert.equal(row().querySelector('.badge.proposal'),null,'an approved proposal is no longer marked as one');assert.match(row().textContent,/Requested — not started/);
+ assert.equal(badge().title,'Requested — not started');assert.equal(badge().querySelector('svg path')?.getAttribute('d'),'M12 7v5l3 2','an approved request shows the waiting-to-start clock');
 });
 
 test('three proposal choices remain visible after approval cancellation and edited drafts survive remote revisions',async()=>{
@@ -121,4 +130,15 @@ test('caller metadata never reaches the card, its text content or the copied req
  assert.equal(JSON.stringify(data.cards[0].text).includes('retry-token'),false);
  [...root.querySelectorAll('button')].find(button=>button.textContent==='Copy request for AI').click();
  assert.equal(copied.length,1);assert.equal(copied[0].includes('retry-token'),false,'the handoff points to get_collaboration instead');
+});
+
+test('suggested work without an Action appears above the Collaboration list only, with its adoption choices',async t=>{
+ const base=snapshot(),current={...base,list_scopes:{inbox:[id(1)]},collaborations:[{...base.collaborations[0],action_id:null,action_revision:null}]};
+ const dom=new JSDOM(widgetHtml,{url:'https://app.example.test',runScripts:'dangerously',beforeParse(w){w.postMessage=message=>{if(!message.id)return;const result=message.method==='tools/call'?{structuredContent:current}:{};queueMicrotask(()=>w.dispatchEvent(new w.MessageEvent('message',{source:w,data:{jsonrpc:'2.0',id:message.id,result}})));};}});t.after(()=>dom.window.close());
+ const settle=async()=>{for(let i=0;i<30;i++)await new Promise(resolve=>setImmediate(resolve));};await settle();const d=dom.window.document,section=d.getElementById('collaborationSuggestions');
+ assert.equal(section.hidden,true,'the landing Inbox shows no suggestions');assert.equal(d.querySelector('[data-rail-count="collaboration"]').textContent,'1 waiting on you');
+ d.querySelector('#viewRail [data-view="collaboration"]').click();await settle();
+ assert.equal(section.hidden,false);assert.match(section.textContent,/New work suggestion/);assert.deepEqual([...section.querySelectorAll('[data-command]')].map(button=>button.dataset.command).filter(command=>command.startsWith('adopt')),['adopt','adopt_delegate']);
+ assert.equal(d.querySelectorAll('.action-row').length,0,'the record names no Action, so the list stays empty');
+ d.querySelector('#viewRail [data-view="flagged"]').click();await settle();assert.equal(section.hidden,true);
 });

@@ -32,7 +32,7 @@ test('unknown operation retains independent exact wire arguments and success pre
 import {mutationBlocked,hasUnsavedChanges} from '../../lib/ui/model/controls.ts';
 test('control decisions distinguish read-only history from outstanding mutation and unsaved input',()=>{
  assert.equal(mutationBlocked(false,null),false);assert.equal(mutationBlocked(true,null),true);assert.equal(mutationBlocked(false,{name:'add'}),true);
- assert.equal(hasUnsavedChanges(null,{},'',''),false);assert.equal(hasUnsavedChanges(null,{a:{dirty:true}},'',''),true);assert.equal(hasUnsavedChanges(null,{},'title',''),true);
+ assert.equal(hasUnsavedChanges(null,{},''),false);assert.equal(hasUnsavedChanges(null,{a:{dirty:true}},''),true);assert.equal(hasUnsavedChanges(null,{},'title'),true);
 });
 
 import {draftPayload} from '../../lib/ui/model/drafts.ts';

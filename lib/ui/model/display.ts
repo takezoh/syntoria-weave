@@ -11,8 +11,11 @@ export interface HostContext {
  [key:string]:unknown;
 }
 export interface HostInitializeResult {hostContext?:HostContext;hostInfo?:{name:string;version:string};hostCapabilities?:Record<string,unknown>}
-/** `signOut` is true when the host advertised `hostCapabilities.experimental.signOut`, as the web shell does. */
-export interface DisplayState {context:HostContext;contextVersion:number;pending:DisplayMode|null;error:string|null;signOut:boolean}
+/**
+ * `signOut` and `title` are true when the host advertised `hostCapabilities.experimental.signOut` or `.title`, as the
+ * web shell does; a host with `title` names its window after the widget's current view.
+ */
+export interface DisplayState {context:HostContext;contextVersion:number;pending:DisplayMode|null;error:string|null;signOut:boolean;title:boolean}
 
 const timestampPattern=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 /** Format a saved UTC instant in an explicit display timezone and host locale. */

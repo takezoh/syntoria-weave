@@ -65,16 +65,15 @@ export function projectSavedComparison(fields:readonly string[],action:Omit<Draf
 
 export type UiActorRef=ActorRef&{client_name?:string|null};
 export type UiActionRecord=Omit<DraftAction,'status'|'tags'>&{status:string;is_deferred?:boolean;project_path?:string;created_by?:UiActorRef|null;updated_by?:UiActorRef|null;tags?:{id:string;name?:string;path?:string}[];defer_reasons?:{id:string;title:string;until:string;ancestor:boolean}[]};
-export type RowBadgeTone='proposal'|'muted';
+export type RowBadgeTone='attention'|'accent'|'muted';
 /** An icon-only badge keeps its text as the accessible name and tooltip; a prefix is spoken but not shown. */
 export interface RowBadge {text:string;icon?:string;tone?:RowBadgeTone;iconOnly?:boolean;prefix?:string}
 export interface ProjectedActionRow {title:string;accessibleTitle:string;badges:RowBadge[];signature:string;batchSelected:boolean;active:boolean}
 
-export function projectActionRow(input:{entry:{key:string;level:number;parentKey?:string|null;catalogId?:string|null};action:UiActionRecord;actions:readonly UiActionRecord[];draft?:Draft;tree:boolean;visibleActionIds:readonly string[];batchSelected:boolean;active:boolean;formattedDue:string;collaborationLabel?:string;proposals?:number}):ProjectedActionRow {
- const {entry,action,actions,draft}=input,parentVisible=Boolean(action.parent_id&&input.visibleActionIds.includes(action.parent_id)),parent=parentVisible?undefined:actions.find(row=>row.id===action.parent_id),badges:ProjectedActionRow['badges']=[],proposals=input.proposals??0;
+export function projectActionRow(input:{entry:{key:string;level:number;parentKey?:string|null;catalogId?:string|null};action:UiActionRecord;actions:readonly UiActionRecord[];draft?:Draft;tree:boolean;visibleActionIds:readonly string[];batchSelected:boolean;active:boolean;formattedDue:string;collaboration?:Readonly<{icon:string;tone:'attention'|'accent'|'muted';label:string}>|null}):ProjectedActionRow {
+ const {entry,action,actions,draft}=input,parentVisible=Boolean(action.parent_id&&input.visibleActionIds.includes(action.parent_id)),parent=parentVisible?undefined:actions.find(row=>row.id===action.parent_id),badges:ProjectedActionRow['badges']=[],collaboration=input.collaboration??null;
  const parentListed=input.tree?Boolean(action.parent_id&&entry.parentKey?.endsWith(':action:'+action.parent_id)):parentVisible;
- if(proposals)badges.push({text:proposals===1?'Proposal':proposals+' proposals',icon:'proposal',tone:'proposal',iconOnly:true});
- if(input.collaborationLabel)badges.push({text:input.collaborationLabel,icon:'proposal',iconOnly:true});
+ if(collaboration)badges.push({text:collaboration.label,icon:collaboration.icon,tone:collaboration.tone,iconOnly:true});
  if(action.status==='on-hold')badges.push({text:'Waiting',icon:'waiting',iconOnly:true});
  if(action.status==='dropped')badges.push({text:'Dropped',icon:'cancelled',iconOnly:true});
  if(action.status==='completed')badges.push({text:'Done',icon:'completed',iconOnly:true});
@@ -83,7 +82,7 @@ export function projectActionRow(input:{entry:{key:string;level:number;parentKey
  if(action.parent_id&&!parentListed&&parent?.title)badges.push({text:'In '+displayTitle(parent.title),tone:'muted'});
  if(action.project_path)badges.push({text:action.project_path,tone:'muted'});
  if(action.tags?.length)badges.push({text:action.tags.map(tag=>tag.path||tag.name||'').filter(Boolean).join(', '),tone:'muted'});
- return {title:displayTitle(draft?.title??action.title),accessibleTitle:displayTitle(action.title),badges,signature:JSON.stringify([input.collaborationLabel,proposals,entry.key,entry.level,input.tree,action.id,action.title,action.status,action.parent_id,action.flagged,entry.parentKey??null,parentVisible,parent?.title||'',action.defer_reasons,action.due_at,input.formattedDue,action.project_path,action.tags,draft?.title,input.batchSelected,input.active]),batchSelected:input.batchSelected,active:input.active};
+ return {title:displayTitle(draft?.title??action.title),accessibleTitle:displayTitle(action.title),badges,signature:JSON.stringify([collaboration,entry.key,entry.level,input.tree,action.id,action.title,action.status,action.parent_id,action.flagged,entry.parentKey??null,parentVisible,parent?.title||'',action.defer_reasons,action.due_at,input.formattedDue,action.project_path,action.tags,draft?.title,input.batchSelected,input.active]),batchSelected:input.batchSelected,active:input.active};
 }
 
 export function projectCatalogRow(input:{entry:{key:string;kind:string;id:string;level:number;label:string;expandable:boolean};collapsed:readonly string[];draft?:CatalogDraft;selected:boolean;batchSelected?:boolean}):{signature:string;title:string;collapsed:boolean;selected:boolean;batchSelected:boolean} {

@@ -1,6 +1,6 @@
 export function mutationBlocked(busy:boolean,unknown:unknown):boolean {return busy||Boolean(unknown);}
-export function hasUnsavedChanges(unknown:unknown,drafts:Readonly<Record<string,{dirty:boolean}>>,title:string,capture:string):boolean {
- return Boolean(unknown)||Object.values(drafts).some(draft=>draft.dirty)||Boolean(title)||Boolean(capture);
+export function hasUnsavedChanges(unknown:unknown,drafts:Readonly<Record<string,{dirty:boolean}>>,title:string):boolean {
+ return Boolean(unknown)||Object.values(drafts).some(draft=>draft.dirty)||Boolean(title);
 }
 
 /** Selection is independent from membership; missing targets retain an accessible proposal route. */

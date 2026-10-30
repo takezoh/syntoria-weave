@@ -37,7 +37,7 @@ export function renderCloudRunManifest(manifest,settings){
 }
 
 export function validateRuntimeSettings(value){
- const keys=['project','projectNumber','backupBucket','apiOrigin','gateOrigin','sharedCookieDomain','spaOrigins','appId','loginRedirectUri','browserClientId','gateResourceClientId'];
+ const keys=['project','projectNumber','backupBucket','apiOrigin','gateOrigin','sharedCookieDomain','spaOrigins','appId','loginRedirectUri','browserClientId','gateResourceClientId','appName'];
  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!keys.includes(key)))throw new Error('Runtime settings contain unsupported configuration.');
  const api=exactHttpsOrigin('apiOrigin',value.apiOrigin),gate=exactHttpsOrigin('gateOrigin',value.gateOrigin),parent=parentDomain(value.sharedCookieDomain);
  if(!underParent(api.hostname,parent)||!underParent(gate.hostname,parent,true))throw new Error('API and Gate origins must use the configured cookie parent; Gate must be a subdomain.');
@@ -56,8 +56,9 @@ export function validateRuntimeSettings(value){
  if(typeof value.project!=='string'||!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(value.project))throw new Error('project must be a GCP project ID.');
  if(typeof value.projectNumber!=='string'||!/^[1-9][0-9]{5,19}$/.test(value.projectNumber))throw new Error('projectNumber must be a GCP project number.');
  if(typeof value.backupBucket!=='string'||!/^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/.test(value.backupBucket))throw new Error('backupBucket must be a Cloud Storage bucket name.');
+ if(value.appName!==undefined&&(typeof value.appName!=='string'||value.appName!==value.appName.trim()||!value.appName||value.appName.length>60||/[\u0000-\u001f\u007f]/u.test(value.appName)))throw new Error('appName must be 1-60 characters of display text.');
  if(typeof value.gateResourceClientId!=='string'||!value.gateResourceClientId.trim()||value.gateResourceClientId!==value.gateResourceClientId.trim())throw new Error('gateResourceClientId is required.');
- return Object.freeze({project:value.project,projectNumber:value.projectNumber,backupBucket:value.backupBucket,apiOrigin:api.origin,gateOrigin:gate.origin,sharedCookieDomain:parent,spaOrigins:Object.freeze(spaOrigins),appId:value.appId,loginRedirectUri:redirect.href,browserClientId:value.browserClientId,gateResourceClientId:value.gateResourceClientId});
+ return Object.freeze({project:value.project,projectNumber:value.projectNumber,backupBucket:value.backupBucket,apiOrigin:api.origin,gateOrigin:gate.origin,sharedCookieDomain:parent,spaOrigins:Object.freeze(spaOrigins),appId:value.appId,loginRedirectUri:redirect.href,browserClientId:value.browserClientId,gateResourceClientId:value.gateResourceClientId,appName:value.appName??null});
 }
 
 /**

@@ -38,6 +38,12 @@ export function iconSvg(name:string):string {
   copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
   document:'<path d="M6 3h8l4 4v14H6zM14 3v4h4"/>',
   signout:'<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>',
+  collaboration:'<path d="M3 5h11v8H7l-4 3z"/><path d="M17 9h4v10l-3-2h-7v-4"/>',
+  alert:'<path d="M12 4 3 20h18zM12 10v4M12 17v.01"/>',
+  reply:'<path d="M4 5h16v11H9l-5 4z"/>',
+  running:'<path d="M8 5v14l11-7z"/>',
+  hourglass:'<path d="M7 4h10M7 20h10M8 4c0 4 4 5 4 8s-4 4-4 8M16 4c0 4-4 5-4 8s4 4 4 8"/>',
+  declined:'<circle cx="12" cy="12" r="8"/><path d="m6.5 17.5 11-11"/>',
  };
  return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]??paths.normal}</svg>`;
 }

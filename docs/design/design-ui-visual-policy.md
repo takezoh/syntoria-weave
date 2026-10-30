@@ -98,7 +98,7 @@ This policy governs presentation only. Transitions, validation, drafts and recov
 
 ## Collaboration
 
-The Work with AI card shows a status pill, the proposal title, the Markdown body and its labelled fields, one primary decision beside the delegation selector, a one-line reply composer with a send icon, and icon actions for edit, copy, history and stopping approved work. The same card appears in Action Detail and, without a nested frame, in Now's Waiting on you list.
+The Work with AI card shows a status pill, the proposal title, the Markdown body and its labelled fields, one primary decision beside the delegation selector, a one-line reply composer with a send icon, and icon actions for edit, copy, history and stopping approved work. The same card appears in Action Detail and, for suggested work without an Action, above the Collaboration list. Every Action row with collaboration records shows its most urgent status as one icon: attention for what waits on the person, accent for proposals and AI work, muted for parked or closed records.
 
 ## Failure Responsibility
 

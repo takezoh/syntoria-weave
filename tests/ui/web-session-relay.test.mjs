@@ -24,7 +24,7 @@ test('independent SPA keeps its mounted proposal across expiry, account mismatch
   assert.equal(frame.getAttribute('src'),'/workspace.html');
   assert.equal(header.hidden,true,'a signed-in workspace has no access bar');assert.equal(window.document.querySelector('#message').hidden,true);
   const posted=[];originalFrame.postMessage=(data,origin)=>posted.push({data,origin});
-  window.dispatchEvent(new window.MessageEvent('message',{source:originalFrame,origin:window.location.origin,data:{jsonrpc:'2.0',id:1,method:'ui/initialize',params:{}}}));await settle();assert.deepEqual(JSON.parse(JSON.stringify(posted.at(-1).data.result.hostCapabilities)),{experimental:{signOut:{}}});
+  window.dispatchEvent(new window.MessageEvent('message',{source:originalFrame,origin:window.location.origin,data:{jsonrpc:'2.0',id:1,method:'ui/initialize',params:{}}}));await settle();assert.deepEqual(JSON.parse(JSON.stringify(posted.at(-1).data.result.hostCapabilities)),{experimental:{signOut:{},title:{}}});
   const policy=window.document.querySelector('meta[http-equiv="Content-Security-Policy"]').content;assert.match(policy,/connect-src 'self' https:\/\/api\.example\.com https:\/\/gate\.example\.com/);assert.doesNotMatch(policy,/\*/);
   const request={jsonrpc:'2.0',id:7,method:'tools/call',params:{name:'apply_change',arguments:{operationId:'retained-exact-id',expectedRevision:0}}};
   const send=()=>window.dispatchEvent(new window.MessageEvent('message',{source:originalFrame,origin:window.location.origin,data:request}));
@@ -65,5 +65,27 @@ test('independent SPA opens only web and mail links requested by its workspace',
   send(1,'https://example.com/docs?a=1');send(2,'javascript:alert(1)');send(3,'mailto:me@example.com');send(4,'/relative');send(5,'https://example.com/other',null);await settle();
   assert.deepEqual(opens,[{url:'https://example.com/docs?a=1',target:'_blank',features:'noopener,noreferrer'},{url:'mailto:me@example.com',target:'_blank',features:'noopener,noreferrer'}]);
   assert.deepEqual(replies.map(reply=>[reply.message.id,JSON.parse(JSON.stringify(reply.message.result)),reply.origin]),[[1,{},'https://app.example.com'],[2,{isError:true},'https://app.example.com'],[3,{},'https://app.example.com'],[4,{isError:true},'https://app.example.com']]);
+ }finally{window.close();}
+});
+
+test('independent SPA names its tab after the workspace view and the configured application name',async()=>{
+ const dom=new JSDOM('<title>Actions</title><header id="access"><span id="message"></span><button id="login"></button><button id="retry"></button><button id="logout"></button></header><iframe id="workspace"></iframe>',{url:'https://app.example.com',runScripts:'outside-only'});
+ const {window}=dom,replies=[];
+ window.BroadcastChannel=class{set onmessage(_fn){}};
+ window.fetch=async path=>{
+  const url=String(path);
+  if(url==='/runtime-config.json')return {ok:true,json:async()=>({apiOrigin:'https://api.example.com',gateOrigin:'https://gate.example.com',appId:'weave-spa',loginRedirectUri:'https://app.example.com/auth-return.html',appName:'Example Actions'})};
+  if(url==='https://api.example.com/api/session')return {ok:true,status:200,json:async()=>({account_scope:'original',csrf_token:'gate-csrf'})};
+  throw new Error('Unexpected request.');
+ };
+ try{
+  window.eval(ts.transpileModule(await readFile('web/client.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}}).outputText);
+  const settle=()=>new Promise(resolve=>setImmediate(resolve));await settle();
+  assert.equal(window.document.title,'Example Actions','the configured name names the tab before the workspace reports a view');
+  const frame=window.document.querySelector('iframe').contentWindow;frame.postMessage=(message,origin)=>replies.push({message,origin});
+  const send=(id,title)=>window.dispatchEvent(new window.MessageEvent('message',{source:frame,origin:window.location.origin,data:{jsonrpc:'2.0',id,method:'web/title',params:{title}}}));
+  send(1,'(1) Inbox');await settle();assert.equal(window.document.title,'(1) Inbox · Example Actions');
+  send(2,'');send(3,'x\u0007y');send(4,'x'.repeat(201));await settle();assert.equal(window.document.title,'(1) Inbox · Example Actions','invalid titles change nothing');
+  assert.deepEqual(replies.map(reply=>[reply.message.id,JSON.parse(JSON.stringify(reply.message.result))]),[[1,{}],[2,{isError:true}],[3,{isError:true}],[4,{isError:true}]]);
  }finally{window.close();}
 });

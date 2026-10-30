@@ -34,7 +34,6 @@ export interface InteractionViewState {
  deferPairs:Record<string,DatePair>;
  textEditing:string|null;
  /** Unsaved text in the Now capture box; cleared only after its save is confirmed. */
- captureText:string;
 }
 export type ViewEvent=
  |{[K in keyof InteractionViewState]:{type:'view.set';field:K;value:InteractionViewState[K]}}[keyof InteractionViewState]
@@ -51,7 +50,7 @@ export type ViewEvent=
  |{type:'date.pair';id:string;kind:'due'|'defer';pair:DatePair}
  |{type:'view.remap';from:string;to:string};
 const navigation=createNavigationModel(),transient=createTransientModel();
-export function initialViewState():InteractionViewState{return {navigation:navigation.initial(),collapsed:[],pickerOpen:null,pickerTarget:null,projectQuery:'',tagQuery:'',pickerIndex:-1,headerMenu:null,activeCatalogSelection:null,selectionVersion:0,creationReveal:null,catalogContext:null,catalogSequence:0,catalogToken:0,catalogSubmissions:{},catalogName:'',catalogComposerOpen:false,moveChooserOpen:false,movePlacement:'inside',moveDestination:'',catalogMoveSource:null,dateErrors:{},duePairs:{},deferPairs:{},textEditing:null,captureText:''};}
+export function initialViewState():InteractionViewState{return {navigation:navigation.initial(),collapsed:[],pickerOpen:null,pickerTarget:null,projectQuery:'',tagQuery:'',pickerIndex:-1,headerMenu:null,activeCatalogSelection:null,selectionVersion:0,creationReveal:null,catalogContext:null,catalogSequence:0,catalogToken:0,catalogSubmissions:{},catalogName:'',catalogComposerOpen:false,moveChooserOpen:false,movePlacement:'inside',moveDestination:'',catalogMoveSource:null,dateErrors:{},duePairs:{},deferPairs:{},textEditing:null};}
 /** Semantic view state changes are pure; DOM measurements and focus effects stay outside. */
 export function viewTransition(state:InteractionViewState,event:ViewEvent):InteractionViewState {
  switch(event.type){

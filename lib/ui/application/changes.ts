@@ -40,7 +40,7 @@ export function createChangesController({call,reviewMarks,changed}:{call(name:st
  }
  return {
   get state(){return state;},
-  /** Reload when a review view is visible and the confirmed revision differs from the loaded one. */
+  /** Reload when `active` and the confirmed revision differs from the loaded one; the widget keeps it active so the Changes badge stays current in every view. */
   sync(revision:number|null,active:boolean){if(active&&revision!==null&&revision!==loadedRevision)void load(revision);},
   retry(revision:number|null){if(revision!==null)void load(revision);},
   async loadMore(){

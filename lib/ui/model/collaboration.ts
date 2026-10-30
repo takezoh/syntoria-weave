@@ -46,14 +46,20 @@ const presentation:Readonly<Record<string,{slot:CollaborationSlot;text:string|nu
  request_changes:{slot:'composer',text:null,icon:'send'},respond:{slot:'composer',text:null,icon:'send'},withdraw:{slot:'header',text:null,icon:'stop'},reconcile:{slot:'outcome',text:'Record outcome',icon:null},
 };
 const plainText:CollaborationTextParser={inline:parseRichInline,blocks:parseRichBlocks};
-/** `text` parses human-facing fields; pass a caching parser to keep rendered nodes across refreshes. */
-export function projectCollaborations(state:DeepReadonly<UiState>,overview=false,attention=false,text:CollaborationTextParser=plainText):CollaborationPanelData {
+/**
+ * Cards for the selected Action, or in overview every record (`all`), those waiting on the person (`attention`) or
+ * open suggestions of new work that no Action holds yet (`suggestions`). `text` parses human-facing fields; pass a
+ * caching parser to keep rendered nodes across refreshes.
+ */
+export type CollaborationScope='all'|'attention'|'suggestions';
+export function projectCollaborations(state:DeepReadonly<UiState>,overview=false,scope:CollaborationScope='all',text:CollaborationTextParser=plainText):CollaborationPanelData {
  const enabled=state.data?.collaboration_version===1,records=(enabled?state.data!.collaborations:[]) as readonly Collaboration[];
  const busy=state.busy||state.saving||Boolean(state.unknown)||state.recoveryRequired;
  const action=state.data?.actions.find(row=>row.id===state.selectedId)??null;
  const selected=action&&!state.transients[action.id]?action:null;
  const statusOf=(id:string|null)=>id?state.data?.actions.find(row=>row.id===id)?.status:undefined;
- const shown=overview?records.filter(row=>!attention||needsPerson(row,statusOf(row.action_id))):records.filter(row=>row.action_id===selected?.id);
+ const inScope=(row:Collaboration)=>scope==='attention'?needsPerson(row,statusOf(row.action_id)):scope==='suggestions'?row.action_id===null&&!['rejected','withdrawn'].includes(row.decision):true;
+ const shown=overview?records.filter(inScope):records.filter(row=>row.action_id===selected?.id);
  const cards=shown.map(record=>{
   const feedback=state.collaborationDrafts[record.id]??'',buttons:CollaborationButton[]=[];
   const add=(command:string,label:string,needsText=false)=>buttons.push({command,label,disabled:busy||needsText&&!feedback.trim(),...presentation[command]!});
@@ -88,16 +94,39 @@ export function validCollaborationSnapshot(value:unknown):boolean {
  try{const ids=data.collaborations.map(row=>persistedCollaboration(row).id);return new Set(ids).size===ids.length;}catch{return false;}
 }
 
-export function actionCollaborationLabel(records:unknown,actionId:string):string {
- if(!Array.isArray(records))return '';
- const record=(records as Collaboration[]).find(row=>row.action_id===actionId&&collaborationBlocksReplacement(row));
- return record?collaborationLabel(record):'';
+/** One status per record, in the order its label is decided. */
+export type CollaborationStatusKind='alert'|'reply'|'result'|'proposal'|'running'|'requested'|'external'|'revising'|'deferred'|'stopped'|'declined';
+export type CollaborationStatusTone='attention'|'accent'|'muted';
+export type CollaborationStatus=Readonly<{kind:CollaborationStatusKind;icon:string;tone:CollaborationStatusTone;label:string}>;
+/** Most urgent first: what blocks on the person, then the person's review, AI work, and closed or parked records. */
+const STATUS_ORDER:readonly CollaborationStatusKind[]=['alert','reply','result','proposal','running','requested','external','revising','deferred','stopped','declined'];
+const STATUS_LOOK:Readonly<Record<CollaborationStatusKind,{icon:string;tone:CollaborationStatusTone}>>={
+ alert:{icon:'alert',tone:'attention'},reply:{icon:'reply',tone:'attention'},result:{icon:'checked',tone:'attention'},
+ proposal:{icon:'proposal',tone:'accent'},running:{icon:'running',tone:'accent'},requested:{icon:'deferred',tone:'accent'},
+ external:{icon:'hourglass',tone:'muted'},revising:{icon:'edit',tone:'muted'},deferred:{icon:'later',tone:'muted'},stopped:{icon:'stop',tone:'muted'},declined:{icon:'declined',tone:'muted'},
+};
+export function collaborationStatusKind(record:Collaboration):CollaborationStatusKind {
+ if(record.stop_requested||record.outcome==='unknown')return 'alert';
+ if(record.decision==='rejected'||record.decision==='withdrawn')return 'declined';
+ if(record.decision==='deferred')return 'deferred';
+ if(record.decision==='changes_requested')return 'revising';
+ if(record.decision==='pending')return 'proposal';
+ if(record.progress==='not_started')return 'requested';
+ if(record.progress==='waiting')return record.next_actor==='user'?'reply':'external';
+ if(record.progress==='running')return 'running';
+ if(record.progress==='stopped')return 'stopped';
+ return 'result';
 }
-
-/** Proposals on an Action that are still the person's to approve; approved or closed work is not counted. */
-export function actionProposalCount(records:unknown,actionId:string):number {
- if(!Array.isArray(records))return 0;
- return (records as Collaboration[]).filter(row=>row.action_id===actionId&&row.progress==='not_started'&&['pending','deferred','changes_requested'].includes(row.decision)).length;
+/**
+ * The status an Action row shows for its collaboration records: the most urgent one, named by its label. Records of
+ * a completed or dropped Action never ask for attention.
+ */
+export function actionCollaborationStatus(records:unknown,actionId:string,actionStatus?:string):CollaborationStatus|null {
+ if(!Array.isArray(records))return null;
+ const own=(records as Collaboration[]).filter(row=>row.action_id===actionId);if(!own.length)return null;
+ const kinds=own.map(collaborationStatusKind),kind=STATUS_ORDER.find(item=>kinds.includes(item))!,record=own[kinds.indexOf(kind)]!,count=kinds.filter(item=>item===kind).length;
+ const closed=actionStatus==='completed'||actionStatus==='dropped';
+ return {kind,icon:STATUS_LOOK[kind].icon,tone:closed?'muted':STATUS_LOOK[kind].tone,label:kind==='proposal'&&count>1?count+' proposals to review':collaborationLabel(record)};
 }
 
 export type {CollaborationProposal} from '../../data/types';
