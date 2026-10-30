@@ -54,6 +54,8 @@ Operations are retained per user for 30 days, always the latest 100 and never mo
 
 An Action represents the person's work. A collaboration record separately stores an AI proposal, its decision, reported progress and results. An Action can retain up to three proposals; only one can be approved. The user can choose and edit an option in the shared UI. Editing increments its version and clears approval. Approval cancellation retains the proposal; there is no reject command. Running or unresolved work must be stopped or reconciled before another option can be approved. A result report never completes the person's Action automatically.
 
+Proposal and report text is shown to the person as Markdown; the record's separate `metadata` keeps the AI's operational notes out of view, as for an Action.
+
 `propose_collaboration` with `action_id:null` saves suggested new work without creating an Action. Adoption and delegation are explicit separate choices. Approval records intent, not external-operation permission. Gate authenticates the caller and the execution environment controls its external effects. Weave does not launch an AI runner.
 
 Remote MCP can send `notifications/resources/updated` to subscribed clients. ChatGPT decides whether it subscribes and exposes those updates; installing this package does not guarantee notification delivery, model wake-up or automatic continuation. Read current state when the user asks to continue if the host provides no event capability. A notification is a reason to reread, not evidence that a previous approval is still current. The standalone local stdio consumer does not relay Remote MCP SSE streams.

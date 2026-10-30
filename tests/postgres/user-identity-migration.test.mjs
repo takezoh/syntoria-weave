@@ -48,7 +48,7 @@ test('populated identity migration preserves IDs, receipts, replay and user isol
  assert.deepEqual((await target.admin.query('SELECT version,checksum FROM schema_migrations WHERE version=$1',['0001_state.sql'])).rows,journal);
  const migrated=structuredClone(value);for(const row of migrated.tables['state.operations']){row.client_id=null;row.actor_kind=null;row.summary=null;}
  for(const row of migrated.tables['state.actions'])for(const column of ['created_by_kind','created_by_client_id','updated_by_kind','updated_by_client_id'])row[column]=null;
- const actualTransfer=await exportData(target.admin);assert.equal(actualTransfer.version,9);assert.deepEqual(actualTransfer.tables['state.client_names'],[]);assert.deepEqual(actualTransfer.tables['state.actions'],migrated.tables['state.actions']);
+ const actualTransfer=await exportData(target.admin);assert.equal(actualTransfer.version,10);assert.deepEqual(actualTransfer.tables['state.client_names'],[]);assert.deepEqual(actualTransfer.tables['state.actions'],migrated.tables['state.actions']);
  for(let index=0;index<actualTransfer.tables['state.operations'].length;index++){
   const actual=actualTransfer.tables['state.operations'][index],expected=migrated.tables['state.operations'][index];
   assert.equal(actual.canonical_payload,expected.canonical_payload);assert.equal(actual.result,expected.result);assert.deepEqual(JSON.parse(actual.delta),JSON.parse(expected.delta));

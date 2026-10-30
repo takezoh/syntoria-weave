@@ -113,3 +113,7 @@ Client names appear only after Gate relays `client_name` in access-token introsp
 
 The current source also requires `0011_collaboration_delegation.sql` after 0010. It states any AI as the delegation target of every existing collaboration head and history record and moves MCP subscriptions to a per-resource key, keeping existing subscriptions on `action-state://current`. No grants change. The previous image rejects collaboration bodies with the new member, so a rollback after migrating needs a forward fix or a new image. Logical transfer is version 9; earlier files are rejected. Refresh tool and resource discovery for `assign`, `delegation`, `list_assigned_collaborations` and `action-state://assigned`.
 
+## Collaboration metadata rollout
+
+The current source also requires `0012_collaboration_metadata.sql` after 0011. It states empty `metadata` for every existing collaboration head and history record; stored text is not rewritten. No grants change. The previous image rejects collaboration bodies with the new member, so a rollback after migrating needs a forward fix or a new image. Logical transfer is version 10; earlier files are rejected. Refresh tool discovery for the `metadata` argument of `propose_collaboration` and `update_collaboration`.
+

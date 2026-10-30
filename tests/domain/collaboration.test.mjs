@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createCollaboration,transitionCollaboration} from '../../lib/domain/collaboration.ts';
+import {createCollaboration,transitionCollaboration,persistedCollaboration} from '../../lib/domain/collaboration.ts';
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const now='2026-10-29T12:00:00.000Z';
 const actor={kind:'client',client_id:'example-client',connection_id:'connection-a'};
@@ -90,4 +90,18 @@ test('delegation is separate mode and client state that anyone may change and th
  const open=move(record,'accept');assert.equal(assignmentReason(open,other,'active'),'open_to_any_ai');assert.equal(assignmentReason(open,other,'completed'),null);assert.equal(assignmentReason(move(open,'start'),other,'active'),null);
  const mine=transitionCollaboration(snapshot,open,'start',{version:1},other,now,id(5));assert.equal(assignmentReason(mine,other,'active'),'your_run');assert.equal(assignmentReason(mine,{...other,connection_id:'other-2'},'active'),null);
  assert.equal(assignmentReason(record,person,'active'),'waiting_on_you');assert.equal(assignmentReason(record,other,'active'),null);assert.equal(assignmentReason(open,person,'active'),null);
+});
+
+test('metadata is exact caller text that every command may carry, omission keeps it and it never decides state',()=>{
+ const exact='plan: 3 steps\n\0\ud800 😀';
+ assert.equal(created().metadata,'');const record=createCollaboration(snapshot,id(2),id(1),proposal,now,undefined,exact);assert.equal(record.metadata,exact);
+ const before=structuredClone(record),accepted=move(record,'accept');assert.equal(accepted.metadata,exact,'omitted metadata keeps the saved value');assert.deepEqual(record,before);
+ const started=move(accepted,'start',{metadata:'run started'});assert.equal(started.metadata,'run started');assert.equal(started.progress,'running');
+ const reported=move(started,'report',{run_id:started.run_id,summary:'Done',outcome:'success',artifacts:[],metadata:''});assert.equal(reported.metadata,'');assert.equal(reported.outcome,'success');
+ assert.deepEqual({...move(accepted,'assign',{delegation:{mode:'any_ai'},metadata:'note'}),metadata:accepted.metadata,revision:accepted.revision},{...accepted,revision:accepted.revision},'metadata changes nothing else');
+ for(const value of [1,null,{}])assert.throws(()=>move(record,'defer',{metadata:value}),error=>error.code==='invalid_input');
+ assert.throws(()=>move(record,'defer',{metadata:'x'.repeat(65537)}));
+ assert.equal(persistedCollaboration(record),record);
+ const legacy={...record};delete legacy.metadata;assert.throws(()=>persistedCollaboration(legacy),error=>error.code==='invalid_state','stored records must state metadata');
+ assert.throws(()=>persistedCollaboration({...record,metadata:7}));
 });

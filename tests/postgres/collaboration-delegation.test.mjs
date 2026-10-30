@@ -36,7 +36,7 @@ test('migration 0011 states any AI for existing collaboration records and keeps 
  await f.admin.query("INSERT INTO state.mcp_subscriptions(user_id,connection_id,expires_at) VALUES('A','c-A',now()+interval '1 hour')");
  await migrate(f.admin,resolve('db/postgres/migrations'));await grantRuntime(f.admin,'action_runtime');await checkRuntime(f.pool);
  const store=createPostgresActionStore(f.pool,identity('A')),record=(await store.readSnapshot()).collaborations[0];
- assert.deepEqual(record,{delegation:{mode:'any_ai',client_id:null},...legacy});
+ assert.deepEqual(record,{metadata:'',delegation:{mode:'any_ai',client_id:null},...legacy},'later migrations add empty metadata as well');
  assert.equal(record.proposal.instructions,proposal.instructions,'stored text is untouched by the splice');
  assert.deepEqual((await store.readCollaborationHistory(collaborationId,null))[0].record.delegation,{mode:'any_ai',client_id:null});
  assert.deepEqual((await createMcpSubscriptions(f.pool).list(identity('A'))),['action-state://current']);

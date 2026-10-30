@@ -17,7 +17,7 @@ const columns:Record<typeof transferTables[number],readonly string[]>={
  'state.client_names':['user_id','client_id','name','updated_at'],
  'identity.subjects':['issuer','subject','user_id','enabled'],
 };
-export type Transfer=Readonly<{version:9;tables:Record<string,Record<string,unknown>[]>}>;
+export type Transfer=Readonly<{version:10;tables:Record<string,Record<string,unknown>[]>}>;
 export function transferDigest(value:Transfer){return createHash('sha256').update(JSON.stringify(value)).digest('hex');}
 export async function assertTransferPrivilege(client:PoolClient){
  const privilege=(await client.query("SELECT rolsuper OR EXISTS(SELECT 1 FROM pg_roles e WHERE e.rolname='action_export' AND pg_has_role(current_user,e.oid,'member')) AS allowed FROM pg_roles WHERE rolname=current_user")).rows[0];
@@ -27,11 +27,11 @@ export async function exportData(pool:Pool):Promise<Transfer>{
  const client=await pool.connect();try{
   await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');await assertTransferPrivilege(client);
   const tables:Transfer['tables']={};for(const table of transferTables)tables[table]=(await client.query('SELECT * FROM '+table+' ORDER BY '+(table.startsWith('state.')?'user_id':'issuer'))).rows;
-  await client.query('COMMIT');return {version:9,tables};
+  await client.query('COMMIT');return {version:10,tables};
  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
 }
 export async function importData(pool:Pool,value:Transfer,expectedDigest:string){
- if(value.version!==9||transferDigest(value)!==expectedDigest||Object.keys(value.tables).sort().join()!==[...transferTables].sort().join())throw new Error('Invalid transfer manifest or digest.');
+ if(value.version!==10||transferDigest(value)!==expectedDigest||Object.keys(value.tables).sort().join()!==[...transferTables].sort().join())throw new Error('Invalid transfer manifest or digest.');
  const client=await pool.connect();try{
   await client.query('BEGIN');await assertTransferPrivilege(client);await client.query('SELECT pg_advisory_xact_lock(7247027267111031::bigint)');
   for(const table of transferTables){

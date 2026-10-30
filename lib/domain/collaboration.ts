@@ -22,10 +22,12 @@ export function collaborationTarget(snapshot:Snapshot,actionId:string|null){
  if(!action)fail('not_found','The action is unavailable.',404);
  return action;
 }
-export function createCollaboration(snapshot:Snapshot,identity:string,actionId:string|null,proposal:unknown,now:string,delegation?:unknown):Collaboration {
+/** Caller-managed operational text kept beside the human-facing fields; omission keeps the saved value. */
+export function collaborationMetadata(value:unknown,current=''):string {return value===undefined?current:description(value);}
+export function createCollaboration(snapshot:Snapshot,identity:string,actionId:string|null,proposal:unknown,now:string,delegation?:unknown,metadata?:unknown):Collaboration {
  const action=collaborationTarget(snapshot,actionId);
  if(actionId)validateProposalCapacity(snapshot,actionId);
- return {id:id(identity),action_id:actionId,revision:snapshot.revision+1,version:1,proposal:collaborationProposal(proposal),delegation:collaborationDelegation(delegation),decision:'pending',progress:'not_started',next_actor:'user',feedback:'',summary:'',remaining:'',outcome:'none',artifacts:[],run_id:null,run_actor:null,stop_requested:false,action_revision:action?.revision??null,created_at:now,updated_at:now,last_reported_at:null};
+ return {id:id(identity),action_id:actionId,revision:snapshot.revision+1,version:1,proposal:collaborationProposal(proposal),metadata:collaborationMetadata(metadata),delegation:collaborationDelegation(delegation),decision:'pending',progress:'not_started',next_actor:'user',feedback:'',summary:'',remaining:'',outcome:'none',artifacts:[],run_id:null,run_actor:null,stop_requested:false,action_revision:action?.revision??null,created_at:now,updated_at:now,last_reported_at:null};
 }
 export const MAX_ACTION_PROPOSALS=3;
 export function validateProposalCapacity(snapshot:Snapshot,actionId:string,excludeId?:string){
@@ -43,9 +45,10 @@ function available(snapshot:Snapshot,record:Collaboration){
 }
 /** All inputs, including identity and time, are supplied by the application boundary. */
 export function transitionCollaboration(snapshot:Snapshot,current:Collaboration,command:string,payload:unknown,actor:CollaborationActor,now:string,runId:string|null=null):Collaboration {
- const p=object(payload);exact(p,['version','feedback','proposal','run_id','summary','remaining','outcome','artifacts','next_actor','delegation']);
+ const p=object(payload);exact(p,['version','feedback','proposal','run_id','summary','remaining','outcome','artifacts','next_actor','delegation','metadata']);
  if(integer(p.version)!==current.version)fail('conflict','The proposal changed. Read and review its current version.',409);
- const next={...current,revision:snapshot.revision+1,updated_at:now};
+ // Any command may carry metadata; it never changes the decision or progress the command records.
+ const next={...current,revision:snapshot.revision+1,updated_at:now,metadata:collaborationMetadata(p.metadata,current.metadata)};
  const feedback=()=>description(p.feedback??'');
  if(command==='revise'){
   if(running(current)||current.outcome==='unknown')fail('invalid_state','Resolve the current run and any unknown outcome before revising its scope.');
@@ -113,12 +116,12 @@ export function transitionCollaboration(snapshot:Snapshot,current:Collaboration,
 /** Validate durable records before they cross storage or UI boundaries. */
 export function persistedCollaboration(value:unknown):Collaboration {
  const r=object(value);
- const keys=['id','action_id','revision','version','proposal','delegation','decision','progress','next_actor','feedback','summary','remaining','outcome','artifacts','run_id','run_actor','stop_requested','action_revision','created_at','updated_at','last_reported_at'];
+ const keys=['id','action_id','revision','version','proposal','metadata','delegation','decision','progress','next_actor','feedback','summary','remaining','outcome','artifacts','run_id','run_actor','stop_requested','action_revision','created_at','updated_at','last_reported_at'];
  exact(r,keys);if(keys.some(key=>!Object.hasOwn(r,key)))fail('invalid_state','Incomplete collaboration record.');
  id(r.id);if(r.action_id!==null)id(r.action_id);integer(r.revision);if(integer(r.version)<1)fail('invalid_state','Invalid proposal version.');collaborationProposal(r.proposal);
  const enums={decision:['pending','accepted','changes_requested','rejected','deferred','withdrawn'],progress:['not_started','running','waiting','reported','stopped'],next_actor:['user','ai','external','none'],outcome:['none','success','partial','failed','unknown']};
  for(const [key,values] of Object.entries(enums))if(!values.includes(String(r[key])))fail('invalid_state','Invalid collaboration state.');
- for(const key of ['feedback','summary','remaining'])description(r[key]);
+ for(const key of ['feedback','summary','remaining','metadata'])description(r[key]);
  for(const key of ['created_at','updated_at','last_reported_at'])if(r[key]!==null&&(typeof r[key]!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(String(r[key]))||!Number.isFinite(Date.parse(String(r[key])))))fail('invalid_state','Invalid collaboration timestamp.');
  if(typeof r.created_at!=='string'||typeof r.updated_at!=='string'||typeof r.stop_requested!=='boolean')fail('invalid_state','Invalid collaboration metadata.');
  if(r.run_id!==null)id(r.run_id);if(r.action_revision!==null)integer(r.action_revision);

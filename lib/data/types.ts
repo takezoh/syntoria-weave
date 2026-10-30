@@ -129,7 +129,9 @@ export type CollaborationProposal = Readonly<{title:string;instructions:string;s
 /** Who should handle the work once it is approved or requested: any AI, or one client. State only; it never restricts writes. */
 export type CollaborationDelegation = Readonly<{mode:'any_ai';client_id:null}|{mode:'specified_ai';client_id:string}>;
 export type Collaboration = Readonly<{
- id:string;action_id:string|null;revision:number;version:number;proposal:CollaborationProposal;delegation:CollaborationDelegation;
+ id:string;action_id:string|null;revision:number;version:number;proposal:CollaborationProposal;
+ /** Caller-managed operational text; returned by API/MCP reads, never shown in the UI. */
+ metadata:string;delegation:CollaborationDelegation;
  decision:'pending'|'accepted'|'changes_requested'|'rejected'|'deferred'|'withdrawn';
  progress:'not_started'|'running'|'waiting'|'reported'|'stopped';
  next_actor:'user'|'ai'|'external'|'none';

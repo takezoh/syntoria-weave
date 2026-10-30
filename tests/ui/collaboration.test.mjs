@@ -109,3 +109,16 @@ test('cards render proposal and report text as Markdown, hide empty fields and p
  for(const label of ['Edit proposal','Copy request for AI','Show recent history']){const button=[...root.querySelectorAll('.collaboration-tools button')].find(item=>item.textContent===label);assert(button,label);assert.equal(button.title,label);assert(button.querySelector('svg'));}
  const node=body.firstChild;panel.render(projectCollaborations(c.state,false,false,cache));assert.equal(root.querySelector('.collaboration-text').firstChild,node,'unchanged text keeps its nodes');
 });
+
+test('caller metadata never reaches the card, its text content or the copied request',t=>{
+ const dom=new JSDOM('<main></main>');t.after(()=>dom.window.close());const d=dom.window.document,root=d.querySelector('main'),copied=[];
+ const {c}=fixture(async()=>{});const secret='step: fill-form · checked: 4 · retry-token';
+ c.accept({...snapshot(),revision:2,collaborations:[{...snapshot().collaborations[0],metadata:secret}]});
+ const panel=createCollaborationPanel(d,root,{toggle(){},edit(){},request(){},command(){},history(){},copy:value=>copied.push(value),open(){}});
+ const data=projectCollaborations(c.state);panel.render(data);
+ assert.equal(c.state.data.collaborations[0].metadata,secret,'the snapshot keeps it for callers');
+ assert.equal(root.textContent.includes(secret),false);assert.equal(root.innerHTML.includes('retry-token'),false);
+ assert.equal(JSON.stringify(data.cards[0].text).includes('retry-token'),false);
+ [...root.querySelectorAll('button')].find(button=>button.textContent==='Copy request for AI').click();
+ assert.equal(copied.length,1);assert.equal(copied[0].includes('retry-token'),false,'the handoff points to get_collaboration instead');
+});

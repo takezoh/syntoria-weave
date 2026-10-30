@@ -63,9 +63,8 @@ trust_boundaries:
 - Rendered Markdown comes from user and caller text and is data; it never renders
   raw HTML or executes content.
 compatibility_policies:
-- Collaboration metadata fields are a proposed contract change, not current API; until
-  a change package introduces them, collaboration text renders as Markdown and no
-  field is hidden as metadata.
+- Collaboration records carry one caller-managed `metadata` text, as Actions do; it
+  is returned by API/MCP and never rendered.
 tags:
 - ui
 - design
@@ -94,7 +93,7 @@ This policy governs presentation only. Transitions, validation, drafts and recov
 ## Invariants
 
 - Action notes, collaboration instructions, scope, outcome, exclusions, source, report summary, remaining work and user feedback render through the same Markdown subset as Notes ([`rich-text.ts`](../../lib/ui/model/rich-text.ts)): paragraphs, headings, lists, quotes, code, rules, links and emphasis. Titles render inline. Raw HTML is never rendered.
-- Caller-managed metadata (Action `metadata`, and any future collaboration metadata) is returned by API/MCP but never shown in the UI.
+- Caller-managed metadata (Action and collaboration `metadata`) is returned by API/MCP but never shown in the UI.
 - Accessibility is not traded for density: real `button`, `a` and `input` elements, accessible names on icon-only controls, 4.5:1 text contrast and adequate touch targets on touch devices.
 
 ## Collaboration
