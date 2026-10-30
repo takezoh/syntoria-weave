@@ -329,3 +329,13 @@ Refinements made during implementation:
 - No compatibility paths: the webhook settings are required at startup, and runtime grants and test fixtures describe only the current schema.
 
 Not executed: `terraform validate` (no Terraform binary here), hosted Cloud Tasks OIDC and retry behavior, the Gate release, Neon, and a subscribed ChatGPT Work chat.
+
+## Production release
+
+On 2026-10-30, source `e46d9d6`, pushed to main as a fast-forward, was released as revision `weave-api-events-e46d9d6` after Gate `485f7ba` ([release record](../../evidence/20261030-mcp-events-release/release.json)).
+
+- The queue, task identity, key ring secret and their grants were created with gcloud to match `infra/main.tf`; this environment has no Terraform state.
+- Migration `weave-migrator-lqk4b` applied 0013 and 0014. `grant-runtime` stopped with the known 42501 at `ALTER ROLE`, and a read-only check confirmed the runtime role's SELECT, INSERT and UPDATE on all three webhook tables.
+- The candidate passed startup, liveness and readiness without traffic, then took 100%. Public checks: readiness 200, invalid MCP bearer 401 with a challenge, metadata 200, unauthenticated session 401, SPA preflight 204, untrusted preflight 403, and every internal webhook route 401 without a valid task token or with a cookie.
+
+Not verified in production: a subscribed ChatGPT Work chat receiving `collaboration_changed`, Cloud Tasks OIDC acceptance and retries, Gate's check with Weave's resource credentials, and `terraform validate`.

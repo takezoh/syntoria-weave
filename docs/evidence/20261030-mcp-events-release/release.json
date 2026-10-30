@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-30",
+  "changes": [
+    "change-20261030-mcp-events-webhook"
+  ],
+  "source": {
+    "commit": "e46d9d6",
+    "cleanWorktree": true,
+    "note": "main fast-forwarded from 529a084; the image therefore also carries main's UI commits since e6d3302 in the MCP widget resource"
+  },
+  "checks": {
+    "pnpmCheck": {"tests": 728, "passed": 728, "failed": 0, "skipped": 0, "todo": 0, "lint": "passed", "typecheck": "passed"},
+    "pnpmBuild": "passed",
+    "testNodeBuilt": "passed, including mcp_events and mcp_modern",
+    "gateRelease": "Gate 485f7ba (POST /connections/check) released before this API"
+  },
+  "infrastructure": {
+    "method": "gcloud, matching infra/main.tf; no Terraform state exists for this environment",
+    "created": ["service account weave-tasks", "Cloud Tasks queue weave-webhooks (max 100 attempts, 24 h, 10-600 s backoff, 6 doublings)", "secret weave-webhook-key-ring version 1, generated in a pipe and never displayed"],
+    "grants": ["weave-runtime: roles/cloudtasks.enqueuer on the queue", "weave-runtime: roles/iam.serviceAccountUser on weave-tasks", "weave-runtime: roles/secretmanager.secretAccessor on weave-webhook-key-ring"]
+  },
+  "api": {
+    "image": "sha256:57fcbc4523cb17f801606662dd7dec37743394fc58c928730be2a0d1f15470bc",
+    "imageBuild": "Docker Buildx, linux/amd64",
+    "previousRevision": "weave-api-collab-e6d3302",
+    "revision": "weave-api-events-e46d9d6",
+    "configuration": "serving configuration plus WEBHOOK_TASK_QUEUE, WEBHOOK_TASK_SERVICE_ACCOUNT and WEBHOOK_KEY_RING (secret version 1)",
+    "traffic": "100% after a no-traffic tagged liveness and readiness probe (both 200); tag removed",
+    "jobs": {
+      "recoveryPoint": "Neon PITR at 2026-10-30T14:49:05Z, recorded before migrating",
+      "migration": "weave-migrator-lqk4b with the release image applied 0013_webhook_subscriptions.sql and 0014_webhook_deliveries.sql",
+      "grantRuntime": "weave-migrator-j4trv failed with 42501 at the final ALTER ROLE ... CONNECTION LIMIT, as in earlier releases; the table grants before it applied",
+      "readOnlyCheck": "weave-migrator-fpspc: weave_runtime has SELECT, INSERT and UPDATE on all three webhook tables; latest journal entries 0014 and 0013",
+      "migratorImage": "updated to the release image; the backup job was not changed"
+    },
+    "publicChecks": {
+      "healthReady": 200,
+      "mcpInvalidBearer": "401 with an authentication challenge",
+      "protectedResourceMetadata": 200,
+      "unauthenticatedSession": 401,
+      "spaOriginPreflight": "204 with exact origin",
+      "untrustedOriginPreflight": 403,
+      "internalFanoutWithoutToken": 401,
+      "internalDeliveryWithForgedToken": 401,
+      "internalDeliveryWithCookie": 401
+    },
+    "revisionLogs": "only the probes' expected 401 and 403 warnings"
+  },
+  "spa": "not changed by this release; no static deployment was made",
+  "unverified": [
+    "A real ChatGPT Work chat subscribing to collaboration_changed and receiving an event",
+    "Cloud Tasks OIDC tokens accepted by the internal routes, and actual queue retries",
+    "Gate /connections/check with Weave's resource credentials (reading the secret was not permitted in this session)",
+    "terraform validate of infra/main.tf",
+    "Nightly backup, which remains blocked, and SELECT for the backup role on the new tables"
+  ]
+}
