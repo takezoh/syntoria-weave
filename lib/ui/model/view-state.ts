@@ -9,7 +9,8 @@ export interface CatalogSubmission {type:'project'|'tag';target:string|null;pare
 export interface InteractionViewState {
  navigation:NavigationState;
  collapsed:string[];
- pickerOpen:'add'|'project'|'tag'|null;
+ /** Add menu, Project/Tag pickers, or the Deadline/Hide until editor opened from its property chip. */
+ pickerOpen:'add'|'project'|'tag'|'due'|'defer'|null;
  pickerTarget:string|null;
  projectQuery:string;
  tagQuery:string;
@@ -41,7 +42,7 @@ export type ViewEvent=
  |{type:'view.selection';catalog:string|null}
  |{type:'view.collapse';key:string;open?:boolean}
  |{type:'picker.step';direction:number;count:number}
- |{type:'picker.open';kind:'add'|'project'|'tag';target:string|null}
+ |{type:'picker.open';kind:'add'|'project'|'tag'|'due'|'defer';target:string|null}
  |{type:'picker.close'}
  |{type:'picker.query';kind:'project'|'tag';query:string}
  |{type:'catalog.next-token'}

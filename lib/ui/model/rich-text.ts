@@ -207,6 +207,13 @@ export function parseRichInline(source:string):RichInline[] {return inlineNodes(
 /** Multi-line text such as Notes: a Markdown subset whose single line breaks are kept. */
 export function parseRichBlocks(source:string):RichBlock[] {return parseBlocks(source.replace(/\r\n?/g,'\n').split('\n'),0);}
 
+/** Keyed variant for several texts rendered together, such as collaboration cards; it retains at most `limit` sources of each kind. */
+export function createRichTextCache(limit=256){
+ const inline=new Map<string,RichInline[]>(),blocks=new Map<string,RichBlock[]>();
+ const read=<T>(cache:Map<string,T>,source:string,parse:(source:string)=>T):T=>{let value=cache.get(source);if(value===undefined){value=parse(source);if(cache.size>=limit)cache.delete(cache.keys().next().value as string);cache.set(source,value);}return value;};
+ return {inline:(source:string)=>read(inline,source,parseRichInline),blocks:(source:string)=>read(blocks,source,parseRichBlocks)};
+}
+
 /** Repeated renders of unchanged text reuse the same structure, so components can retain their nodes. */
 export function createRichTextModel(){
  let inlineSource:string|null=null,inlineResult:RichInline[]=[],blockSource:string|null=null,blockResult:RichBlock[]=[];

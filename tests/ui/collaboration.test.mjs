@@ -7,6 +7,7 @@ import * as drafts from '../../lib/ui/model/drafts.ts';
 import * as operations from '../../lib/ui/model/operations.ts';
 import {createCollaboration,transitionCollaboration} from '../../lib/domain/collaboration.ts';
 import {projectCollaborations,collaborationLabel,actionProposalCount} from '../../lib/ui/model/collaboration.ts';
+import {createRichTextCache} from '../../lib/ui/model/rich-text.ts';
 import {projectActionRow} from '../../lib/ui/model/ui-projections.ts';
 import {createCollaborationPanel} from '../../lib/ui/components/collaboration-panel.ts';
 import {widgetHtml} from '../../lib/widget.ts';
@@ -34,7 +35,7 @@ test('labels distinguish waiting for start, waiting for a person, stop request a
 test('component preserves editor nodes and exposes explicit scope, direct editing and separate adoption actions',t=>{
  const dom=new JSDOM('<main></main>');t.after(()=>dom.window.close());const document=dom.window.document,root=document.querySelector('main'),events=[];
  const {c}=fixture(async()=>{});const panel=createCollaborationPanel(document,root,{toggle(){},edit:(...args)=>events.push(args),request(){},command:(...args)=>events.push(args),history(){},copy(){},open(){}});
- panel.render(projectCollaborations(c.state));const field=root.querySelector('[aria-label="Changes or response"]');field.value='Keep this';field.dispatchEvent(new dom.window.Event('input'));assert.deepEqual(events[0],[id(2),'Keep this']);c.editCollaboration(id(2),'Keep this');panel.render(projectCollaborations(c.state));assert.equal(root.querySelector('[aria-label="Changes or response"]'),field);assert.match(root.textContent,/Excluded: Do not send/);
+ panel.render(projectCollaborations(c.state));const field=root.querySelector('[aria-label="Changes or response"]');field.value='Keep this';field.dispatchEvent(new dom.window.Event('input'));assert.deepEqual(events[0],[id(2),'Keep this']);c.editCollaboration(id(2),'Keep this');panel.render(projectCollaborations(c.state));assert.equal(root.querySelector('[aria-label="Changes or response"]'),field);const excluded=[...root.querySelectorAll('.collaboration-fields > div')].find(row=>row.querySelector('dt').textContent==='Excluded');assert.equal(excluded.hidden,false);assert.equal(excluded.querySelector('dd').textContent,'Do not send');
  assert.equal(root.querySelector('[data-command="reject"]'),null);assert.match(root.textContent,/Edit proposal/);
  const next=snapshot();next.collaborations=[{...next.collaborations[0],action_id:null}];c.accept(next);panel.render(projectCollaborations(c.state,true));assert(root.querySelector('[data-command="adopt"]'));assert(root.querySelector('[data-command="adopt_delegate"]'));assert(root.querySelector('[data-command="link"]'));
 });
@@ -42,7 +43,7 @@ test('list rows count only proposals still awaiting the person and show them fir
  const s=snapshot(),base=s.collaborations[0],records=[base,{...base,id:id(5),decision:'deferred'},{...base,id:id(6),decision:'changes_requested'},{...base,id:id(7),decision:'accepted'},{...base,id:id(8),decision:'rejected'},{...base,id:id(9),decision:'withdrawn'},{...base,id:id(10),progress:'running'},{...base,id:id(12),action_id:id(11)}],before=structuredClone(records);
  assert.equal(actionProposalCount(records,id(1)),3);assert.equal(actionProposalCount(records,id(11)),1);assert.equal(actionProposalCount(records,id(13)),0);assert.equal(actionProposalCount(null,id(1)),0);assert.deepEqual(records,before);
  const input={entry:{key:id(1),level:0},action:s.actions[0],actions:s.actions,tree:false,visibleActionIds:[id(1)],batchSelected:false,active:false,formattedDue:''};
- assert.deepEqual(projectActionRow({...input,proposals:2}).badges[0],{text:'2 proposals',icon:'proposal',tone:'proposal'});
+ assert.deepEqual(projectActionRow({...input,proposals:2}).badges[0],{text:'2 proposals',icon:'proposal',tone:'proposal',iconOnly:true});
  assert.deepEqual(projectActionRow({...input,proposals:1}).badges.map(badge=>badge.text),['Proposal']);
  assert.deepEqual(projectActionRow(input).badges,[]);assert.notEqual(projectActionRow({...input,proposals:1}).signature,projectActionRow(input).signature);
 });
@@ -51,7 +52,7 @@ test('generated widget marks proposed actions in lists and approves from Now wit
  let current={...snapshot(),list_scopes:{inbox:[id(1)]}};const calls=[];const dom=new JSDOM(widgetHtml,{url:'https://app.example.test',runScripts:'dangerously',beforeParse(w){w.postMessage=message=>{if(!message.id)return;let result={};if(message.method==='tools/call'){const {name,arguments:args}=message.params;calls.push({name,args:structuredClone(args)});if(name==='update_collaboration'){const changed=transitionCollaboration(current,current.collaborations[0],args.command,args.payload,actor,now);current={...current,revision:current.revision+1,collaborations:[changed],result:{operationId:args.operationId,collaboration_id:id(2)}};}result={structuredContent:current};}queueMicrotask(()=>w.dispatchEvent(new w.MessageEvent('message',{source:w,data:{jsonrpc:'2.0',id:message.id,result}})));};}});t.after(()=>dom.window.close());
  const settle=async()=>{for(let i=0;i<30;i++)await new Promise(resolve=>setImmediate(resolve));};await settle();const d=dom.window.document;
  assert.equal(d.getElementById('collaborationOverview'),null);const row=()=>d.querySelector('.action-row[data-action-id="'+id(1)+'"]');
- d.querySelector('#viewRail [data-view="inbox"]').click();await settle();assert.equal(row().querySelector('.badge.proposal').textContent,'Proposal');assert(row().querySelector('.badge.proposal svg'));
+ d.querySelector('#viewRail [data-view="inbox"]').click();await settle();assert.equal(row().querySelector('.badge.proposal').textContent,'Proposal');assert.equal(d.querySelector('[data-rail-count="now"]').textContent,'1 waiting on you');assert.equal(d.querySelector('[data-rail-count="now"]').dataset.badge,'true');assert(row().querySelector('.badge.proposal svg'));
  d.querySelector('#viewRail [data-view="now"]').click();await settle();assert.match(d.getElementById('nowAttention').textContent,/Proposal to review/);d.querySelector('#nowAttention [data-command="accept"]').click();await settle();
  assert.equal(calls.filter(row=>row.name==='update_collaboration').length,1);assert.equal(calls.find(row=>row.name==='update_collaboration').args.payload.version,1);assert.equal(current.actions[0].status,'active');
  d.querySelector('#viewRail [data-view="inbox"]').click();await settle();assert.equal(row().querySelector('.badge.proposal'),null,'an approved proposal is no longer marked as one');assert.match(row().textContent,/Requested — not started/);
@@ -75,19 +76,36 @@ test('proposal editing DOM retains fields and dispatches save without approving'
  [...root.querySelectorAll('button')].find(b=>b.textContent==='Save proposal changes').click();assert.deepEqual(events,[id(2)]);
 });
 
-test('cards show who should handle the work and who started it, and changing the target sends one assign event',async t=>{
+test('cards show the delegation target in its selector and who started the work, and changing the target sends one assign event',async t=>{
  const calls=[];const {c}=fixture(async(name,args)=>{calls.push({name,args:structuredClone(args)});const s=snapshot();return {...s,revision:2,clients:[{client_id:'claude-client',name:'Claude'}],result:{operationId:args.operationId,collaboration_id:id(2)},collaborations:[{...s.collaborations[0],delegation:args.payload.delegation,revision:2}]};});
  const s=snapshot();c.accept({...s,clients:[{client_id:'claude-client',name:'Claude'}]});
  const dom=new JSDOM('<main></main>');t.after(()=>dom.window.close());const d=dom.window.document,root=d.querySelector('main');
  const panel=createCollaborationPanel(d,root,{toggle(){},edit(){},request(){},command(){},history(){},copy(){},open(){},assign:(key,delegation)=>c.assignCollaboration(key,delegation)});
  panel.render(projectCollaborations(c.state));
- assert.equal(root.querySelector('.collaboration-handler').textContent,'Yours until approved · then for any AI');
+ assert.equal(root.querySelector('.collaboration-handler').hidden,true);
  const select=root.querySelector('select:not([aria-label="Verified outcome"])');assert.deepEqual([...select.options].map(option=>option.textContent),['Any AI','Claude']);assert.equal(select.value,'0');
  select.value='1';select.dispatchEvent(new dom.window.Event('change'));await new Promise(resolve=>setImmediate(resolve));
  const sent=calls.filter(row=>row.name==='update_collaboration');assert.equal(sent.length,1);assert.equal(sent[0].args.command,'assign');assert.deepEqual(sent[0].args.payload,{version:1,delegation:{mode:'specified_ai',client_id:'claude-client'}});
- panel.render(projectCollaborations(c.state));assert.equal(root.querySelector('.collaboration-handler').textContent,'Yours until approved · then for Claude');
+ panel.render(projectCollaborations(c.state));assert.equal(root.querySelector('select:not([aria-label="Verified outcome"])').value,'1');assert.equal(root.querySelector('.collaboration-handler').hidden,true);
  const accepted=transitionCollaboration(snapshot(),c.state.data.collaborations[0],'accept',{version:1},actor,now),running=transitionCollaboration(snapshot(),accepted,'start',{version:1},actor,now,id(9));
  c.accept({...snapshot(),revision:3,clients:[{client_id:'claude-client',name:'Claude'}],collaborations:[running]});panel.render(projectCollaborations(c.state));
- assert.equal(root.querySelector('.collaboration-handler').textContent,'For Claude · Started by AI connection example-');
+ assert.match(root.querySelector('.collaboration-handler').textContent,/^Started by AI connection example-/);assert.equal(root.querySelector('.collaboration-handler').hidden,false);
  assert.deepEqual([...root.querySelector('select:not([aria-label="Verified outcome"])').options].map(option=>option.textContent),['Any AI','Claude','AI connection example-']);
+});
+
+test('cards render proposal and report text as Markdown, hide empty fields and place each decision in its slot',t=>{
+ const dom=new JSDOM('<main></main>');t.after(()=>dom.window.close());const d=dom.window.document,root=d.querySelector('main'),opened=[];
+ const {c}=fixture(async()=>{});const base=snapshot().collaborations[0];
+ c.accept({...snapshot(),revision:2,collaborations:[{...base,proposal:{...proposal,instructions:'**Draft** the reply\n\n- Check [notes](https://example.com/notes)\n- Keep it short',exclusions:''},summary:'### Done\n- Read the thread'}]});
+ const before=structuredClone(c.state.data.collaborations),cache=createRichTextCache();
+ const panel=createCollaborationPanel(d,root,{toggle(){},edit(){},request(){},command(){},history(){},copy(){},open:href=>opened.push(href)},name=>`<svg data-icon="${name}"></svg>`);
+ panel.render(projectCollaborations(c.state,false,false,cache));assert.deepEqual(c.state.data.collaborations,before);
+ const body=root.querySelector('.collaboration-text');assert.equal(body.querySelector('strong').textContent,'Draft');assert.equal(body.querySelectorAll('li').length,2);assert.equal(body.querySelector('a')?.textContent,'notes');assert.equal(body.textContent.includes('**'),false,'Markdown syntax is rendered, not shown');
+ const row=label=>[...root.querySelectorAll('.collaboration-fields > div')].find(item=>item.querySelector('dt').textContent===label);
+ assert.equal(row('Excluded').hidden,true,'an empty field has no row');assert.equal(row('Scope').hidden,false);assert.equal(row('Scope').querySelector('dd').textContent,'Draft only');
+ assert.equal(root.querySelector('.collaboration-report').hidden,false);assert.match(root.querySelector('.collaboration-report').textContent,/Done/);assert.equal(root.querySelector('.collaboration-report').textContent.includes('###'),false);
+ const approve=root.querySelector('[data-command="accept"]');assert.equal(approve.textContent,'Approve');assert.equal(approve.getAttribute('aria-label'),'Approve this proposal');assert(approve.closest('.collaboration-row'));
+ const revise=root.querySelector('[data-command="request_changes"]');assert(revise.closest('.collaboration-composer'));assert(revise.querySelector('svg[data-icon="send"]'));assert.equal(revise.textContent,'Ask AI to revise');assert.equal(revise.disabled,true);
+ for(const label of ['Edit proposal','Copy request for AI','Show recent history']){const button=[...root.querySelectorAll('.collaboration-tools button')].find(item=>item.textContent===label);assert(button,label);assert.equal(button.title,label);assert(button.querySelector('svg'));}
+ const node=body.firstChild;panel.render(projectCollaborations(c.state,false,false,cache));assert.equal(root.querySelector('.collaboration-text').firstChild,node,'unchanged text keeps its nodes');
 });

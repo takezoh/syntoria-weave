@@ -49,7 +49,9 @@ test('action row projection derives badges, accessible title, and stable interac
  const before=structuredClone(input),row=projectActionRow(input);
  assert.equal(row.title,'  Updated   notes ');
  assert.equal(row.accessibleTitle,'  Review   notes ');
- assert.deepEqual(row.badges.map(badge=>badge.text),['In Launch','Waiting','Later','Deadline Oct 14','Work / Design']);
+ assert.deepEqual(row.badges.map(badge=>(badge.prefix??'')+badge.text),['Waiting','Later','Deadline Oct 14','In Launch','Work / Design']);
+ assert.deepEqual(row.badges.filter(badge=>badge.iconOnly).map(badge=>[badge.text,badge.icon]),[['Waiting','waiting'],['Later','later']],'state badges are icons whose text is the accessible name');
+ assert.deepEqual(row.badges.filter(badge=>badge.tone==='muted').map(badge=>badge.text),['In Launch','Work / Design']);
  assert.equal(row.batchSelected,true);assert.equal(row.active,false);assert.equal(typeof row.signature,'string');
  assert.deepEqual(input,before);
  assert.equal(projectActionRow(input).signature,row.signature);
@@ -71,16 +73,18 @@ test('action inspector projection joins saved labels, retained edits, date state
  const draft={title:'Edited',notes:'unsaved notes',flagged:true,status:'active',project_id:'p',tag_ids:['t'],due_at:'2026-10-15T09:00:00Z',defer_until:null};
  const projects=[{id:'p',name:'Plan',parent_id:null}],tags=[{id:'t',name:'Urgent',parent_id:null}];
  const dates={due:pair('2026-10-15','09:00'),defer:pair('','')},before=structuredClone({action,draft,projects,tags,dates});
- const view=projectActionInspector({id:'a',draft,action,targetAvailable:true,conflicts:['title','project_id'],projects,tags,dates,projectPickerFocused:false,formatInstant:value=>'formatted '+value,textEditing:false,richText});
- assert.equal(view.title,'Edited');assert.equal(view.notes,'unsaved notes');assert.equal(view.flagged,true);assert.equal(view.lifecycle,'Open');
+ const view=projectActionInspector({id:'a',draft,action,targetAvailable:true,conflicts:['title','project_id'],projects,tags,dates,projectPickerFocused:false,formatInstant:value=>'formatted '+value,formatDate:date=>'day '+date,textEditing:false,richText});
+ assert.equal(view.title,'Edited');
+ assert.deepEqual(view.chips.due,{text:'day 2026-10-15, 09:00',label:'Deadline: day 2026-10-15, 09:00',empty:false,invalid:false,inherited:false});
+ assert.deepEqual(view.chips.defer,{text:'',label:'Hide until: hidden by a parent',empty:true,invalid:false,inherited:true},'an empty own Hide until shows that a parent hides the Action');assert.equal(view.notes,'unsaved notes');assert.equal(view.flagged,true);assert.equal(view.lifecycle,'Open');
  assert.equal(Object.hasOwn(view,'metadata'),false);assert.equal(JSON.stringify(view).includes(action.metadata),false);
  assert.equal(view.projectValue,'Plan');assert.deepEqual(view.tags,[{id:'t',label:'Urgent',focusKey:'tag:a:t'}]);
  assert.equal(view.dateSummary,'Parent Release · Deferred until: formatted 2026-10-20T09:00:00Z');
  assert.deepEqual(view.releases,[{id:'parent',label:'Parent Release · Clear Defer'}]);
  assert.equal(view.savedCompare,'Saved Title: Saved\nSaved Project: Plan');
  assert.deepEqual({action,draft,projects,tags,dates},before);
- assert.equal(projectActionInspector({id:'a',draft,action,targetAvailable:false,conflicts:[],projects,tags,dates,projectPickerFocused:true,formatInstant:String,textEditing:false,richText}).projectValue,undefined);
- const missing=projectActionInspector({id:'a',draft:{...draft,project_id:'missing'},action,targetAvailable:true,conflicts:[],projects,tags,dates,projectPickerFocused:false,formatInstant:String,textEditing:false,richText});assert.equal(missing.projectValue,'Unassigned');
+ assert.equal(projectActionInspector({formatDate:date=>date,id:'a',draft,action,targetAvailable:false,conflicts:[],projects,tags,dates,projectPickerFocused:true,formatInstant:String,textEditing:false,richText}).projectValue,undefined);
+ const missing=projectActionInspector({formatDate:date=>date,id:'a',draft:{...draft,project_id:'missing'},action,targetAvailable:true,conflicts:[],projects,tags,dates,projectPickerFocused:false,formatInstant:String,textEditing:false,richText});assert.equal(missing.projectValue,'Unassigned');
 });
 
 test('catalog inspector projection keeps edit state while exposing validation and retry decisions',()=>{
@@ -107,11 +111,11 @@ test('action inspector text mode renders unsaved proposals in view and parses no
  const action={id:'a',title:'Saved',notes:'saved',order:1,flagged:false,revision:1,status:'active',project_id:null,tags:[],defer_reasons:[]};
  const draft={title:'See https://example.com',notes:'- **unsaved**',flagged:false,status:'active',project_id:null,tag_ids:[]};
  const dates={due:pair('',''),defer:pair('','')},parsed=[],richText={inline:text=>{parsed.push(['inline',text]);return [{kind:'text',text}];},blocks:text=>{parsed.push(['blocks',text]);return [{kind:'paragraph',children:[{kind:'text',text}]}];}};
- const project=(textEditing,targetAvailable=true)=>projectActionInspector({id:'a',draft,action,targetAvailable,conflicts:[],projects:[],tags:[],dates,projectPickerFocused:false,formatInstant:String,textEditing,richText});
+ const project=(textEditing,targetAvailable=true)=>projectActionInspector({formatDate:date=>date,id:'a',draft,action,targetAvailable,conflicts:[],projects:[],tags:[],dates,projectPickerFocused:false,formatInstant:String,textEditing,richText});
  assert.deepEqual(project(false).text,{mode:'view',title:[{kind:'text',text:'See https://example.com'}],notes:[{kind:'paragraph',children:[{kind:'text',text:'- **unsaved**'}]}],toggleDisabled:false});
  assert.deepEqual(parsed,[['inline',draft.title],['blocks',draft.notes]]);
  parsed.length=0;assert.deepEqual(project(true,false).text,{mode:'edit',title:[],notes:[],toggleDisabled:false});assert.deepEqual(parsed,[]);
  assert.equal(project(false,false).text.toggleDisabled,true);
- const real=projectActionInspector({id:'a',draft,action,targetAvailable:true,conflicts:[],projects:[],tags:[],dates,projectPickerFocused:false,formatInstant:String,textEditing:false,richText:createRichTextModel()});
+ const real=projectActionInspector({formatDate:date=>date,id:'a',draft,action,targetAvailable:true,conflicts:[],projects:[],tags:[],dates,projectPickerFocused:false,formatInstant:String,textEditing:false,richText:createRichTextModel()});
  assert.equal(real.text.title[1].kind,'link');assert.equal(real.text.notes[0].kind,'list');assert.equal(real.title,draft.title);assert.equal(real.notes,draft.notes);
 });

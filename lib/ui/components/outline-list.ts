@@ -129,9 +129,19 @@ export function ActionRow(props: ActionRowProps): HTMLDivElement {
   labelList.className = 'badges';
   for (const badge of badges) {
     const label = document.createElement('span');
-    label.className = 'badge' + (badge.tone ? ' ' + badge.tone : badge.icon ? ' on-hold' : '');
+    label.className = 'badge' + (badge.tone ? ' ' + badge.tone : '') + (badge.iconOnly ? ' icon-only' : '');
     if (badge.icon) label.innerHTML = iconSvg(badge.icon);
-    label.appendChild(document.createTextNode(badge.text));
+    const spoken = (text: string) => {
+      const node = document.createElement('span');
+      node.className = 'visually-hidden';
+      node.textContent = text;
+      label.appendChild(node);
+    };
+    if (badge.prefix) spoken(badge.prefix);
+    if (badge.iconOnly) {
+      label.title = badge.text;
+      spoken(badge.text);
+    } else label.appendChild(document.createTextNode(badge.text));
     labelList.appendChild(label);
   }
   const content = document.createElement('div');

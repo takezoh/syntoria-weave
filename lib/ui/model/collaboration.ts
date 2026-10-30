@@ -2,6 +2,7 @@ import {persistedCollaboration,collaborationBlocksReplacement,needsPerson,MAX_AC
 export {needsPerson} from '../../domain/collaboration';
 import type {Collaboration,CollaborationDelegation,CollaborationHistory,CollaborationProposal} from '../../data/types';
 import type {DeepReadonly,UiState} from './types';
+import {parseRichBlocks,parseRichInline,type RichBlock,type RichInline} from './rich-text';
 
 export function collaborationLabel(record:Collaboration):string {
  if(record.stop_requested)return 'Stop requested — awaiting confirmation';
@@ -29,9 +30,24 @@ export function delegationView(record:Collaboration,clients:readonly {client_id:
  const target=record.delegation.mode==='any_ai'?'any AI':name(record.delegation.client_id);
  return {handler:record.decision==='accepted'?'For '+target:'Yours until approved · then for '+target,runner:record.run_actor?'Started by '+(record.run_actor.kind==='user'?'you':name(record.run_actor.client_id)):null,choices,selected};
 }
-export type CollaborationCard=Readonly<{record:Collaboration;label:string;delegation:ReturnType<typeof delegationView>;feedback:string;edit:Readonly<{version:number;proposal:CollaborationProposal}>|null;editDisabled:boolean;reconciliation:string|null;buttons:readonly Readonly<{command:string;label:string;disabled:boolean}>[];handoff:string;history:readonly CollaborationHistory[]}>;
-export type CollaborationPanelData=Readonly<{enabled:boolean;busy:boolean;showAll:boolean;showToggle:boolean;count:number;action:Readonly<{id:string;title:string}>|null;request:string;requestDisabled:boolean;cards:readonly CollaborationCard[]}>;
-export function projectCollaborations(state:DeepReadonly<UiState>,overview=false,attention=false):CollaborationPanelData {
+/**
+ * Where a decision appears on its card and how it is shown. `primary` decisions carry a short visible word;
+ * composer and header decisions are icon-only and keep their full label as the accessible name.
+ */
+export type CollaborationSlot='primary'|'composer'|'header'|'outcome';
+export type CollaborationButton=Readonly<{command:string;label:string;disabled:boolean;slot:CollaborationSlot;text:string|null;icon:string|null}>;
+/** Human-facing text parsed for the shared Markdown renderer; caller metadata is never part of it. */
+export type CollaborationText=Readonly<{title:readonly RichInline[];instructions:readonly RichBlock[];scope:readonly RichBlock[];outcome:readonly RichBlock[];exclusions:readonly RichBlock[];source:readonly RichBlock[];summary:readonly RichBlock[];remaining:readonly RichBlock[];feedback:readonly RichBlock[]}>;
+export type CollaborationTextParser=Readonly<{inline(source:string):readonly RichInline[];blocks(source:string):readonly RichBlock[]}>;
+export type CollaborationCard=Readonly<{record:Collaboration;label:string;delegation:ReturnType<typeof delegationView>;feedback:string;edit:Readonly<{version:number;proposal:CollaborationProposal}>|null;editDisabled:boolean;reconciliation:string|null;buttons:readonly CollaborationButton[];handoff:string;history:readonly CollaborationHistory[];text:CollaborationText}>;
+export type CollaborationPanelData=Readonly<{enabled:boolean;busy:boolean;showAll:boolean;showToggle:boolean;count:number;action:Readonly<{id:string;title:string}>|null;request:string;requestDisabled:boolean;requestAvailable:boolean;cards:readonly CollaborationCard[]}>;
+const presentation:Readonly<Record<string,{slot:CollaborationSlot;text:string|null;icon:string|null}>>={
+ accept:{slot:'primary',text:'Approve',icon:null},adopt:{slot:'primary',text:'Create action',icon:null},adopt_delegate:{slot:'primary',text:'Create and delegate',icon:null},link:{slot:'primary',text:'Link to selected action',icon:null},
+ request_changes:{slot:'composer',text:null,icon:'send'},respond:{slot:'composer',text:null,icon:'send'},withdraw:{slot:'header',text:null,icon:'stop'},reconcile:{slot:'outcome',text:'Record outcome',icon:null},
+};
+const plainText:CollaborationTextParser={inline:parseRichInline,blocks:parseRichBlocks};
+/** `text` parses human-facing fields; pass a caching parser to keep rendered nodes across refreshes. */
+export function projectCollaborations(state:DeepReadonly<UiState>,overview=false,attention=false,text:CollaborationTextParser=plainText):CollaborationPanelData {
  const enabled=state.data?.collaboration_version===1,records=(enabled?state.data!.collaborations:[]) as readonly Collaboration[];
  const busy=state.busy||state.saving||Boolean(state.unknown)||state.recoveryRequired;
  const action=state.data?.actions.find(row=>row.id===state.selectedId)??null;
@@ -39,8 +55,8 @@ export function projectCollaborations(state:DeepReadonly<UiState>,overview=false
  const statusOf=(id:string|null)=>id?state.data?.actions.find(row=>row.id===id)?.status:undefined;
  const shown=overview?records.filter(row=>!attention||needsPerson(row,statusOf(row.action_id))):records.filter(row=>row.action_id===selected?.id);
  const cards=shown.map(record=>{
-  const feedback=state.collaborationDrafts[record.id]??'',buttons:{command:string;label:string;disabled:boolean}[]=[];
-  const add=(command:string,label:string,needsText=false)=>buttons.push({command,label,disabled:busy||needsText&&!feedback.trim()});
+  const feedback=state.collaborationDrafts[record.id]??'',buttons:CollaborationButton[]=[];
+  const add=(command:string,label:string,needsText=false)=>buttons.push({command,label,disabled:busy||needsText&&!feedback.trim(),...presentation[command]!});
   const active=record.progress==='running'||record.progress==='waiting',edit=state.collaborationEdits[record.id]??null;
   const otherSelected=records.some(row=>row.id!==record.id&&row.action_id===record.action_id&&record.action_id!==null&&collaborationBlocksReplacement(row));
   const editDisabled=busy||active||record.outcome==='unknown';
@@ -58,9 +74,11 @@ export function projectCollaborations(state:DeepReadonly<UiState>,overview=false
   const handoff=`Read collaboration ${record.id}${record.action_id?` for action ${record.action_id}`:''} using get_collaboration, then read current state before continuing. Proposal version: ${record.version}.\n${record.proposal.instructions}\nScope: ${record.proposal.scope}\nExpected outcome: ${record.proposal.outcome}\nExcluded: ${record.proposal.exclusions}\nAcceptance records work intent only; obtain external permissions through your execution environment. Report actual progress and unknown outcomes; do not complete the action automatically.`;
   const target=state.data?.actions.find(action=>action.id===record.action_id),inactive=target&&['completed','dropped'].includes(target.status??'');
   const label=inactive&&record.progress==='not_started'?'Action is no longer unfinished — work cannot start':collaborationLabel(record);
-  return {record,label,delegation:delegationView(record,(state.data?.clients as {client_id:string;name:string}[]|undefined)??[]),feedback,edit,editDisabled,reconciliation,buttons,handoff,history:state.collaborationHistory[record.id]??[]};
+  const proposal=record.proposal,cardText:CollaborationText={title:text.inline(proposal.title),instructions:text.blocks(proposal.instructions),scope:text.blocks(proposal.scope),outcome:text.blocks(proposal.outcome),exclusions:text.blocks(proposal.exclusions),source:text.blocks(proposal.source),summary:text.blocks(record.summary),remaining:text.blocks(record.remaining),feedback:text.blocks(record.feedback)};
+  return {record,label,delegation:delegationView(record,(state.data?.clients as {client_id:string;name:string}[]|undefined)??[]),feedback,edit,editDisabled,reconciliation,buttons,handoff,history:state.collaborationHistory[record.id]??[],text:cardText};
  });
- return {enabled:enabled&&(overview||Boolean(selected)),busy,showAll:overview,showToggle:false,count:records.length,action:selected&&!overview?{id:selected.id,title:selected.title}:null,request:selected?state.collaborationDrafts['action:'+selected.id]??'':'',requestDisabled:busy||!selected||Boolean(state.drafts[selected?.id??'']?.dirty)||records.filter(row=>row.action_id===selected?.id).length>=MAX_ACTION_PROPOSALS||records.some(row=>row.action_id===selected?.id&&collaborationBlocksReplacement(row)),cards};
+ const forSelected=records.filter(row=>row.action_id===selected?.id),requestAvailable=Boolean(selected)&&forSelected.length<MAX_ACTION_PROPOSALS&&!forSelected.some(collaborationBlocksReplacement);
+ return {enabled:enabled&&(overview||Boolean(selected)),busy,showAll:overview,showToggle:false,count:records.length,action:selected&&!overview?{id:selected.id,title:selected.title}:null,request:selected?state.collaborationDrafts['action:'+selected.id]??'':'',requestDisabled:busy||!requestAvailable||Boolean(state.drafts[selected?.id??'']?.dirty),requestAvailable,cards};
 }
 
 export function validCollaborationSnapshot(value:unknown):boolean {

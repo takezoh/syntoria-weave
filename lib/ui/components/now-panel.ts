@@ -14,36 +14,38 @@ export type NowPanelCallbacks=Readonly<{captureInput(text:string):void;capture()
  * The Now view: capture, what waits on the person, recent connection changes, flags and deadlines.
  * It renders model data only; `attentionRoot` is where the composition mounts the collaboration panel.
  */
-export function createNowPanel(document:Document,root:HTMLElement,callbacks:NowPanelCallbacks){
+export function createNowPanel(document:Document,root:HTMLElement,callbacks:NowPanelCallbacks,iconSvg:(name:string)=>string=()=>''){
  const element=<K extends keyof HTMLElementTagNameMap>(tag:K,text='',className='')=>{const node=document.createElement(tag);node.textContent=text;if(className)node.className=className;return node;};
  // Node#appendChild keeps DOM typing independent of the edge runtime's Element declarations.
  const add=(parent:Node,...children:Node[])=>{for(const child of children)parent.appendChild(child);};
+ /** Icon-only control: the label stays in the accessible name, tooltip and text content but is not shown. */
+ const iconButton=(icon:string,label:string,onClick:()=>void)=>{const node=element('button','','icon-button');node.type='button';node.title=label;node.innerHTML=iconSvg(icon);add(node,element('span',label));node.onclick=onClick;return node;};
+ const spacer=()=>element('span','','now-card-spacer');
  const section=(id:string,title:string)=>{const node=element('section','','now-card');node.setAttribute('aria-labelledby',id);const header=element('div','','now-card-header'),heading=element('h3',title);heading.id=id;add(header,heading);add(node,header);return {node,header,heading};};
 
- const capture=element('section','','now-card now-capture');capture.setAttribute('aria-label','Capture');
- const captureInput=element('textarea');captureInput.id='nowCapture';captureInput.rows=2;captureInput.maxLength=65536;captureInput.dataset.focusKey='now:capture';captureInput.placeholder='Add to Inbox';captureInput.setAttribute('aria-label','Add to Inbox');
- const captureSave=element('button','Save','primary');captureSave.type='button';captureSave.id='nowCaptureSave';
+ const capture=element('section','','now-card now-capture');capture.setAttribute('aria-label','Capture');capture.innerHTML=iconSvg('inbox');
+ const captureInput=element('textarea');captureInput.id='nowCapture';captureInput.rows=1;captureInput.maxLength=65536;captureInput.dataset.focusKey='now:capture';captureInput.placeholder='Add to Inbox';captureInput.setAttribute('aria-label','Add to Inbox');
+ const captureSave=iconButton('send','Save',()=>callbacks.capture());captureSave.classList.add('now-capture-save');captureSave.id='nowCaptureSave';
  add(capture,captureInput,captureSave);
  captureInput.addEventListener('input',()=>callbacks.captureInput(captureInput.value));
  captureInput.addEventListener('keydown',event=>{if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)&&!event.isComposing){event.preventDefault();callbacks.capture();}});
- captureSave.onclick=()=>callbacks.capture();
 
  const columns=element('div','','now-columns'),left=element('div','','now-column'),right=element('div','','now-column');add(columns,left,right);
 
  const attention=section('nowAttentionHeading','Waiting on you'),attentionCount=element('span','','count-pill attention'),attentionEmpty=element('p','Nothing is waiting on you.','now-empty');
  const attentionRoot=element('div','','now-attention');attentionRoot.id='nowAttention';add(attention.header,attentionCount);add(attention.node,attentionEmpty,attentionRoot);
 
- const digest=section('nowDigestHeading','Changed by AI and connected apps'),digestMeta=element('span','','muted'),digestStatus=element('p','','now-empty'),digestList=element('div','','change-card-list'),digestFooter=element('div','','now-card-footer');
- const reviewAll=element('button','Review all changes','link-button');reviewAll.type='button';reviewAll.onclick=()=>callbacks.navigate('changes');
- const markReviewed=element('button','Mark as reviewed','outline');markReviewed.type='button';markReviewed.onclick=()=>callbacks.markReviewed();
- const retry=element('button','Try again','outline');retry.type='button';retry.onclick=()=>callbacks.retryChanges();
- add(digest.header,digestMeta);add(digestFooter,reviewAll,markReviewed,retry);add(digest.node,digestStatus,digestList,digestFooter);
+ const digest=section('nowDigestHeading','Changes'),digestMeta=element('span','','count-pill new'),digestStatus=element('p','','now-empty'),digestList=element('div','','change-card-list');
+ const reviewAll=iconButton('chevron','Review all changes',()=>callbacks.navigate('changes'));
+ const markReviewed=iconButton('tick','Mark as reviewed',()=>callbacks.markReviewed());
+ const retry=iconButton('refresh','Try again',()=>callbacks.retryChanges());
+ add(digest.header,digestMeta,spacer(),retry,markReviewed,reviewAll);add(digest.node,digestStatus,digestList);
  const digestCards=createChangeCardList(document,digestList,{undo:id=>callbacks.undo(id)});
 
- const flagged=section('nowFlaggedHeading','Flagged'),flaggedAll=element('button','See all','link-button'),flaggedList=element('ul','','now-rows'),flaggedEmpty=element('p','No flagged actions.','now-empty');
- flaggedAll.type='button';flaggedAll.onclick=()=>callbacks.navigate('flagged');add(flagged.header,flaggedAll);add(flagged.node,flaggedEmpty,flaggedList);
+ const flagged=section('nowFlaggedHeading','Flagged'),flaggedCount=element('span','','count'),flaggedAll=iconButton('chevron','See all flagged',()=>callbacks.navigate('flagged')),flaggedList=element('ul','','now-rows'),flaggedEmpty=element('p','No flagged actions.','now-empty');
+ add(flagged.header,flaggedCount,spacer(),flaggedAll);add(flagged.node,flaggedEmpty,flaggedList);
 
- const deadlines=section('nowDeadlinesHeading','Deadlines in the next 7 days'),deadlineList=element('ul','','now-rows'),deadlineEmpty=element('p','No deadlines in the next 7 days.','now-empty');
+ const deadlines=section('nowDeadlinesHeading','Next 7 days'),deadlineList=element('ul','','now-rows'),deadlineEmpty=element('p','No deadlines in the next 7 days.','now-empty');
  add(deadlines.node,deadlineEmpty,deadlineList);
 
  add(left,attention.node,digest.node);add(right,flagged.node,deadlines.node);add(root,capture,columns);
@@ -71,12 +73,12 @@ export function createNowPanel(document:Document,root:HTMLElement,callbacks:NowP
   captureInput.disabled=data.capture.disabled;captureSave.disabled=data.capture.disabled||!data.capture.canSave;
   attentionCount.textContent=String(data.attention.count);attentionCount.hidden=!data.attention.count;attentionEmpty.hidden=data.attention.count>0;attentionRoot.hidden=!data.attention.count;
   const {status,error,cards,unreviewed,reviewed,canMark}=data.digest;
-  digestMeta.textContent=reviewed&&unreviewed?unreviewed+' new':'';
+  digestMeta.textContent=reviewed&&unreviewed?String(unreviewed):'';digestMeta.hidden=!digestMeta.textContent;digestMeta.setAttribute('aria-label',unreviewed+' new');
   digestStatus.hidden=status==='ready'&&cards.length>0;
   digestStatus.textContent=status==='error'?(error||'Recent changes could not be loaded.'):status!=='ready'?'Loading recent changes…':reviewed?'Nothing new.':'No changes from AI or connected apps yet.';
   digestCards.render(status==='ready'?cards:[]);
   retry.hidden=status!=='error';markReviewed.hidden=!canMark;
-  flaggedEmpty.hidden=data.flagged.length>0;flaggedAll.hidden=!data.flaggedCount;renderRows(flaggedList,data.flagged,data.mutationBlocked);
+  flaggedEmpty.hidden=data.flagged.length>0;flaggedAll.hidden=!data.flaggedCount;flaggedCount.textContent=data.flaggedCount?String(data.flaggedCount):'';renderRows(flaggedList,data.flagged,data.mutationBlocked);
   deadlineEmpty.hidden=data.deadlines.length>0;renderRows(deadlineList,data.deadlines,data.mutationBlocked);
  }};
 }

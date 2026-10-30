@@ -33,6 +33,11 @@ export function iconSvg(name:string):string {
   proposal:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
   later:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4"/>',
+  send:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+  stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  document:'<path d="M6 3h8l4 4v14H6zM14 3v4h4"/>',
+  signout:'<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>',
  };
  return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]??paths.normal}</svg>`;
 }

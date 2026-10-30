@@ -34,6 +34,10 @@ export interface ActionDetailsElements {
     readonly deferTime: HTMLInputElement;
   };
   readonly savedCompare: HTMLElement;
+  readonly chips: {
+    readonly due: {readonly button: HTMLButtonElement; readonly text: HTMLElement};
+    readonly defer: {readonly button: HTMLButtonElement; readonly text: HTMLElement};
+  };
   readonly dateSummary: HTMLElement;
   readonly releaseControls: HTMLElement;
   readonly projectSearch: HTMLInputElement;
@@ -106,16 +110,40 @@ function button(
   return node;
 }
 
+/** A tag chip shows its name followed by the remove mark; the accessible name says what a press does. */
+function tagChip(document: Document, iconSvg: (name: string) => string, text: string, onClick: () => void): HTMLButtonElement {
+  const node = document.createElement('button');
+  node.type = 'button';
+  const label = document.createElement('span');
+  label.textContent = text;
+  node.appendChild(label);
+  node.insertAdjacentHTML('beforeend', iconSvg('close'));
+  node.onclick = onClick;
+  return node;
+}
+
+function renderDateChip(chip: ActionDetailsElements['chips']['due'], view: ActionDetailsProps['view']['chips']['due']): void {
+  chip.text.textContent = view.text;
+  chip.button.setAttribute('aria-label', view.label);
+  chip.button.title = view.label;
+  chip.button.dataset.empty = String(view.empty);
+  chip.button.dataset.inherited = String(view.inherited);
+  chip.button.setAttribute('aria-invalid', String(view.invalid));
+}
+
 function renderText(props: ActionDetailsProps): void {
   const {text} = props.elements;
   const {mode, toggleDisabled, title, notes} = props.view.text;
   const editing = mode === 'edit';
   text.view.hidden = editing;
+  text.notesView.hidden = editing;
   text.edit.hidden = !editing;
   text.toggle.disabled = toggleDisabled;
   if (text.toggle.dataset.mode !== mode) {
     text.toggle.dataset.mode = mode;
     text.toggle.setAttribute('aria-label', editing ? 'Done editing Title and Notes' : 'Edit Title and Notes');
+    text.toggle.title = editing ? 'Done editing' : 'Edit';
+    text.toggle.setAttribute('aria-pressed', String(editing));
     text.toggle.innerHTML = props.iconSvg(editing ? 'tick' : 'edit');
     const label = text.toggle.ownerDocument.createElement('span');
     label.textContent = editing ? 'Done' : 'Edit';
@@ -158,7 +186,10 @@ export function ActionDetails(props: ActionDetailsProps): void {
     node.hidden = !text;
     node.textContent = text ?? '';
   }
+  renderDateChip(elements.chips.due, view.chips.due);
+  renderDateChip(elements.chips.defer, view.chips.defer);
   elements.dateSummary.textContent = view.dateSummary;
+  elements.dateSummary.hidden = !view.dateSummary;
   elements.releaseControls.replaceChildren();
   for (const release of view.releases) {
     elements.releaseControls.appendChild(
@@ -172,9 +203,7 @@ export function ActionDetails(props: ActionDetailsProps): void {
   if (view.projectValue !== undefined) props.setValue(elements.projectSearch, view.projectValue);
   elements.tags.replaceChildren();
   for (const tag of view.tags) {
-    const chip = button(elements.panel.ownerDocument, props.iconSvg, tag.label, 'close', () =>
-      props.onRemoveTag(tag.id),
-    );
+    const chip = tagChip(elements.panel.ownerDocument, props.iconSvg, tag.label, () => props.onRemoveTag(tag.id));
     chip.dataset.focusKey = tag.focusKey;
     chip.setAttribute('aria-label', 'Remove Tag: ' + tag.label);
     elements.tags.appendChild(chip);
