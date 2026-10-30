@@ -1,0 +1,65 @@
+{
+  "sourceCommit": "e6d33028a9ecc780fbff010a0fd36ffa4cd1f08a",
+  "files": [
+    {
+      "path": "_headers",
+      "bytes": 396,
+      "sha256": "a812f88a466f8707c2c6d51aeddfd283fe756d5a43b7270d8d1f1bf93c7aa337"
+    },
+    {
+      "path": "_redirects",
+      "bytes": 18,
+      "sha256": "a1bdc12f6fb189a5f170419133275d498f3b335d940257e46c1e226e07fa21dc"
+    },
+    {
+      "path": "apple-touch-icon.png",
+      "bytes": 1937,
+      "sha256": "219cf1e34e51fa424aaeff6a86f37b4a5c58fcc76104d635d6a23f995a9e07a1"
+    },
+    {
+      "path": "assets/authReturn-CK6eip8z.js",
+      "bytes": 170,
+      "sha256": "acdd0ce2fa43831263fb187b37edf779c4ff4f27639eb8814df5db3d4fc06081"
+    },
+    {
+      "path": "assets/index-DeQARWsB.js",
+      "bytes": 7032,
+      "sha256": "ad5c5717777c590837d90ae5d5481320fe1c8ccae2c1949336fd6e42eee6c9aa"
+    },
+    {
+      "path": "assets/modulepreload-polyfill-wMinxHhO.js",
+      "bytes": 698,
+      "sha256": "785597bca2e7dd97a652a20a197c077079e635a5663433448e0e1d9fd8c98a64"
+    },
+    {
+      "path": "auth-return.html",
+      "bytes": 723,
+      "sha256": "c5c868a1253d57e5c85984826daa8a1482553c380b173284963c3c57022cb93e"
+    },
+    {
+      "path": "favicon-32.png",
+      "bytes": 808,
+      "sha256": "091a68aad4dbf55310a4eea386cfbefd7f45c893e6ed9ffa8f599544aa1d8127"
+    },
+    {
+      "path": "favicon.svg",
+      "bytes": 420,
+      "sha256": "3e0ed1340eaa67e376dafe6fe0cac267ca5b33c6fb7202afbb83c9b417b0c057"
+    },
+    {
+      "path": "index.html",
+      "bytes": 1158,
+      "sha256": "9731d9afdf5765633ddc96183cce3b417be1c40a882924fd62e2cf028509fd14"
+    },
+    {
+      "path": "runtime-config.json",
+      "bytes": 224,
+      "sha256": "da37e1c0ebc419def4b9d93214cabc926b55d9808b5e4594cbf8d888ef631d25"
+    },
+    {
+      "path": "workspace.html",
+      "bytes": 306049,
+      "sha256": "e878a826e42c5cb07773b5866f7990419aadaf1a895bed75a8bb5eaab9d0e7fb"
+    }
+  ]
+}

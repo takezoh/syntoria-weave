@@ -1,0 +1,105 @@
+{
+  "sourceCommit": "e6d33028a9ecc780fbff010a0fd36ffa4cd1f08a",
+  "checkedAt": "2026-10-30T08:51:31.427Z",
+  "allMatch": true,
+  "results": [
+    {
+      "path": "/apple-touch-icon.png",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/assets/authReturn-CK6eip8z.js",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/assets/index-DeQARWsB.js",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/assets/modulepreload-polyfill-wMinxHhO.js",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/auth-return.html",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/favicon-32.png",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/favicon.svg",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/runtime-config.json",
+      "status": 200,
+      "match": true,
+      "cacheControl": "no-store",
+      "frameOptions": "DENY",
+      "frameAncestors": "frame-ancestors 'none'"
+    },
+    {
+      "path": "/workspace.html",
+      "status": 200,
+      "match": true,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "frameOptions": "SAMEORIGIN",
+      "frameAncestors": "frame-ancestors 'self'"
+    }
+  ],
+  "api": {
+    "healthReady": 200,
+    "mcpInvalidBearer": {
+      "status": 401,
+      "allowOrigin": null,
+      "allowCredentials": null,
+      "challenge": true
+    },
+    "untrustedOriginPreflight": 403,
+    "spaOriginPreflight": {
+      "status": 204,
+      "allowCredentials": "true",
+      "challenge": false,
+      "exactOrigin": true
+    },
+    "protectedResourceMetadata": 200,
+    "unauthenticatedSession": 401
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-30",
+  "changes": [
+    "change-20261030-collaboration-view"
+  ],
+  "source": {
+    "commit": "e6d33028a9ecc780fbff010a0fd36ffa4cd1f08a",
+    "cleanWorktree": true,
+    "note": "built and verified in a detached worktree of the commit, because the shared working tree held unrelated uncommitted caller-guidance edits that were not part of this release"
+  },
+  "checks": {
+    "pnpmCheck": {
+      "tests": 687,
+      "passed": 687,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "lint": "passed",
+      "typecheck": "passed"
+    },
+    "pnpmBuild": "passed",
+    "testNodeBuilt": "passed, including collaboration"
+  },
+  "api": {
+    "image": "sha256:6e9b89a38df719da87272ac69a817bbb86dda00536f47f98e531590477561180",
+    "imageBuild": "Docker Buildx, linux/amd64",
+    "previousRevision": "weave-api-dense-0ec4f24",
+    "revision": "weave-api-collab-e6d3302",
+    "traffic": "100% after a no-traffic tagged liveness and readiness probe (both 200); tag removed",
+    "jobs": "no schema or administrative change; migrator and backup jobs were neither run nor updated and keep the 0ec4f24 image",
+    "publicChecks": {
+      "healthReady": 200,
+      "mcpInvalidBearer": "401 with an authentication challenge",
+      "untrustedOriginPreflight": 403,
+      "spaOriginPreflight": "204 with exact origin and credentials",
+      "protectedResourceMetadata": 200,
+      "unauthenticatedSession": 401
+    },
+    "revisionLogs": "warnings only for the probes' expected 401 and 403"
+  },
+  "spa": {
+    "staticHostVersion": "7b9e8b00-e5e0-4c88-9796-6be7ce7222e5",
+    "uploadedFiles": [
+      "runtime-config.json",
+      "favicon-32.png",
+      "assets/index-DeQARWsB.js",
+      "favicon.svg",
+      "index.html",
+      "workspace.html",
+      "auth-return.html",
+      "apple-touch-icon.png"
+    ],
+    "runtimeConfiguration": "rendered with the optional appName from the operator input",
+    "publicVerification": "all 10 public files match candidate hashes, including the three icons; no-store runtime configuration; immutable hashed assets; DENY except SAMEORIGIN on workspace.html; credentialed CORS 204"
+  },
+  "unverified": [
+    "Authenticated Web UI behavior in a real browser: the Collaboration view, row status icons, Inbox landing, tab title and favicon",
+    "ChatGPT widget rendering of the Collaboration view; a host-cached widget keeps the previous rail until the host refetches the resource",
+    "Nightly backup (still blocked until the backup role can read state.client_names)"
+  ]
+}
