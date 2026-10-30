@@ -1,9 +1,10 @@
 import type {McpSubscriptions} from './mcp-subscriptions';
 import type {ChangePage} from '../../data/model/change-cursor';
-import {mcpEventStream} from './mcp-event-stream';
-import Fastify from 'fastify';
+import {mcpEventStream,type EventStreamFraming} from './mcp-event-stream';
+import Fastify,{type FastifyReply,type FastifyRequest} from 'fastify';
 import {ActionError,fail} from '../../domain/core';
-import {dispatchMcp} from '../../mcp/dispatcher';
+import {dispatchMcp,type McpListen} from '../../mcp/dispatcher';
+import {LEGACY_VERSIONS,MODERN_VERSIONS,errorCause,observeReply,observeRequest,unsupportedVersion,type McpHeaders,type McpObservation} from '../../mcp/protocol';
 import {authorize,type Principal} from './principal';
 import {cookieValue,sessionCookie,type Authentication} from './authentication';
 import type {ServiceConfig} from './config';
@@ -51,6 +52,17 @@ function rejectDuplicateWireHeaders(rawHeaders:readonly string[]){
  }
 }
 
+const mcpHeaderFields={'mcp-protocol-version':'protocolVersion','mcp-method':'method','mcp-name':'name'} as const;
+/** Reads MCP transport headers before Node joins repeated values; a repeated header becomes null. */
+function mcpHeaders(rawHeaders:readonly string[]):McpHeaders{
+ const headers:{-readonly [K in keyof McpHeaders]:McpHeaders[K]}={};
+ for(let index=0;index<rawHeaders.length;index+=2){
+  const field=mcpHeaderFields[rawHeaders[index]!.toLowerCase() as keyof typeof mcpHeaderFields];
+  if(field)headers[field]=headers[field]===undefined?rawHeaders[index+1]!:null;
+ }
+ return headers;
+}
+
 function requestOrigin(value:string|string[]|undefined){
  const origin=oneHeader(value,'Origin');
  if(origin!==undefined&&origin.length===0)fail('forbidden','Origin is not allowed.',403);
@@ -71,6 +83,9 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
  config:ServiceConfig;subscriptions?:McpSubscriptions;authentication:Authentication;invoke:Invoke;log?:(value:Record<string,unknown>)=>void;
 }){
  const stats=new WeakMap<object,{pool_wait:number;sql:number}>();
+ // Bounded protocol and failure fields added to a request's log line; see observeRequest and errorCause.
+ const notes=new WeakMap<object,McpObservation>();
+ const note=(req:object,values:McpObservation)=>{notes.set(req,{...notes.get(req),...values});};
  const app=Fastify({logger:false,bodyLimit:1_048_576,requestTimeout:20_000,connectionTimeout:30_000,trustProxy:false});
  const apiHost=new URL(config.origin).host;
  const streams=new Map<string,number>(),streamControllers=new Set<AbortController>();let streamCount=0;
@@ -94,14 +109,15 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
   }else if(pathname==='/mcp'&&origin!==undefined&&origin!==config.origin){
    fail('forbidden','Origin is not allowed.',403);
   }
-  if(req.method==='POST'&&['/mcp','/api/actions'].includes(pathname)&&!jsonContentType(req.headers['content-type']))return reply.code(415).send({error:'invalid_input'});
+  if(req.method==='POST'&&['/mcp','/api/actions'].includes(pathname)&&!jsonContentType(req.headers['content-type'])){note(req,{error:'invalid_input'});return reply.code(415).send({error:'invalid_input'});}
  });
 
- app.addHook('onResponse',async(req,reply)=>{log({request_id:req.id,route:req.routeOptions.url??'unknown',status:reply.statusCode,duration_ms:reply.elapsedTime,pool_wait_ms:stats.get(req)?.pool_wait??0,sql_ms:stats.get(req)?.sql??0});});
+ app.addHook('onResponse',async(req,reply)=>{log({request_id:req.id,method:req.method,route:req.routeOptions.url??'unknown',status:reply.statusCode,duration_ms:reply.elapsedTime,pool_wait_ms:stats.get(req)?.pool_wait??0,sql_ms:stats.get(req)?.sql??0,...notes.get(req)});});
  app.setErrorHandler((error,req,reply)=>{
   const known=error instanceof ActionError;
   const status=known?error.status:(error as {statusCode?:number}).statusCode??503;
   const code=known?error.code:status===413?'operation_too_large':status===400?'invalid_input':status===415?'invalid_input':'outcome_unknown';
+  note(req,known?{error:code}:{error:code,cause:errorCause(error)});
   if(status===401||code==='insufficient_scope')reply.header('WWW-Authenticate',`Bearer resource_metadata="${config.origin}/.well-known/oauth-protected-resource/mcp"`);
   reply.code(status).send({error:code,message:known?error.message:'Request failed. Retain the exact request if a write may have started.'});
  });
@@ -149,35 +165,49 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
   if(!body||typeof body.name!=='string'||Object.keys(body).some(key=>!['name','arguments'].includes(key)))fail('invalid_input','Expected name and arguments.');
   authorize(p,body.name,config);return run(req,p,body.name,body.arguments??{});
  });
- app.post('/mcp',async(req,reply)=>{
-  if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
-  const principal=await identity(req,false);authorize(principal,'list_actions',config);
-  const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');if(version&&!['2025-03-26','2025-06-18','2025-11-25'].includes(version))fail('invalid_input','Unsupported MCP protocol version.');
-  const body=req.body as {method?:string;params?:{name?:string}};if(body?.method==='tools/call'&&typeof body.params?.name==='string')authorize(principal,body.params.name,config);
-  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'),subscriptions?{set:(resource,subscribed)=>subscriptions.set(principal,resource,subscribed)}:undefined);
-  return result.body===null?reply.code(result.status).send():reply.code(result.status).send(result.body);
- });
- app.get('/mcp',async(req,reply)=>{
-  if(!subscriptions)return reply.header('Allow','POST').code(405).send();
-  if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
-  if(!String(req.headers.accept??'').split(',').some(part=>part.trim().split(';')[0]==='text/event-stream'))fail('invalid_input','Accept text/event-stream to receive MCP notifications.',406);
-  const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');if(version&&!['2025-03-26','2025-06-18','2025-11-25'].includes(version))fail('invalid_input','Unsupported MCP protocol version.');
-  const principal=await identity(req,false);authorize(principal,'list_actions',config);
-  if(!(await subscriptions.list(principal)).length)fail('invalid_state','Subscribe to action-state://current or action-state://assigned before opening the event stream.',409);
+ /** Serves one bounded change stream; resources() revalidates the connection before every subscription check. */
+ async function openStream(req:FastifyRequest,reply:FastifyReply,principal:Principal,resume:string|undefined,framing:EventStreamFraming,resources:(current:Principal)=>Promise<readonly string[]>){
   if(streamCount>=64||(streams.get(principal.user)??0)>=4)fail('unavailable','Too many active event streams. Reconnect later.',429);
-  const cursor=oneHeader(req.headers['last-event-id'],'Last-Event-ID')??(await run(req,principal,'get_change_cursor',{}) as {cursor:string}).cursor;
+  const cursor=resume??(await run(req,principal,'get_change_cursor',{}) as {cursor:string}).cursor;
   const initial=await run(req,principal,'get_changes',{cursor}) as ChangePage;
   if(streamCount>=64||(streams.get(principal.user)??0)>=4)fail('unavailable','Too many active event streams. Reconnect later.',429);
   const controller=new AbortController();streamControllers.add(controller);let closed=false;
   const close=()=>{if(closed)return;closed=true;controller.abort();streamControllers.delete(controller);streamCount--;const count=(streams.get(principal.user)??1)-1;if(count)streams.set(principal.user,count);else streams.delete(principal.user);};
   streamCount++;streams.set(principal.user,(streams.get(principal.user)??0)+1);const {raw:rawReply}=reply;rawReply.once('close',close);
   const stream=mcpEventStream(initial,{
-   // Revalidate the connection before every subscription check; a changed identity ends the stream.
-   subscriptions:async()=>{const current=await identity(req,false);authorize(current,'list_actions',config);return current.user===principal.user&&current.connectionId===principal.connectionId?await subscriptions.list(current):[];},
+   // A changed identity ends the stream.
+   subscriptions:async()=>{const current=await identity(req,false);authorize(current,'list_actions',config);return current.user===principal.user&&current.connectionId===principal.connectionId?await resources(current):[];},
    poll:async current=>await run(req,principal,'get_changes',{cursor:current}) as ChangePage,
    assigned:async()=>{const value=await run(req,principal,'list_assigned_collaborations',{}) as {items:unknown[]};return JSON.stringify(value.items);},
-  },{signal:controller.signal});
+  },{signal:controller.signal,framing,onError:error=>log({event:'mcp_stream_error',request_id:req.id,cause:errorCause(error)})});
   stream.once('close',close);reply.header('Content-Type','text/event-stream').header('X-Accel-Buffering','no');return reply.send(stream);
+ }
+ // subscriptions/listen holds its filter in the request; nothing is stored and there is no resumable cursor.
+ function listen(req:FastifyRequest,reply:FastifyReply,principal:Principal,{id,resources}:McpListen){
+  return openStream(req,reply,principal,undefined,{kind:'listen',id,resources},async()=>resources);
+ }
+
+ app.post('/mcp',async(req,reply)=>{
+  const {raw:rawRequest}=req,headers=mcpHeaders(rawRequest.rawHeaders);note(req,observeRequest(req.body,headers));
+  if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
+  const principal=await identity(req,false);authorize(principal,'list_actions',config);
+  const body=req.body as {method?:string;params?:{name?:string}};if(body?.method==='tools/call'&&typeof body.params?.name==='string')authorize(principal,body.params.name,config);
+  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'),{headers,subscriptions:subscriptions?{set:(resource,subscribed)=>subscriptions.set(principal,resource,subscribed)}:undefined});
+  note(req,result.cause?{...observeReply(result),cause:result.cause}:observeReply(result));
+  if(result.listen)return listen(req,reply,principal,result.listen);
+  return result.body===null?reply.code(result.status).send():reply.code(result.status).send(result.body);
+ });
+ app.get('/mcp',async(req,reply)=>{
+  if(!subscriptions)return reply.header('Allow','POST').code(405).send();
+  if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
+  if(!String(req.headers.accept??'').split(',').some(part=>part.trim().split(';')[0]==='text/event-stream'))fail('invalid_input','Accept text/event-stream to receive MCP notifications.',406);
+  const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');note(req,observeRequest(undefined,{protocolVersion:version}));
+  // The GET stream belongs to the legacy revisions; modern clients use subscriptions/listen over POST.
+  if(version&&MODERN_VERSIONS.includes(version))return reply.header('Allow','POST').code(405).send();
+  if(version&&!LEGACY_VERSIONS.includes(version)){const rejected=unsupportedVersion(null,version);note(req,observeReply(rejected));return reply.code(rejected.status).send(rejected.body);}
+  const principal=await identity(req,false);authorize(principal,'list_actions',config);
+  if(!(await subscriptions.list(principal)).length)fail('invalid_state','Subscribe to action-state://current or action-state://assigned before opening the event stream.',409);
+  return openStream(req,reply,principal,oneHeader(req.headers['last-event-id'],'Last-Event-ID'),{kind:'legacy'},current=>subscriptions.list(current));
  });
  app.delete('/mcp',async(_req,reply)=>reply.header('Allow',subscriptions?'POST, GET':'POST').code(405).send());
  return app;

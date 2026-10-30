@@ -268,6 +268,38 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
   gate.revokeSession(active);assert.equal((await readSession(active)).statusCode,401);
  });
 
+ await t.test('MCP 2026-07-28 requests are stateless beside legacy initialize and leave bounded error logs',async()=>{
+  const V='2026-07-28',meta={'io.modelcontextprotocol/protocolVersion':V,'io.modelcontextprotocol/clientInfo':{name:'ModernClient',version:'2.0.0'},'io.modelcontextprotocol/clientCapabilities':{}};
+  const modern=(method,params={},extra={})=>server.inject({method:'POST',url:'/mcp',headers:{...base,authorization:'Bearer '+bearer,'mcp-protocol-version':V,'mcp-method':method,...(params.name??params.uri?{'mcp-name':params.name??params.uri}:{}),...extra},payload:{jsonrpc:'2.0',id:'modern',method,params:{_meta:meta,...params}}});
+  const discovered=await modern('server/discover');assert.equal(discovered.statusCode,200,discovered.body);
+  const discovery=discovered.json().result;assert.equal(discovery.resultType,'complete');assert.equal(discovery.supportedVersions[0],V);assert.equal(discovery._meta['io.modelcontextprotocol/serverInfo'].name,'action-tools');
+  assert.equal((await modern('tools/list')).json().result.tools.some(tool=>tool.name==='apply_change'),true);
+  const before=(await modern('tools/call',{name:'list_actions',arguments:{}})).json().result.structuredContent;
+  const args={schemaVersion:2,operationId:crypto.randomUUID(),expectedRevision:before.revision,kind:'add',payload:{title:'Modern protocol write'}};
+  const written=(await modern('tools/call',{name:'apply_change',arguments:args})).json().result,replayed=(await modern('tools/call',{name:'apply_change',arguments:args})).json().result;
+  assert.equal(written.resultType,'complete');assert.equal(written.structuredContent.revision,before.revision+1);
+  assert.equal(replayed.structuredContent.result.operationId,args.operationId);assert.equal(replayed.structuredContent.revision,written.structuredContent.revision);
+  const mismatch=await modern('tools/call',{name:'apply_change',arguments:{...args,operationId:crypto.randomUUID()}},{'mcp-name':'list_actions'});
+  assert.equal(mismatch.statusCode,400);assert.equal(mismatch.json().error.code,-32020);
+  assert.equal((await rpc('tools/call',{name:'list_actions',arguments:{}})).json().result.structuredContent.revision,written.structuredContent.revision,'a rejected header never reaches the write');
+  const body=JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list',params:{_meta:meta}});
+  assert.equal(await rawHttp(port,'POST /mcp HTTP/1.1\r\nHost: api.example.com\r\nAuthorization: Bearer '+bearer+'\r\nContent-Type: application/json\r\nMCP-Protocol-Version: '+V+'\r\nMCP-Protocol-Version: '+V+'\r\nMcp-Method: tools/list\r\nContent-Length: '+Buffer.byteLength(body)+'\r\nConnection: close\r\n\r\n'+body),400);
+  const unsupported=await rpc('tools/list',{}, {'mcp-protocol-version':'2099-01-01'});
+  assert.equal(unsupported.statusCode,400);assert.deepEqual(unsupported.json().error.data,{supported:['2026-07-28','2025-03-26','2025-06-18','2025-11-25'],requested:'2099-01-01'});
+  assert.equal((await modern('ping')).statusCode,404);
+  assert.equal((await modern('subscriptions/listen',{notifications:{resourceSubscriptions:['action-state://current']}})).statusCode,404,'a server without subscriptions does not offer listen');
+  assert.equal((await rpc('initialize',{protocolVersion:'2025-11-25'})).json().result.protocolVersion,'2025-11-25');
+  const lines=logs.filter(line=>line.route==='/mcp');
+  assert(lines.some(line=>line.method==='POST'&&line.mcp_method==='server/discover'&&line.mcp_version===V&&line.mcp_client==='ModernClient 2.0.0'&&line.status===200));
+  assert(lines.some(line=>line.mcp_tool==='apply_change'&&line.mcp_error===-32020&&line.status===400));
+  assert(lines.some(line=>line.mcp_method==='tools/list'&&line.mcp_version==='ambiguous'&&line.mcp_error===-32020));
+  assert(lines.some(line=>line.mcp_version==='2099-01-01'&&line.mcp_error===-32022&&line.status===400));
+  assert(lines.some(line=>line.mcp_method==='ping'&&line.mcp_error===-32601&&line.status===404));
+  assert(lines.some(line=>line.mcp_tool==='apply_change'&&line.mcp_error==='conflict'&&line.status===200));
+  assert(lines.some(line=>line.status===401&&line.error==='unauthenticated'));
+  assert(!JSON.stringify(lines).includes('Modern protocol write'));
+ });
+
  await t.test('logs and cookie parsing do not expose credentials or caller data',async()=>{
   const text=JSON.stringify(logs);for(const secret of [bearer,browser,'synthetic-csrf','Browser direct API write','person'])assert(!text.includes(secret));
   assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM identity.sessions')).rows[0].count,0);

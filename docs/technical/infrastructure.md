@@ -27,8 +27,8 @@ Cloud Run uses the second-generation environment and request-based CPU. Listen o
 
 | Route | Contract |
 | --- | --- |
-| POST /mcp | Bearer-authenticated JSON-RPC over stateless Streamable HTTP; JSON responses, no sticky session |
-| GET /mcp | 405; server-initiated SSE is not provided |
+| POST /mcp | Bearer-authenticated JSON-RPC over Streamable HTTP without sessions; JSON responses, and a bounded SSE response for 2026-07-28 `subscriptions/listen` |
+| GET /mcp | Bounded SSE for subscribed legacy-revision clients; 405 for 2026-07-28 |
 | DELETE /mcp | 405; there is no server session to delete |
 | POST /api/actions | Same `{name,arguments}` service; bearer API or Gate shared-session cookie |
 | GET /api/session | Cookie-only online Gate validation and account scope/CSRF token; no-store |
@@ -39,7 +39,9 @@ Cloud Run uses the second-generation environment and request-based CPU. Listen o
 
 The API exposes no `/`, `/assets/*`, per-product login/callback/logout or static UI routes. The separately hosted SPA includes the `workspace.html` frame, and the same UI resource remains available through MCP. Browser logout calls Gate directly.
 
-MCP transport preserves supported 2025-03-26, 2025-06-18 and 2025-11-25 contracts, with 2025-11-25 as the default. Use explicit version validation and 400 for unsupported protocol headers; do not silently claim support for future versions. Notifications receive HTTP 202 without a JSON-RPC reply. Protect all /mcp methods, including initialize and discovery; metadata and health are public. UI resources carry no saved data and use the existing host transport when embedded. The browser Web adapter calls /api/actions with a session; the same UI application is reused in both contexts. [MCP transport](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports).
+MCP transport serves the 2026-07-28 revision statelessly and the 2025-03-26, 2025-06-18 and 2025-11-25 revisions through initialize, with 2025-11-25 as the legacy default; see [MCP entry points](mcp-api.md#entry-points-and-ownership). Use explicit version validation and the JSON-RPC unsupported-version error (400, -32022) for unsupported protocol headers; do not silently claim support for future versions. Notifications receive HTTP 202 without a JSON-RPC reply. Protect all /mcp methods, including initialize and discovery; metadata and health are public. UI resources carry no saved data and use the existing host transport when embedded. The browser Web adapter calls /api/actions with a session; the same UI application is reused in both contexts. [MCP transport](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http).
+
+Each request writes one structured log line: request ID, HTTP method, route, status, duration and DB wait/SQL time. For /mcp it adds, where present, the requested protocol version, JSON-RPC method, tool name, self-reported client name/version and declared extension identifiers, each restricted to its expected shape and otherwise `invalid` (`ambiguous` for repeated headers), and the JSON-RPC, tool or HTTP error code. Unexpected failures add only an error class with a system or SQLSTATE code. An event stream ending in a failure other than disconnection writes an `mcp_stream_error` line with the same cause. Logs never contain arguments, content, error messages, tokens or user data.
 
 Authenticate before invoking the private dispatcher. Reject invalid content type and malformed JSON at the HTTP boundary. Accept application/json and negotiate a JSON response for the MCP Streamable HTTP Accept profile. Preserve generic tool names, schemaVersion 2, resources and operation semantics. HTTP requests have a 1 MiB body ceiling; canonical mutation input remains 262,144 UTF-8 bytes and existing storage-plan budgets remain enforced. Large reads have no new truncation behavior. Responses containing state use Cache-Control: no-store. Never put bearer tokens in URLs or browser storage.
 
