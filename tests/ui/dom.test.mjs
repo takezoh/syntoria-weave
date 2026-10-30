@@ -45,7 +45,7 @@ async function readContext(f,id){hostRequest(f,'tools/call',id,{name:'get_select
 test('verification resource discards real successful write response and preserves exact-ID recovery',async(t)=>{
  const f=createFixture(verificationWidgetHtml);t.after(()=>f.dom.window.close());await settle();selectFirst(f);const d=f.dom.window.document;
  d.getElementById('discardNext').checked=true;d.getElementById('addAction').click();await settle();assert.equal(f.requests.filter(r=>r.args?.kind==='add').length,0);await fillCreation(f);assert.equal(f.requests.filter(r=>r.name==='apply_change'&&r.args.kind==='add').length,1);assert.equal(d.getElementById('discardNext').checked,false);assert.match(d.getElementById('status').textContent,/discarded/);
- for(const fn of [...f.timers.values()])fn();await settle();assert.equal(d.getElementById('unknown').hidden,false);assert.equal(d.querySelector('section input').disabled,false);const first=f.requests.find(r=>r.name==='apply_change'&&r.args.kind==='add');d.getElementById('retry').click();await settle();assert.deepEqual(f.requests.filter(r=>r.name==='apply_change'&&r.args.kind==='add').at(-1).args,first.args);assert.equal(d.getElementById('unknown').hidden,true);
+ for(const fn of [...f.timers.values()])fn();await settle();assert.equal(d.getElementById('unknown').hidden,false);assert.equal(d.querySelector('section input').disabled,false);const first=f.requests.find(r=>r.name==='apply_change'&&r.args.kind==='add');for(const visibility of ['hidden','visible']){Object.defineProperty(d,'visibilityState',{configurable:true,value:visibility});d.dispatchEvent(new f.dom.window.Event('visibilitychange'));}await settle();assert.equal(d.getElementById('unknown').hidden,false);d.getElementById('retry').click();await settle();assert.deepEqual(f.requests.filter(r=>r.name==='apply_change'&&r.args.kind==='add').at(-1).args,first.args);assert.equal(d.getElementById('unknown').hidden,true);
 });
 test('widget registers a typed read-only App tool before initialize and answers locally across an ID collision',async(t)=>{
  const f=createFixture(widgetHtml,{duringInitialize(w,message){w.dispatchEvent(new w.MessageEvent('message',{source:w,data:{jsonrpc:'2.0',id:message.id,method:'tools/list',params:{}}}));}});t.after(()=>f.dom.window.close());await settle();
@@ -154,8 +154,8 @@ test('invalid host locale falls back to the browser locale before the explicit E
  assert.equal(f.dom.window.document.getElementById('createdTimestamp').textContent,'1 oct. 2026, 12:00');
 });
 test('narrow scope selector exposes every scope and selected editor receives focus; labels remain escaped',async t=>{
- const f=createFixture();t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window;let scrolled=false;w.matchMedia=()=>({matches:true});d.getElementById('editor').scrollIntoView=()=>{scrolled=true;};f.action.title='<img src=x onerror=alert(1)>';d.getElementById('refresh').click();await settle();
- assert.deepEqual([...d.querySelectorAll('#viewRail [data-view]')].map(o=>o.dataset.view),['collaboration','inbox','flagged','projects','tags','changes','history']);assert.equal(d.querySelector('.action-select span').textContent,f.action.title);assert.equal(d.querySelector('#actions img'),null);selectFirst(f);assert.equal(d.activeElement,d.getElementById('editText'));assert.equal(scrolled,true);assert.equal(d.querySelector('#actions svg').getAttribute('aria-hidden'),'true');assert.equal(d.getElementById('displayToggle').hidden,true);
+ const f=createFixture();t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window;w.matchMedia=()=>({matches:true});d.querySelector('.editor-panel').scrollTop=80;f.action.title='<img src=x onerror=alert(1)>';d.getElementById('refresh').click();await settle();
+ assert.deepEqual([...d.querySelectorAll('#viewRail [data-view]')].map(o=>o.dataset.view),['collaboration','inbox','flagged','projects','tags','changes','history']);assert.equal(d.querySelector('.action-select span').textContent,f.action.title);assert.equal(d.querySelector('#actions img'),null);selectFirst(f);assert.equal(d.activeElement,d.getElementById('editText'));assert.equal(d.querySelector('.editor-panel').scrollTop,0);assert.equal(d.querySelector('#actions svg').getAttribute('aria-hidden'),'true');assert.equal(d.getElementById('displayToggle').hidden,true);
 });
 test('rendered History rows show the newest completed or dropped update first',async t=>{
  const f=createFixture(widgetHtml,{prepareState(state,action){state.actions.push({...action,id:'completed-history',title:'Completed older',status:'completed',view:'completed',updated_at:'2026-10-01T13:00:00.000Z'},{...action,id:'dropped-history',title:'Dropped newer',status:'dropped',view:'cancelled',updated_at:'2026-10-01T15:00:00.000Z'});}});t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document;
@@ -349,7 +349,7 @@ test('Action details open Title and Notes in view mode with structure, retained 
  assert.equal(notes.querySelector('img'),null);assert.match(notes.textContent,/<img src=x onerror=alert\(1\)> \[run\]\(javascript:alert\(1\)\)/);
  const nodes=[...notes.querySelectorAll('*')];d.getElementById('refresh').click();await settle();assert.deepEqual([...notes.querySelectorAll('*')],nodes);
  const click=new w.MouseEvent('click',{bubbles:true,cancelable:true});notes.querySelector('a').dispatchEvent(click);assert.equal(click.defaultPrevented,true);await settle();
- assert.deepEqual(f.requests.filter(r=>r.method==='ui/open-link').map(r=>r.args),[{url:'https://example.com/docs'}]);assert.equal(d.getElementById('status').textContent,'');
+ assert.deepEqual(f.requests.filter(r=>r.method==='ui/open-link').map(r=>r.args),[{url:'https://example.com/docs'}]);assert.equal(d.getElementById('status').textContent,'Up to date.');
  options.openLink={isError:true};title.querySelector('a').click();await settle();assert.deepEqual(f.requests.filter(r=>r.method==='ui/open-link').at(-1).args,{url:'https://example.com/a'});assert.equal(d.getElementById('status').textContent,'The link could not be opened.');
  f.action.notes='Changed **elsewhere**';f.action.revision++;f.state.revision++;d.getElementById('refresh').click();await settle();assert.equal(notes.querySelector('strong').textContent,'elsewhere');
  d.querySelector('[data-action-id="empty"] .action-select').click();assert.equal(notes.textContent,'No notes');assert.equal(notes.querySelector('.text-placeholder').textContent,'No notes');
@@ -513,19 +513,15 @@ test('a long touch press on a Tag row lifts it and, released in place, opens the
  assert.equal(d.getElementById('moveChooser').hidden,false);assert.equal(d.querySelector('#movePlacement option[value="before"]').hidden,false);assert.equal(d.getElementById('movePlacement').value,'inside');assert.equal(f.requests.some(r=>r.name==='apply_change'),false);
 });
 
-test('narrow layouts open Action details as their own page and Back returns to the list position',async t=>{
- const f=createFixture();t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window,scrolls=[];
- w.matchMedia=query=>({matches:query==='(max-width: 850px)',media:query});
- Object.defineProperty(w,'scrollY',{value:420,configurable:true,writable:true});w.scrollTo=(x,y)=>{scrolls.push(y);w.scrollY=y;};
- selectFirst(f);await settle();
- assert(d.querySelector('.workspace').classList.contains('has-editor'));assert.deepEqual(scrolls,[0],'Detail starts at its top');
- d.getElementById('backToList').click();await settle();
- assert.equal(d.querySelector('.workspace').classList.contains('has-editor'),false);assert.deepEqual(scrolls,[0,420],'Back restores the list position');
- assert(d.activeElement?.classList.contains('action-select'),'focus returns to the row');
- w.matchMedia=query=>({matches:false,media:query});scrolls.length=0;selectFirst(f);await settle();d.getElementById('closeEditor').click();await settle();assert.deepEqual(scrolls,[],'wide layouts keep the page where it is');
- const css=d.querySelector('style').textContent;
- assert(css.includes('.workspace.has-editor .list-panel>:not(.feedback):not(#unknown):not(#retained){display:none!important}'),'the Detail page hides the list but keeps save feedback and unknown-outcome recovery');
- assert(css.includes('main:has(.workspace.has-editor) header{display:none}'),'the Detail page replaces the list header with its own toolbar');
+test('narrow details preserve the independent list position and retain global header and recovery footer',async t=>{
+ const f=createFixture();t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window;
+ w.matchMedia=query=>({matches:query.replaceAll(' ','')==='(max-width:850px)',media:query});
+ const list=d.querySelector('.list-panel');list.scrollTop=420;d.querySelector('.editor-panel').scrollTop=90;
+ selectFirst(f);await settle();assert(d.querySelector('.workspace').classList.contains('has-editor'));assert.equal(d.querySelector('.editor-panel').scrollTop,0);
+ d.getElementById('backToList').click();await settle();assert.equal(d.querySelector('.workspace').classList.contains('has-editor'),false);assert.equal(list.scrollTop,420);assert(d.activeElement?.classList.contains('action-select'));
+ assert.equal(d.getElementById('unknown').closest('footer'),d.querySelector('.app-footer'));
+ assert.equal(d.getElementById('status').closest('footer'),d.querySelector('.app-footer'));
+ assert.doesNotMatch(d.querySelector('style').textContent,/main:has\(\.workspace\.has-editor\) header\{display:none\}/);
 });
 
 test('Deadline and Hide until editors open from their chips, show the draft on the chip and close on Escape or an outside press',async t=>{
@@ -539,4 +535,14 @@ test('Deadline and Hide until editors open from their chips, show the draft on t
  chip.click();assert.equal(editor.hidden,false);d.getElementById('editDue').dispatchEvent(new w.Event('pointerdown',{bubbles:true}));assert.equal(editor.hidden,false,'a press inside keeps it open');
  d.getElementById('titleView').dispatchEvent(new w.Event('pointerdown',{bubbles:true}));assert.equal(editor.hidden,true,'a press outside closes it');
  chip.click();chip.click();assert.equal(editor.hidden,true,'the chip toggles its editor');
+});
+
+test('foreground refresh retains an invalid unsaved editor draft',async t=>{
+ const f=createFixture();t.after(()=>f.dom.window.close());await settle();selectFirst(f);editText(f);
+ const d=f.dom.window.document,input=d.getElementById('editTitle');input.value='';input.dispatchEvent(new f.dom.window.Event('input',{bubbles:true}));await settle();
+ const before=f.requests.filter(r=>r.name==='list_actions').length;
+ for(const visibility of ['hidden','visible']){Object.defineProperty(d,'visibilityState',{configurable:true,value:visibility});d.dispatchEvent(new f.dom.window.Event('visibilitychange'));}
+ f.dom.window.dispatchEvent(new f.dom.window.Event('focus'));await settle();
+ assert.equal(f.requests.filter(r=>r.name==='list_actions').length,before+1);assert.equal(input.value,'');assert.equal(d.getElementById('textEdit').hidden,false);
+ f.dom.window.dispatchEvent(new f.dom.window.PageTransitionEvent('pagehide',{persisted:true}));f.dom.window.dispatchEvent(new f.dom.window.PageTransitionEvent('pageshow',{persisted:true}));await settle();assert.equal(f.requests.filter(r=>r.name==='list_actions').length,before+2);assert.equal(input.value,'');
 });
