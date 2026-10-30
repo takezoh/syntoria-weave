@@ -19,7 +19,7 @@ const expectedLabels=[
 
 function setValue(target,key,value){Object.defineProperty(target,key,{configurable:true,value});}
 
-async function createShell({sessionPending=false,missingApis=false}={}){
+async function createShell({sessionPending=false,missingApis=false,standalone=true}={}){
  const dom=new JSDOM(html,{url:'https://private.example.test/private/path?private-query=hidden',runScripts:'outside-only'});
  const {window}=dom,fetches=[],opened=[],storageCalls=[],consoleCalls=[],clipboardCalls=[];
  window.BroadcastChannel=class{set onmessage(_handler){}};
@@ -41,8 +41,8 @@ async function createShell({sessionPending=false,missingApis=false}={}){
   storagePrototype[method]=function(...args){storageCalls.push([method,...args]);return method==='getItem'?null:undefined;};
  }
  if(!missingApis){
-  setValue(window.navigator,'standalone',true);
-  setValue(window,'matchMedia',query=>({matches:query==='(display-mode: fullscreen)'||query==='(orientation: portrait)'}));
+  setValue(window.navigator,'standalone',standalone);
+  setValue(window,'matchMedia',query=>({matches:query==='(display-mode: browser)'||query==='(orientation: portrait)'}));
   setValue(window,'CSS',{supports:(property,value)=>property==='-webkit-touch-callout'&&value==='none'});
   setValue(window,'visualViewport',{width:390,height:800,offsetLeft:0,offsetTop:24,scale:1});
   setValue(window,'innerHeight',844);setValue(window.document.documentElement,'clientHeight',800);
@@ -65,6 +65,7 @@ test('Display info D1 uses a fixed measurement allowlist without leaving the doc
  const fixture=await createShell();
  const {dom,window,fetches,opened,storageCalls,consoleCalls,clipboardCalls,frame,settle}=fixture;
  try{
+  assert.equal(window.document.documentElement.dataset.homeScreen,'true');
   const dialog=window.document.querySelector('#display-info-d1-dialog');
   const report=window.document.querySelector('#display-info-d1-report');
   const originalFrame=frame.contentWindow,originalSrc=frame.getAttribute('src');
@@ -84,8 +85,8 @@ test('Display info D1 uses a fixed measurement allowlist without leaving the doc
    if(label==='HTML probe marker'||label==='Client probe marker')assert.match(value,/^layout-probe-\d+$/u);
    else assert.match(value,/^(?:true|false|null|unavailable|-?\d+(?:\.\d+)?(?:px)?)$/u,`${label} must contain only a whitelisted measurement`);
   }
-  assert.equal(entries.find(([label])=>label==='HTML probe marker')[1],'layout-probe-1');
-  assert.equal(entries.find(([label])=>label==='Client probe marker')[1],'layout-probe-1');
+  assert.equal(entries.find(([label])=>label==='HTML probe marker')[1],'layout-probe-2');
+  assert.equal(entries.find(([label])=>label==='Client probe marker')[1],'layout-probe-2');
   assert.equal(entries.find(([label])=>label==='Probe markers match')[1],'true');
   assert.equal(entries.find(([label])=>label==='Safe-area probe padding top')[1],'17px');
   assert.equal(entries.find(([label])=>label==='Safe-area probe padding bottom')[1],'19px');
@@ -107,6 +108,7 @@ test('Display info D1 reports missing APIs and a not-yet-loaded iframe as unavai
  const fixture=await createShell({sessionPending:true,missingApis:true});
  const {dom,window,fetches,frame,settle}=fixture;
  try{
+  assert.equal(window.document.documentElement.hasAttribute('data-home-screen'),false);
   assert.equal(frame.hasAttribute('src'),false);
   window.document.querySelector('#display-info-d1-button').click();
   await settle();
@@ -120,5 +122,12 @@ test('Display info D1 reports missing APIs and a not-yet-loaded iframe as unavai
   assert.equal(fetches.filter(call=>call.url==='/runtime-config.json').length,1);
   assert.equal(fetches.filter(call=>call.url==='https://private-api.example.test/api/session').length,1);
   assert.equal(frame.hasAttribute('src'),false);
+ }finally{dom.window.close();}
+});
+
+test('ordinary browser windows do not enable Home Screen clearance',async()=>{
+ const {dom,window}=await createShell({standalone:false});
+ try{
+  assert.equal(window.document.documentElement.hasAttribute('data-home-screen'),false);
  }finally{dom.window.close();}
 });

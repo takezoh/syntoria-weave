@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="layout-probe" content="layout-probe-1">
+    <meta name="layout-probe" content="layout-probe-2">
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1d1e23" media="(prefers-color-scheme: dark)">
     <title>Actions</title>
@@ -55,6 +55,16 @@
           }
 
           #top-clearance-band {
+            display: block;
+          }
+        }
+
+        @media (orientation: portrait) {
+          :root[data-home-screen="true"] {
+            --shell-top-clearance: 20px;
+          }
+
+          :root[data-home-screen="true"] #top-clearance-band {
             display: block;
           }
         }

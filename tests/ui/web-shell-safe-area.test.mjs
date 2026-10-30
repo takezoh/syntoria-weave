@@ -9,7 +9,7 @@ test('static SPA scopes explicit clearance and an opaque band to WebKit standalo
  const {document}=dom.window;
  const viewport=document.querySelector('meta[name="viewport"]');
  assert.match(viewport?.content??'',/viewport-fit=cover/);
- assert.equal(document.querySelector('meta[name="layout-probe"]')?.content,'layout-probe-1');
+ assert.equal(document.querySelector('meta[name="layout-probe"]')?.content,'layout-probe-2');
  assert.deepEqual(
   [...document.querySelectorAll('meta[name="theme-color"]')].map(meta=>[meta.getAttribute('media'),meta.getAttribute('content')]),
   [['(prefers-color-scheme: light)','#ffffff'],['(prefers-color-scheme: dark)','#1d1e23']],
@@ -22,6 +22,7 @@ test('static SPA scopes explicit clearance and an opaque band to WebKit standalo
  assert.match(css,/#top-clearance-band\s*\{[^}]*position:\s*fixed;[^}]*height:\s*calc\(env\(safe-area-inset-top\)\s*\+\s*var\(--shell-top-clearance\)\);[^}]*display:\s*none;[^}]*background:\s*var\(--shell-surface\);/s);
  const displayModeRule=css.match(/@supports\s*\(-webkit-touch-callout:\s*none\)\s*\{\s*@media\s*([^\{]+)\{/);
  assert.equal(displayModeRule?.[1].trim(),'(display-mode: standalone) and (orientation: portrait), (display-mode: fullscreen) and (orientation: portrait)');
+ assert.match(css,/@media\s*\(orientation:\s*portrait\)\s*\{\s*:root\[data-home-screen="true"\]\s*\{\s*--shell-top-clearance:\s*20px;\s*\}\s*:root\[data-home-screen="true"\]\s*#top-clearance-band\s*\{\s*display:\s*block;/s);
  assert.match(css,/@supports\s*\(-webkit-touch-callout:\s*none\)\s*\{\s*@media[^\{]+\{\s*:root\s*\{\s*--shell-top-clearance:\s*20px;\s*\}\s*#top-clearance-band\s*\{\s*display:\s*block;/s);
  assert.equal(document.body.firstElementChild?.id,'top-clearance-band');
  assert.equal(document.querySelector('#top-clearance-band')?.getAttribute('aria-hidden'),'true');

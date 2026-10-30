@@ -1,6 +1,11 @@
 type RuntimeConfig=Readonly<{apiOrigin:string;gateOrigin:string;appId:string;loginRedirectUri:string;appName:string|null}>;
 type Session=Readonly<{account_scope:string;csrf_token:string}>;
 
+// Home Screen windows can report browser display mode despite this native flag.
+if((navigator as Navigator&{standalone?:boolean}).standalone===true){
+ document.documentElement.dataset.homeScreen='true';
+}
+
 const frame=document.querySelector<HTMLIFrameElement>('#workspace')!;
 const access=document.querySelector<HTMLElement>('#access')!,message=document.querySelector<HTMLElement>('#message')!;
 const login=document.querySelector<HTMLButtonElement>('#login')!,logoutButton=document.querySelector<HTMLButtonElement>('#logout')!,retry=document.querySelector<HTMLButtonElement>('#retry')!;
@@ -8,7 +13,7 @@ const refreshChannelName='action-tools-browser-session-refresh';
 const channel=new BroadcastChannel(refreshChannelName);
 const pending=new Set<string>();
 let runtime:RuntimeConfig|null=null,session:Session|null=null,account:string|null=null,blocked=true,viewTitle:string|null=null;
-const layoutProbeClientMarker='layout-probe-1';
+const layoutProbeClientMarker='layout-probe-2';
 let workspaceLoaded=false;
 frame.addEventListener('load',()=>{if(frame.hasAttribute('src'))workspaceLoaded=true;});
 
