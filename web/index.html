@@ -48,7 +48,7 @@
       }
 
       @supports (-webkit-touch-callout: none) {
-        @media (display-mode: standalone) and (orientation: portrait) {
+        @media (display-mode: standalone) and (orientation: portrait), (display-mode: fullscreen) and (orientation: portrait) {
           :root {
             --shell-top-clearance: 20px;
           }
