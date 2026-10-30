@@ -22,6 +22,8 @@ Use the [test allocation principles](testing.md#test-allocation-principles) to c
 
 The widget uses the browser-assigned viewport and applies the four insets as padding inside a border-box `100dvh` main region. The workspace flexes into the remaining area; it does not subtract those insets a second time. The header sticks below the current top inset, and a viewport-fixed backdrop covers and intercepts input in the reserved top band while document content scrolls behind the sticky region. Its rendered height is measured by the DOM adapter for the inspector's sticky offset and available scroll height, and a changed header height invalidates gesture geometry. Insets never infer host chrome dimensions or add fixed ChatGPT/mobile offsets. A synthetic browser host verifies local geometry and context updates; actual ChatGPT iOS overlap and device safe-area behavior remain unverified until measured in the deployed host.
 
+The static SPA shell owns browser safe areas outside its workspace iframe. It opts into the full viewport and pads the iframe container with the browser's `safe-area-inset-*` environment values, leaving the embedded widget's host-context insets at zero. The shell background and browser theme color match the widget's system light/dark surface so the status area does not show a contrasting default page color. The existing synthetic shell/DOM checks verify this layout contract; actual iOS browser and home-screen rendering still require device acceptance.
+
 ## Source tree
 
 ```text
