@@ -30,6 +30,8 @@ export function renderCloudRunManifest(manifest,settings){
   if(typeof node.serviceAccountName==='string')node.serviceAccountName=node.serviceAccountName.split('@')[0]+'@'+settings.project+'.iam.gserviceaccount.com';
   if(typeof node.image==='string'){const parts=node.image.split('/');if(parts.length<3)throw new Error('Cloud Run image must name its registry project.');parts[1]=settings.project;node.image=parts.join('/');}
   if(node.name==='BACKUP_BUCKET'&&typeof node.value==='string')node.value=settings.backupBucket;
+  if(node.name==='WEBHOOK_TASK_QUEUE'&&typeof node.value==='string')node.value=node.value.replace(/^projects\/[^/]+\//,'projects/'+settings.project+'/');
+  if(node.name==='WEBHOOK_TASK_SERVICE_ACCOUNT'&&typeof node.value==='string')node.value=node.value.split('@')[0]+'@'+settings.project+'.iam.gserviceaccount.com';
   for(const value of Object.values(node))visit(value);
  };
  visit(rendered.spec);

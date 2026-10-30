@@ -3,11 +3,12 @@ import type {ChangePage} from '../../data/model/change-cursor';
 import {mcpEventStream,type EventStreamFraming} from './mcp-event-stream';
 import Fastify,{type FastifyReply,type FastifyRequest} from 'fastify';
 import {ActionError,fail} from '../../domain/core';
-import {dispatchMcp,type McpListen} from '../../mcp/dispatcher';
+import {dispatchMcp,type McpEvents,type McpListen} from '../../mcp/dispatcher';
 import {LEGACY_VERSIONS,MODERN_VERSIONS,errorCause,observeReply,observeRequest,unsupportedVersion,type McpHeaders,type McpObservation} from '../../mcp/protocol';
 import {authorize,type Principal} from './principal';
 import {cookieValue,sessionCookie,type Authentication} from './authentication';
 import type {ServiceConfig} from './config';
+import {DELIVERY_PATH,FANOUT_PATH,type WebhookWorker} from './webhook-delivery';
 
 export type Invoke=(identity:Principal,name:string,args:unknown,signal:AbortSignal,observe:(phase:'pool_wait'|'sql',ms:number)=>void)=>Promise<unknown>;
 
@@ -79,8 +80,12 @@ function setVary(reply:{header(name:string,value:string):unknown},value:string){
  reply.header('Vary',value);
 }
 
-export function createServer({config,authentication,invoke,subscriptions,log=()=>{}}:{
+export function createServer({config,authentication,invoke,subscriptions,events,webhooks,log=()=>{}}:{
  config:ServiceConfig;subscriptions?:McpSubscriptions;authentication:Authentication;invoke:Invoke;log?:(value:Record<string,unknown>)=>void;
+ /** Webhook event subscriptions bound to a verified bearer connection. */
+ events?:(principal:Principal)=>McpEvents;
+ /** Request-driven delivery: internal task routes and recovery of batches whose precommit wakeup failed. */
+ webhooks?:Readonly<{worker:WebhookWorker;authenticateTask:(authorization:string|undefined)=>Promise<void>}>;
 }){
  const stats=new WeakMap<object,{pool_wait:number;sql:number}>();
  // Bounded protocol and failure fields added to a request's log line; see observeRequest and errorCause.
@@ -137,6 +142,14 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
   try{return await Promise.race([invoke(principal,name,args,controller.signal,(phase,ms)=>{const value=stats.get(req);if(value)value[phase]+=ms;}),new Promise<never>((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new ActionError('outcome_unknown','The request deadline elapsed; retain the exact request.',503));},20_000);})]);}finally{clearTimeout(timer);}
  }
 
+ /** Schedules this user's batches whose precommit wakeup failed; bounded so it never holds the request. */
+ async function recover(req:{id:string},principal:Principal){
+  if(!webhooks)return;let timer:ReturnType<typeof setTimeout>|undefined;
+  try{await Promise.race([webhooks.worker.recover(principal.user),new Promise(resolve=>{timer=setTimeout(resolve,3_000);})]);}
+  catch(error){log({event:'webhook_recovery_error',request_id:req.id,cause:errorCause(error)});}
+  finally{clearTimeout(timer);}
+ }
+
  const metadata={resource:config.resource,authorization_servers:[config.issuer],bearer_methods_supported:['header']};
  for(const route of ['/.well-known/oauth-protected-resource/mcp','/.well-known/oauth-protected-resource'])app.get(route,async()=>metadata);
  app.get('/health/live',async()=>({status:'ok'}));app.get('/health/ready',async()=>({status:'ready'}));
@@ -161,7 +174,7 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
  });
  app.post('/api/actions',async(req)=>{
   if(!jsonContentType(req.headers['content-type']))fail('invalid_input','Expected application/json.',415);
-  const p=await identity(req,true),body=req.body as {name?:unknown;arguments?:unknown};
+  const p=await identity(req,true),body=req.body as {name?:unknown;arguments?:unknown};await recover(req,p);
   if(!body||typeof body.name!=='string'||Object.keys(body).some(key=>!['name','arguments'].includes(key)))fail('invalid_input','Expected name and arguments.');
   authorize(p,body.name,config);return run(req,p,body.name,body.arguments??{});
  });
@@ -190,9 +203,9 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
  app.post('/mcp',async(req,reply)=>{
   const {raw:rawRequest}=req,headers=mcpHeaders(rawRequest.rawHeaders);note(req,observeRequest(req.body,headers));
   if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
-  const principal=await identity(req,false);authorize(principal,'list_actions',config);
+  const principal=await identity(req,false);authorize(principal,'list_actions',config);await recover(req,principal);
   const body=req.body as {method?:string;params?:{name?:string}};if(body?.method==='tools/call'&&typeof body.params?.name==='string')authorize(principal,body.params.name,config);
-  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'),{headers,subscriptions:subscriptions?{set:(resource,subscribed)=>subscriptions.set(principal,resource,subscribed)}:undefined});
+  const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'),{headers,subscriptions:subscriptions?{set:(resource,subscribed)=>subscriptions.set(principal,resource,subscribed)}:undefined,events:events?.(principal)});
   note(req,result.cause?{...observeReply(result),cause:result.cause}:observeReply(result));
   if(result.listen)return listen(req,reply,principal,result.listen);
   return result.body===null?reply.code(result.status).send():reply.code(result.status).send(result.body);
@@ -208,6 +221,12 @@ export function createServer({config,authentication,invoke,subscriptions,log=()=
   const principal=await identity(req,false);authorize(principal,'list_actions',config);
   if(!(await subscriptions.list(principal)).length)fail('invalid_state','Subscribe to action-state://current or action-state://assigned before opening the event stream.',409);
   return openStream(req,reply,principal,oneHeader(req.headers['last-event-id'],'Last-Event-ID'),{kind:'legacy'},current=>subscriptions.list(current));
+ });
+ if(webhooks)for(const [path,handle] of [[FANOUT_PATH,'fanout'],[DELIVERY_PATH,'deliver']] as const)app.post(path,async(req,reply)=>{
+  if(req.headers.cookie)fail('unauthenticated','Task authentication is required.',401);
+  if(!jsonContentType(req.headers['content-type']))fail('invalid_input','Expected application/json.',415);
+  await webhooks.authenticateTask(authorizationHeader(req.headers.authorization));
+  return reply.code(await webhooks.worker[handle](req.body)).send();
  });
  app.delete('/mcp',async(_req,reply)=>reply.header('Allow',subscriptions?'POST, GET':'POST').code(405).send());
  return app;

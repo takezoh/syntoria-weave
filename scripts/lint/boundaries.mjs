@@ -67,6 +67,7 @@ function layer(path) {
   if (path.startsWith('lib/data/')) return 'data-unclassified';
   if (path.startsWith('lib/domain/')) return 'domain';
   if (path.startsWith('lib/application/')) return 'application';
+  if (path.startsWith('lib/webhook/')) return 'webhook';
   if (path.startsWith('lib/ui/model/')) return 'ui-model';
   if (path === 'lib/ui/ports.ts') return 'ui-ports';
   if (path.startsWith('lib/ui/application/')) return 'ui-application';
@@ -83,6 +84,8 @@ function allowed(from, target) {
   if (from === 'data-types') return false;
   if (from === 'data-model') return pure || target === 'lib/data/types.ts' || target.startsWith('lib/data/model/');
   if (from === 'domain') return pure || target === 'lib/data/types.ts';
+  // Webhook mechanics are domain-independent: they reach no action, collaboration, protocol or runtime module.
+  if (from === 'webhook') return target.startsWith('lib/webhook/');
   if (from === 'application') return pure || target === 'lib/data/types.ts' || target.startsWith('lib/data/model/') || target.startsWith('lib/application/');
   if (from === 'ui-model') return target === 'lib/data/types.ts' || pure || target.startsWith('lib/ui/model/');
   if (from === 'ui-ports') return pure || target.startsWith('lib/ui/model/') || target === 'lib/ui/ports.ts';
@@ -239,7 +242,7 @@ const privateComposition = {
 };
 
 /** Exact reviewed location for native SQL; every other module must use named domain operations. */
-const sqlAllowlist = new Set(['lib/adapters/d1-action-store.ts','lib/adapters/postgres/action-store.ts','lib/adapters/postgres/mcp-subscriptions.ts','lib/adapters/postgres/identity-store.ts','lib/adapters/postgres/migrations.ts','lib/adapters/postgres/transfer.ts','lib/mcp/local/state-store.mjs']);
+const sqlAllowlist = new Set(['lib/adapters/d1-action-store.ts','lib/adapters/postgres/action-store.ts','lib/adapters/postgres/mcp-subscriptions.ts','lib/adapters/postgres/webhook-store.ts','lib/adapters/postgres/webhook-outbox.ts','lib/adapters/postgres/webhook-delivery-store.ts','lib/adapters/postgres/identity-store.ts','lib/adapters/postgres/migrations.ts','lib/adapters/postgres/transfer.ts','lib/mcp/local/state-store.mjs']);
 
 const rawSqlLocation = {
   meta: { type: 'problem', schema: [], messages: { sql: 'Raw SQL ({{what}}) is confined to the approved adapter; use a closed descriptor or a reviewed named operation.' } },
@@ -265,12 +268,16 @@ const rawSqlLocation = {
 const capabilityEdges = new Map([
  ['lib/adapters/postgres/mcp-subscriptions.ts',new Set(['lib/server/node/principal','lib/server/node/mcp-subscriptions'])],
  ['lib/server/node/mcp-subscriptions.ts',new Set(['lib/server/node/principal'])],
+ ['lib/adapters/postgres/webhook-store.ts',new Set(['lib/server/node/principal'])],
+ ['lib/server/node/webhook-events.ts',new Set(['lib/server/node/principal'])],
  ['lib/adapters/postgres/transfer.ts',new Set(['lib/adapters/postgres/action-store'])],
- ['lib/adapters/postgres/action-store.ts',new Set(['lib/server/node/principal'])],
+ ['lib/adapters/postgres/action-store.ts',new Set(['lib/server/node/principal','lib/adapters/postgres/webhook-outbox'])],
+ ['lib/adapters/postgres/webhook-delivery-store.ts',new Set(['lib/adapters/postgres/action-store','lib/adapters/postgres/webhook-store'])],
+ ['lib/server/node/webhook-delivery.ts',new Set(['lib/adapters/postgres/webhook-delivery-store','lib/adapters/postgres/webhook-outbox','lib/server/node/gate-connection','lib/server/node/cloud-tasks'])],
  ['lib/mcp/dispatcher.ts',new Set(['lib/mcp/tool-definitions'])],
  ['lib/server/node/authentication.ts',new Set(['lib/server/node/principal','lib/server/node/config','lib/server/node/gate-verifier','lib/adapters/postgres/identity-store'])],
- ['lib/server/node/server.ts',new Set(['lib/server/node/mcp-subscriptions','lib/server/node/mcp-event-stream','lib/server/node/principal','lib/server/node/authentication','lib/server/node/config'])],
- ['lib/server/node/main.ts',new Set(['lib/adapters/postgres/mcp-subscriptions','lib/server/node/config','lib/server/node/authentication','lib/server/node/server','lib/adapters/postgres/pool','lib/adapters/postgres/migrations','lib/adapters/postgres/identity-store','lib/adapters/postgres/action-store'])],
+ ['lib/server/node/server.ts',new Set(['lib/server/node/mcp-subscriptions','lib/server/node/mcp-event-stream','lib/server/node/principal','lib/server/node/authentication','lib/server/node/config','lib/server/node/webhook-delivery'])],
+ ['lib/server/node/main.ts',new Set(['lib/adapters/postgres/mcp-subscriptions','lib/server/node/config','lib/server/node/authentication','lib/server/node/server','lib/adapters/postgres/pool','lib/adapters/postgres/migrations','lib/adapters/postgres/identity-store','lib/adapters/postgres/action-store','lib/adapters/postgres/webhook-store','lib/adapters/postgres/webhook-delivery-store','lib/server/node/webhook-crypto','lib/server/node/webhook-https','lib/server/node/webhook-events','lib/server/node/webhook-delivery','lib/server/node/cloud-tasks','lib/server/node/gate-connection','lib/server/node/task-authentication'])],
 ]);
 const capabilityDirection = {
  meta:{type:'problem',schema:[],messages:{capability:'Private capability {{target}} is restricted to its exact trusted composition edge.'}},

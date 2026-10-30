@@ -93,6 +93,14 @@
                 "value": "enabled"
               },
               {
+                "name": "WEBHOOK_TASK_QUEUE",
+                "value": "projects/example-project/locations/asia-southeast1/queues/weave-webhooks"
+              },
+              {
+                "name": "WEBHOOK_TASK_SERVICE_ACCOUNT",
+                "value": "weave-tasks@example-project.iam.gserviceaccount.com"
+              },
+              {
                 "name": "DATABASE_URL",
                 "valueFrom": {
                   "secretKeyRef": {
@@ -106,6 +114,15 @@
                 "valueFrom": {
                   "secretKeyRef": {
                     "name": "weave-gate-client-secret",
+                    "key": "1"
+                  }
+                }
+              },
+              {
+                "name": "WEBHOOK_KEY_RING",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "weave-webhook-key-ring",
                     "key": "1"
                   }
                 }

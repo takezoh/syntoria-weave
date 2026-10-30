@@ -117,3 +117,7 @@ The current source also requires `0011_collaboration_delegation.sql` after 0010.
 
 The current source also requires `0012_collaboration_metadata.sql` after 0011. It states empty `metadata` for every existing collaboration head and history record; stored text is not rewritten. No grants change. The previous image rejects collaboration bodies with the new member, so a rollback after migrating needs a forward fix or a new image. Logical transfer is version 10; earlier files are rejected. Refresh tool discovery for the `metadata` argument of `propose_collaboration` and `update_collaboration`.
 
+
+## Webhook event rollout
+
+Release Gate's `POST /connections/check` before or with this service; Weave sends no event while Gate cannot answer. Create the `webhook-key-ring` secret version, the queue, the task service account and its grants declaratively, then pin the secret version and supply `WEBHOOK_TASK_QUEUE` and `WEBHOOK_TASK_SERVICE_ACCOUNT` through the rendered manifest. Migrations 0013 and 0014 are additive. The runtime's exact schema check means a revision built before them stops starting once they are applied, so migrate and deploy as one release. Acceptance needs the hosted queue, OIDC verification, a subscribed ChatGPT Work chat receiving `collaboration_changed`, and revocation in Gate stopping delivery; local fixtures do not establish them.

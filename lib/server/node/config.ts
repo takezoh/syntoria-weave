@@ -4,6 +4,8 @@ export type ServiceConfig=Readonly<{
  origin:string;issuer:string;resource:string;browserClientId:string;spaOrigins:readonly string[];sharedCookieDomain:string;
  gateClientId:string;gateClientSecret:string;
  databaseUrl:string;cursorEpoch:string;writeMode:'blocked'|'enabled';clientWriteApproval:'auto'|'blocked';port:number;localDatabase:boolean;
+ /** Event delivery: the key ring sealing callback secrets, the Cloud Tasks queue and the task identity tokens must name. */
+ webhookKeyRing:string;webhookTaskQueue:string;webhookTaskServiceAccount:string;
 }>;
 
 function required(env:NodeJS.ProcessEnv,key:string){const value=env[key];if(!value)throw new Error('Missing configuration: '+key);return value;}
@@ -58,5 +60,7 @@ export function readConfig(env:NodeJS.ProcessEnv):ServiceConfig {
  const port=Number(env.PORT??8080);if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid PORT.');
  const browserClientId=required(env,'GATE_BROWSER_CLIENT_ID');
  const cursorEpoch=required(env,'CURSOR_EPOCH');if(!/^[0-9a-f-]{36}$/i.test(cursorEpoch))throw new Error('CURSOR_EPOCH must be a deployment UUID.');
- return Object.freeze({origin,issuer,resource,browserClientId,spaOrigins,sharedCookieDomain,gateClientId:required(env,'GATE_RESOURCE_CLIENT_ID'),gateClientSecret:required(env,'GATE_RESOURCE_CLIENT_SECRET'),databaseUrl,cursorEpoch,writeMode,clientWriteApproval,port,localDatabase});
+ const webhookTaskQueue=required(env,'WEBHOOK_TASK_QUEUE');if(!/^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/locations\/[a-z0-9-]+\/queues\/[A-Za-z0-9-]{1,100}$/.test(webhookTaskQueue))throw new Error('WEBHOOK_TASK_QUEUE must be a Cloud Tasks queue path.');
+ const webhookTaskServiceAccount=required(env,'WEBHOOK_TASK_SERVICE_ACCOUNT');if(!/^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\.iam\.gserviceaccount\.com$/.test(webhookTaskServiceAccount))throw new Error('WEBHOOK_TASK_SERVICE_ACCOUNT must be a service account email.');
+ return Object.freeze({origin,issuer,resource,browserClientId,spaOrigins,sharedCookieDomain,gateClientId:required(env,'GATE_RESOURCE_CLIENT_ID'),gateClientSecret:required(env,'GATE_RESOURCE_CLIENT_SECRET'),databaseUrl,cursorEpoch,writeMode,clientWriteApproval,port,localDatabase,webhookKeyRing:required(env,'WEBHOOK_KEY_RING'),webhookTaskQueue,webhookTaskServiceAccount});
 }

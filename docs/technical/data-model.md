@@ -168,6 +168,12 @@ Proposal `version` changes only on scope revision. `decision` is business intent
 
 An Action retains up to three proposal heads. At most one is approved; running/waiting work and unknown outcomes block another approval. Cancellation retains the proposal as pending. Legacy withdrawn/rejected heads remain readable and count toward the cap. Accepted scope does not start work; a report does not complete an action. Collaboration events cannot be reversed by generic Undo. Durable collaboration history supplies exact replay receipts after ordinary operation retention; no automatic history pruning is configured. The transfer manifest includes heads and history.
 
+## Webhook subscriptions and deliveries
+
+`state.webhook_subscriptions` holds one row per user and subscription ID with the verified issuer, subject, client and connection, the normalized callback URL, a generation and an expiry. Active rows store the signing secret only as AES-256-GCM ciphertext under a key ring injected from Secret Manager, plus the previous secret for a 10-minute rotation overlap. Unsubscribing keeps a stopped row, clears its secrets and advances the generation, so a verification still in flight cannot reactivate it.
+
+`state.webhook_batches` and `state.webhook_deliveries` are the outbox. A business commit that concerns subscribed connections inserts one batch, unique per user and operation, and its immutable deliveries in the same transaction as the receipt. Each delivery is the exact event body (at most 262,144 bytes), pinned to the subscription generation, with a state of `pending`, `delivered`, `stopped`, `failed` or `exhausted` and an attempt count. Fan-out advances a contiguous cursor over delivery positions. Finished batches older than 7 days are deleted in bounded steps during worker requests. Identical replay returns the receipt before any outbox write, so it records no second event. Logical transfer excludes all three tables.
+
 ## Change review data
 
 Migration `0010_change_review.sql` adds display and provenance data for reviewing changes. None of it grants, selects or restricts access, and none of it enters persisted Action DTOs, deltas, Undo comparisons or the change feed's persisted records.

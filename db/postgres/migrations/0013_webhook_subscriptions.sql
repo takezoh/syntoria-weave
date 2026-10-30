@@ -1,0 +1,27 @@
+CREATE TABLE state.webhook_subscriptions (
+ user_id text COLLATE "C" NOT NULL,
+ id text COLLATE "C" NOT NULL,
+ issuer text NOT NULL,
+ subject text NOT NULL,
+ client_id text NOT NULL,
+ connection_id text COLLATE "C" NOT NULL,
+ event_name text NOT NULL,
+ canonical_arguments text NOT NULL,
+ url text NOT NULL,
+ state text NOT NULL CHECK (state IN ('active','stopped')),
+ generation bigint NOT NULL CHECK (generation>0),
+ expires_at timestamptz,
+ secret_key_id text,
+ secret_ciphertext text,
+ secret_digest text,
+ previous_key_id text,
+ previous_ciphertext text,
+ previous_until timestamptz,
+ proof_expires_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(user_id,id),
+ CHECK (state<>'active' OR (expires_at IS NOT NULL AND secret_key_id IS NOT NULL AND secret_ciphertext IS NOT NULL AND secret_digest IS NOT NULL)),
+ CHECK ((previous_key_id IS NULL)=(previous_ciphertext IS NULL) AND (previous_key_id IS NULL)=(previous_until IS NULL))
+);
+CREATE INDEX webhook_subscriptions_connection ON state.webhook_subscriptions(user_id,issuer,subject,connection_id) WHERE state='active';

@@ -14,7 +14,7 @@ import {exportData} from '../../lib/adapters/postgres/transfer.ts';
 test('populated identity migration preserves IDs, receipts, replay and user isolation',async t=>{
  const directory=await mkdtemp(join(tmpdir(),'action-old-schema-'));
  await copyFile('db/postgres/migrations/0001_state.sql',join(directory,'0001_state.sql'));
- const source=await postgresFixture(),target=await postgresFixture({migrations:directory,collaboration:false});
+ const source=await postgresFixture(),target=await postgresFixture({migrations:directory});
  t.after(async()=>{await source.close();await target.close();await rm(directory,{recursive:true,force:true});});
  const invoke=(pool,user,name,args={})=>actionCall({store:createPostgresActionStore(pool,issuePrincipal({user,issuer:'test',subject:user,connectionId:`test:${user}`,clientId:'test',actorKind:'client',scopes:['state:read','state:write']})),clock:()=> '2026-10-18T00:00:00.000Z',newId:()=>crypto.randomUUID(),changeCursorScope:async()=>cursorScope(user,'epoch')},name,args);
  const request={schemaVersion:2,expectedRevision:0,operationId:crypto.randomUUID(),kind:'add',payload:{title:'Preserve 日本語',notes:'exact\0\ud800😀\udfffnotes with "before": {"metadata": false} and \\ quotes'}};

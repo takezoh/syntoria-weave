@@ -310,7 +310,9 @@ test('Node HTTP/MCP validates shared sessions online and retains bearer OAuth fo
 
 test('configuration binds API, Gate issuer and SPA origins to an explicit shared cookie parent',()=>{
  assert.throws(()=>readConfig({}),/Missing configuration/);
- const env={PUBLIC_ORIGIN:'https://api.example.com',OAUTH_ISSUER:'https://gate.example.com',OAUTH_RESOURCE:'https://api.example.com/mcp',GATE_BROWSER_CLIENT_ID:'web',SPA_ORIGINS:'["https://app.example.com"]',SHARED_COOKIE_DOMAIN:'example.com',GATE_RESOURCE_CLIENT_ID:'resource',GATE_RESOURCE_CLIENT_SECRET:'secret',DATABASE_URL:'postgresql://user:secret@db.example.com/db',CURSOR_EPOCH:crypto.randomUUID()};
+ const env={PUBLIC_ORIGIN:'https://api.example.com',OAUTH_ISSUER:'https://gate.example.com',OAUTH_RESOURCE:'https://api.example.com/mcp',GATE_BROWSER_CLIENT_ID:'web',SPA_ORIGINS:'["https://app.example.com"]',SHARED_COOKIE_DOMAIN:'example.com',GATE_RESOURCE_CLIENT_ID:'resource',GATE_RESOURCE_CLIENT_SECRET:'secret',DATABASE_URL:'postgresql://user:secret@db.example.com/db',CURSOR_EPOCH:crypto.randomUUID(),WEBHOOK_KEY_RING:JSON.stringify({current:'k1',keys:{k1:Buffer.alloc(32,1).toString('base64')}}),WEBHOOK_TASK_QUEUE:'projects/example-project/locations/asia-southeast1/queues/app-webhooks',WEBHOOK_TASK_SERVICE_ACCOUNT:'app-tasks@example-project.iam.gserviceaccount.com'};
+ for(const key of ['WEBHOOK_KEY_RING','WEBHOOK_TASK_QUEUE','WEBHOOK_TASK_SERVICE_ACCOUNT']){const missing={...env};delete missing[key];assert.throws(()=>readConfig(missing),/Missing configuration/,key);}
+ assert.throws(()=>readConfig({...env,WEBHOOK_TASK_QUEUE:'app-webhooks'}),/queue path/);assert.throws(()=>readConfig({...env,WEBHOOK_TASK_SERVICE_ACCOUNT:'tasks@example.com'}),/service account/);
  assert.equal(readConfig(env).writeMode,'blocked');
  assert.equal(readConfig(env).clientWriteApproval,'auto');
  assert.equal(readConfig({...env,CLIENT_WRITE_APPROVAL:'blocked'}).clientWriteApproval,'blocked');

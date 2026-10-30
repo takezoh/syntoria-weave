@@ -1,9 +1,10 @@
 locals {
 
-  secret_ids = toset(["runtime-database", "admin-database", "backup-database", "gate-client-secret", "login-key", "csrf-key"])
+  secret_ids = toset(["runtime-database", "admin-database", "backup-database", "gate-client-secret", "login-key", "csrf-key", "webhook-key-ring"])
   runtime_secrets = {
     DATABASE_URL                = "runtime-database"
     GATE_RESOURCE_CLIENT_SECRET = "gate-client-secret"
+    WEBHOOK_KEY_RING            = "webhook-key-ring"
   }
 
   runtime_env = {
@@ -17,6 +18,8 @@ locals {
     CURSOR_EPOCH            = var.cursor_epoch
     WRITE_MODE              = var.writes_enabled ? "enabled" : "blocked"
     NODE_ENV                = "production"
+    WEBHOOK_TASK_QUEUE           = google_cloud_tasks_queue.webhooks.id
+    WEBHOOK_TASK_SERVICE_ACCOUNT = google_service_account.identity["tasks"].email
   }
 
 
@@ -24,7 +27,7 @@ locals {
 
 resource "google_project_service" "api" {
 
-  for_each           = toset(["run.googleapis.com", "artifactregistry.googleapis.com", "secretmanager.googleapis.com", "iam.googleapis.com", "iamcredentials.googleapis.com", "sts.googleapis.com", "cloudscheduler.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "billingbudgets.googleapis.com"])
+  for_each           = toset(["run.googleapis.com", "artifactregistry.googleapis.com", "secretmanager.googleapis.com", "iam.googleapis.com", "iamcredentials.googleapis.com", "sts.googleapis.com", "cloudscheduler.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "billingbudgets.googleapis.com", "cloudtasks.googleapis.com"])
   service            = each.value
   disable_on_destroy = false
 
@@ -41,7 +44,7 @@ resource "google_artifact_registry_repository" "images" {
 
 resource "google_service_account" "identity" {
 
-  for_each   = toset(["runtime", "deployer", "migrator", "backup", "scheduler"])
+  for_each   = toset(["runtime", "deployer", "migrator", "backup", "scheduler", "tasks"])
   account_id = "${var.name}-${each.key}"
 
 }
@@ -323,5 +326,40 @@ resource "google_cloud_scheduler_job" "backup" {
 
   }
 
+
+}
+
+# Event delivery wakes the service only through these tasks; nothing runs while the queue is empty.
+resource "google_cloud_tasks_queue" "webhooks" {
+
+  name     = "${var.name}-webhooks"
+  location = var.region
+  retry_config {
+    max_attempts       = 100
+    max_retry_duration = "86400s"
+    min_backoff        = "10s"
+    max_backoff        = "600s"
+    max_doublings      = 6
+  }
+
+  depends_on = [google_project_service.api]
+
+}
+
+resource "google_cloud_tasks_queue_iam_member" "runtime_enqueue" {
+
+  name     = google_cloud_tasks_queue.webhooks.name
+  location = google_cloud_tasks_queue.webhooks.location
+  role     = "roles/cloudtasks.enqueuer"
+  member   = "serviceAccount:${google_service_account.identity["runtime"].email}"
+
+}
+
+# The runtime names the task identity in each task's OIDC token; the service verifies that identity on internal routes.
+resource "google_service_account_iam_member" "runtime_task_identity" {
+
+  service_account_id = google_service_account.identity["tasks"].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.identity["runtime"].email}"
 
 }

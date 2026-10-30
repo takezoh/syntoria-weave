@@ -7,6 +7,7 @@ import {recentChangeThrough} from '../../data/model/change-cursor';
 import type {Snapshot,Receipt,UserCommitRequest,ChangeWindow,CollaborationHistory,ActionProvenance,ActorRef,RecentChangeWindow} from '../../data/types';
 import type {UserActionStore,ReadOperationState} from '../../application/ports';
 import {verifyPrincipal,type Principal} from '../../server/node/principal';
+import {recordCollaborationEvents,type BatchWakeup} from './webhook-outbox';
 
 type Row=Record<string,unknown>;
 const tables={
@@ -98,12 +99,13 @@ async function persist(client:PoolClient,user:string,key:StorageTableKey,changes
  }
 }
 /** Every business query binds the verified capability user explicitly. */
-export function createPostgresActionStore(pool:Pool,identity:Principal,{revalidate=async()=>{},signal,observe}:{revalidate?:(client:PoolClient)=>Promise<void>;signal?:AbortSignal;observe?:(phase:'pool_wait'|'sql',ms:number)=>void}={}):UserActionStore {
+export function createPostgresActionStore(pool:Pool,identity:Principal,{revalidate=async()=>{},signal,observe,wakeup}:{revalidate?:(client:PoolClient)=>Promise<void>;signal?:AbortSignal;observe?:(phase:'pool_wait'|'sql',ms:number)=>void;wakeup?:BatchWakeup}={}):UserActionStore {
  const {user,clientId,actorKind,clientName}=verifyPrincipal(identity);
  const actor={created_by_kind:actorKind,created_by_client_id:clientId,updated_by_kind:actorKind,updated_by_client_id:clientId} as const;
+ const collaborationActor=Object.freeze({kind:actorKind,client_id:clientId,connection_id:identity.connectionId});
  const read=<T>(fn:(client:PoolClient)=>Promise<T>)=>userTransaction(pool,true,fn,signal,observe);
  return Object.freeze({
-  collaborationActor:Object.freeze({kind:actorKind,client_id:clientId,connection_id:identity.connectionId}),
+  collaborationActor,
   readCollaborationHistory:(key:string,beforeRevision:number|null)=>read(async client=>(await client.query('SELECT operation_id,revision,command,actor,body FROM state.collaboration_history WHERE user_id=$1 AND collaboration_id=$2 AND ($3::bigint IS NULL OR revision<$3) ORDER BY revision DESC LIMIT 50',[user,key,beforeRevision])).rows.map(row=>({operation_id:row.operation_id,revision:number(row.revision),command:row.command,actor:JSON.parse(row.actor),record:persistedCollaboration(JSON.parse(row.body))})) as CollaborationHistory[]),
   readSnapshot:()=>read(async client=>decodeRows(await rows(client,user))),
   readOperationState:(op:string)=>read(async client=>{
@@ -142,6 +144,8 @@ export function createPostgresActionStore(pool:Pool,identity:Principal,{revalida
      await client.query('INSERT INTO state.collaborations(user_id,id,action_id,revision,body) VALUES($1,$2,$3,$4,$5) ON CONFLICT(user_id,id) DO UPDATE SET action_id=excluded.action_id,revision=excluded.revision,body=excluded.body',[user,record.id,record.action_id,plan.result.revision,JSON.stringify(record)]);
      await client.query('INSERT INTO state.collaboration_history(user_id,operation_id,collaboration_id,revision,command,actor,body,canonical_payload,result,delta) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[user,command.operationId,record.id,plan.result.revision,kind,JSON.stringify(actor),JSON.stringify(record),command.payload,JSON.stringify(plan.result),JSON.stringify(plan.changes)]);
     }
+    // Subscribed connections learn of the committed change through the outbox, atomically with it.
+    await recordCollaborationEvents(client,{user,operationId:command.operationId,revision:plan.result.revision,now:command.now,before:command.before,after:command.after,record:command.collaboration?.record??null,writer:collaborationActor,wakeup});
     // Canonical ISO instants order bytewise; the scan stops at the first operation inside the period.
     const recent=(await client.query('SELECT revision_after FROM state.operations WHERE user_id=$1 AND created_at COLLATE "C">=$2 ORDER BY revision_after LIMIT 1',[user,operationRetentionCutoff(command.now)])).rows[0];
     await client.query('DELETE FROM state.operations WHERE user_id=$1 AND revision_after<=$2',[user,operationPruneThrough(plan.result.revision,recent?number(recent.revision_after):null)]);

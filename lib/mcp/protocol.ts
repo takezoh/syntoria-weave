@@ -11,7 +11,9 @@ export const CLIENT_INFO_KEY='io.modelcontextprotocol/clientInfo';
 export const CLIENT_CAPABILITIES_KEY='io.modelcontextprotocol/clientCapabilities';
 export const SERVER_INFO_KEY='io.modelcontextprotocol/serverInfo';
 export const SUBSCRIPTION_ID_KEY='io.modelcontextprotocol/subscriptionId';
-export const INVALID_REQUEST=-32600,METHOD_NOT_FOUND=-32601,INVALID_PARAMS=-32602,HEADER_MISMATCH=-32020,UNSUPPORTED_PROTOCOL_VERSION=-32022;
+export const INVALID_REQUEST=-32600,METHOD_NOT_FOUND=-32601,INVALID_PARAMS=-32602,INTERNAL_ERROR=-32603,HEADER_MISMATCH=-32020,UNSUPPORTED_PROTOCOL_VERSION=-32022;
+/** The callback verification failure code ChatGPT's MCP Events integration uses. */
+export const CALLBACK_ENDPOINT_ERROR=-32015;
 
 export type RequestId=string|number;
 /** Transport header values; null marks a repeated header. */
@@ -21,7 +23,7 @@ export type McpEra={era:'legacy'}|{era:'modern';version:string};
 export type McpObservation=Readonly<Record<string,string|number|readonly string[]>>;
 type Message={id?:unknown;method:string;params?:unknown};
 
-const NAMED_METHODS=new Set(['tools/call','resources/read','prompts/get']);
+const NAMED_METHODS=new Set(['tools/call','resources/read','prompts/get','events/subscribe','events/unsubscribe']);
 const record=(value:unknown)=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:undefined;
 
 export function rpcError(id:RequestId|null,status:number,code:number,message:string,data?:unknown):McpReply{

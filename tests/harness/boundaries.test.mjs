@@ -45,3 +45,10 @@ test('UI application state user is protected by the same dependency boundary', (
   assert(lint('import x from "../application/controller.ts";', 'lib/ui/components/outline-list.ts').some(item => item.ruleId === 'architecture/dependency-direction'));
   assert(lint('import x from "../components/outline-list.ts";', 'lib/ui/model/ui-projections.ts').some(item => item.ruleId === 'architecture/dependency-direction'));
 });
+
+test('webhook mechanics stay domain-independent and reach effects only through injected ports', () => {
+  for (const code of ['import x from "../domain/core";', 'import x from "../mcp/event-definitions";', 'import x from "../application/ports";', 'import x from "../server/node/principal";', 'import { createHash } from "node:crypto";', 'import x from "../data/types";']) {
+    assert(lint(code, 'lib/webhook/sample.ts').some(item => item.ruleId === 'architecture/dependency-direction'), code);
+  }
+  assert.deepEqual(lint('import { CallbackError } from "./ports"; export { CallbackError };', 'lib/webhook/sample.ts'), []);
+});

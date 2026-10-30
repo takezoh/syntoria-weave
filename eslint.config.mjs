@@ -28,7 +28,7 @@ export default defineConfig([
     rules: { 'architecture/private-composition': 'error' },
   },
   {
-    files: ['lib/data/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/domain/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/model/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/application/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/effects/tool-client.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/application/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/components/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/ports.{ts,tsx,mts,js,jsx,mjs}'],
+    files: ['lib/data/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/domain/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/model/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/application/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/webhook/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/effects/tool-client.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/application/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/components/**/*.{ts,tsx,mts,js,jsx,mjs}', 'lib/ui/ports.{ts,tsx,mts,js,jsx,mjs}'],
     rules: { 'architecture/pure-effects': 'error' },
   },
   {

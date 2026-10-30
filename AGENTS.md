@@ -20,7 +20,7 @@ Meaning, organization, recommendations and management method belong to the user 
 
 The entity is action, not task. Relationships are parent-child containment only. Action order expresses intended sequence without restricting execution or visibility. Do not add prerequisite edges or sequential/parallel modes. Flagged is direct boolean state only; inheritance is a possible future feature, not the current contract.
 
-Calendar sync, proactive notifications, background jobs and external-condition observation are caller responsibilities, not Weave services. Do not treat their absence in the plugin as a prohibition on caller workflows or require specialized Weave integrations for tool composition. Saved perspectives are supported filter-only data definitions; dedicated perspective UI controls remain outside current scope.
+Calendar sync, proactive notifications to the person, schedulers, background jobs and external-condition observation are caller responsibilities, not Weave services. The one exception is protocol event delivery: Weave delivers MCP Events webhooks to the callbacks its subscribed callers registered, woken only by Cloud Tasks requests created at commit, never by an idle process, poll or schedule. An event is a hint to reread state, never a command, approval or start of work. Do not treat their absence in the plugin as a prohibition on caller workflows or require specialized Weave integrations for tool composition. Saved perspectives are supported filter-only data definitions; dedicated perspective UI controls remain outside current scope.
 
 ## Pure logic and effects
 

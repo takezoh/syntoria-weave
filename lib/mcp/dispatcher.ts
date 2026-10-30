@@ -4,16 +4,20 @@ import {privateDefinitions,privateResources} from './tool-definitions';
 import {UI_URI} from '../widget';
 import {createActionUiResource} from './ui-resource';
 import {assistanceInstructions} from '../assistance';
-import {INVALID_PARAMS,INVALID_REQUEST,METHOD_NOT_FOUND,SERVER_INFO,SERVER_INFO_KEY,SUPPORTED_VERSIONS,errorCause,negotiate,rpcError,type McpHeaders,type RequestId} from './protocol';
+import {CALLBACK_ENDPOINT_ERROR,INTERNAL_ERROR,INVALID_PARAMS,INVALID_REQUEST,METHOD_NOT_FOUND,SERVER_INFO,SERVER_INFO_KEY,SUPPORTED_VERSIONS,errorCause,negotiate,rpcError,type McpHeaders,type RequestId} from './protocol';
+import {eventCatalog} from './event-definitions';
+import {SubscriptionError} from '../webhook/subscriptions';
 export type Invoke=(name:string,args:unknown)=>Promise<unknown>;
 /** A subscriptions/listen request the transport serves as a long-lived response stream. */
 export type McpListen={id:RequestId;resources:readonly string[]};
 export type McpDispatch={status:number;body:unknown;listen?:McpListen;cause?:string};
 type Subscriptions={set(resource:string,subscribed:boolean):Promise<void>};
+/** Webhook event subscriptions of the authenticated connection. */
+export type McpEvents={subscribe(params:unknown):Promise<Record<string,unknown>>;unsubscribe(params:unknown):Promise<Record<string,unknown>>};
 
 // Every result is fresh user-scoped state or deployment-versioned definitions behind authorization.
 const cacheable={ttlMs:0,cacheScope:'private'};
-const capabilities=(subscriptions?:Subscriptions)=>({tools:{},resources:subscriptions?{subscribe:true}:{}});
+const capabilities=(subscriptions?:Subscriptions,events?:McpEvents)=>({tools:{},resources:subscriptions?{subscribe:true}:{},...(events?{events:{}}:{})});
 const listTools=(canWrite:boolean)=>privateDefinitions.filter(tool=>tool.name!=='open_verification'&&(canWrite||tool.annotations.readOnlyHint));
 const listResources=()=>[...privateResources.filter(resource=>resource.uri===UI_URI),stateResource,assignedResource];
 
@@ -30,7 +34,7 @@ async function callTool(invoke:Invoke,name:string,args:unknown){
 }
 
 /** Stateless protocol adapter; authentication and scope gates precede this entry. */
-export async function dispatchMcp(raw:unknown,invoke:Invoke,canWrite:boolean,{headers={},subscriptions}:{headers?:McpHeaders;subscriptions?:Subscriptions}={}):Promise<McpDispatch>{
+export async function dispatchMcp(raw:unknown,invoke:Invoke,canWrite:boolean,{headers={},subscriptions,events}:{headers?:McpHeaders;subscriptions?:Subscriptions;events?:McpEvents}={}):Promise<McpDispatch>{
  const body=raw as {jsonrpc?:unknown;id?:unknown;method?:unknown;params?:Record<string,unknown>};
  if(!body||body.jsonrpc!=='2.0'||typeof body.method!=='string'||(body.id!==undefined&&body.id!==null&&typeof body.id!=='string'&&typeof body.id!=='number'))return rpcError(null,400,INVALID_REQUEST,'Invalid request');
  const id=(body.id??null) as RequestId|null,p=body.params??{},method=body.method;
@@ -61,7 +65,7 @@ export async function dispatchMcp(raw:unknown,invoke:Invoke,canWrite:boolean,{he
   if(id===null)return rpcError(null,400,INVALID_REQUEST,'Invalid request');
   const complete=(result:Record<string,unknown>)=>({status:200,body:{jsonrpc:'2.0',id,result:{...result,resultType:'complete',_meta:{[SERVER_INFO_KEY]:SERVER_INFO}}}});
   switch(method){
-   case 'server/discover':return complete({supportedVersions:SUPPORTED_VERSIONS,capabilities:capabilities(subscriptions),instructions:assistanceInstructions,...cacheable});
+   case 'server/discover':return complete({supportedVersions:SUPPORTED_VERSIONS,capabilities:capabilities(subscriptions,events),instructions:assistanceInstructions,...cacheable});
    case 'tools/list':return complete({tools:listTools(canWrite),...cacheable});
    case 'resources/list':return complete({resources:listResources(),...cacheable});
    case 'resources/templates/list':return complete({resourceTemplates:[],...cacheable});
@@ -69,6 +73,20 @@ export async function dispatchMcp(raw:unknown,invoke:Invoke,canWrite:boolean,{he
    case 'tools/call':{
     if(typeof p.name!=='string')return rpcError(id,400,INVALID_PARAMS,'Tool name required');
     const outcome=await callTool(invoke,p.name,p.arguments??{});return {...complete(outcome.result),cause:outcome.cause};
+   }
+   case 'events/list':
+    if(!events)break;
+    // The catalog has one page, so no cursor names a further page.
+    if(p.cursor!==undefined&&p.cursor!==null)return rpcError(id,200,INVALID_PARAMS,'Unknown events cursor.');
+    return complete({events:eventCatalog,...cacheable});
+   case 'events/subscribe':case 'events/unsubscribe':{
+    if(!events)break;
+    try{return complete(await (method==='events/subscribe'?events.subscribe(p):events.unsubscribe(p)));}
+    catch(error){
+     if(!(error instanceof SubscriptionError))throw error;
+     if(error.code==='callback_failed')return rpcError(id,200,CALLBACK_ENDPOINT_ERROR,'Callback endpoint verification failed.',{reason:error.reason});
+     return rpcError(id,200,error.code==='invalid_params'?INVALID_PARAMS:INTERNAL_ERROR,error.message);
+    }
    }
    case 'subscriptions/listen':{
     if(!subscriptions)break;

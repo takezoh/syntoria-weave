@@ -178,3 +178,11 @@ test('MCP subscription effects stay on their reviewed adapter and composition ed
  assert(reports(await actualLint("import {createMcpSubscriptions} from '../../adapters/postgres/mcp-subscriptions';void createMcpSubscriptions;",'lib/ui/model/sample.ts'),'capability-direction'));
  assert(reports(await actualLint("client.query('SELECT 1');",'lib/application/sample.ts'),'raw-sql-location'));
 });
+test('actual repository config keeps webhook mechanics pure and their store on its exact capability edge',async()=>{
+ for(const path of ['lib/webhook/subscriptions.ts','lib/webhook/destination.ts','lib/webhook/signing.ts','lib/webhook/ports.ts','lib/adapters/postgres/webhook-store.ts','lib/server/node/webhook-events.ts'])
+  assert.deepEqual((await actualLint(readFileSync(path,'utf8'),path)).filter(item=>item.ruleId?.startsWith('architecture/')),[],path);
+ for(const code of ['export const now=()=>Date.now();','export const id=()=>crypto.randomUUID();','export const read=()=>fetch("https://example.com");'])
+  assert(reports(await actualLint(code,'lib/webhook/sample.ts'),'pure-effects'),code);
+ assert(reports(await actualLint("import {createWebhookSubscriptions} from '../../adapters/postgres/webhook-store';void createWebhookSubscriptions;",'lib/server/node/server.ts'),'capability-direction'));
+ assert(reports(await actualLint("const q=(pool)=>pool.query('SELECT 1');void q;",'lib/server/node/webhook-events.ts'),'raw-sql-location'));
+});

@@ -1,0 +1,623 @@
+acceptance:
+- criteria: Given Real Node HTTP/MCP server, PostgreSQL and controlled HTTPS callback
+    with a synthetic whsec_ secret. When Discover, list, subscribe twice with reordered
+    argument keys, vary secret/TTL, wrong echo, timeout; unsubscribe twice and race
+    unsubscribe with verification. Then Modern catalog/schema/envelopes correct; one
+    active row and stable ID; bad proof does not activate; exact challenge header/body
+    verified; finite TTL and null replay cursor; stale proof cannot win unsubscribe.
+    Reject Activation before proof, duplicate rows, -32027 alias, replay claim, changed
+    action revision.
+  id: witness-wire-lifecycle
+  requirement_refs:
+  - req-discovery
+  - req-subscription
+  - req-security
+  - req-integrity
+- criteria: Given Two users, same client ID, two connections, and legacy resource
+    subscribers. When Attempt cross-connection unsubscribe and forged public identity
+    headers; call modern methods through 2025 negotiation; refresh with Gate outage.
+    Then No foreign row changes; legacy resource streams and modern listen keep baseline
+    behavior; no events advertised to legacy; outage is unknown rather than valid.
+    Reject User chosen from arguments, revoked refresh, resource subscription regression.
+  id: witness-wire-isolation
+  requirement_refs:
+  - req-discovery
+  - req-subscription
+  - req-security
+  - req-integrity
+- criteria: Given Real PostgreSQL, shared application writes and subscriptions for
+    users A/B and connections X/Y. When Ask AI, approve, change linked Action, withdraw,
+    reassign, reject stale CAS, roll back after task create, replay exact operation
+    after lost response and Undo. Then Only relevant connection receives one persisted
+    logical event per changed collaboration/revision; Action-path writes included;
+    rollback and replay add no event; receipts and user scope preserved. Reject Events
+    outside transaction, unrelated-user or unrelated-connection hints, lost withdrawal
+    hint, event from rejected write.
+  id: witness-atomic-selection
+  requirement_refs:
+  - req-meaning
+  - req-recovery
+  - req-idle
+  - req-integrity
+- criteria: Given Real PostgreSQL write transaction, controlled root wakeup adapter
+    and fanout worker on a separate connection. When Run root wakeup before COMMIT,
+    delay originating transaction beyond absence window, then commit or roll back.
+    Separately terminate the server immediately after COMMIT without any later client
+    request. Then Worker never classifies absence while origin lock is held; committed
+    batch fans out; rolled-back batch never creates child deliveries; one confirmed
+    root wakeup survives process exit. Reject Terminal absence result based only on
+    elapsed time, waking from uncommitted row, requiring another request after confirmed
+    enqueue.
+  id: witness-wakeup-crash
+  requirement_refs:
+  - req-meaning
+  - req-recovery
+  - req-idle
+  - req-integrity
+- criteria: Given Root wakeup create times out or succeeds remotely with response
+    lost. When Commit, stop process, then perform authenticated read or refresh; repeat
+    recovery concurrently. Then Write succeeds and batch marker persists; next authenticated
+    request retries exact root task name; bounded root-recovery batches converge;
+    healthy fanout never waits for that recovery hook. Reject Failure of unrelated
+    business write solely due to queue outage, duplicate event identity, scheduled
+    scan, unconditional recovery claim during no-request outage.
+  id: witness-enqueue-outage
+  requirement_refs:
+  - req-meaning
+  - req-recovery
+  - req-idle
+  - req-integrity
+- criteria: Given A healthy queue and valid subscriptions/affected collaborations
+    produce substantially more than 20 deliveries, with child create latency such
+    that all deliveries cannot fit in the old 3s write budget. Include concurrent
+    duplicate root and continuation tasks. When Commit shared-path write, assert exactly
+    one precommit create, terminate immediately after COMMIT and issue no further
+    client request. Execute bounded task invocations; crash after child create before
+    cursor persistence, after cursor persistence before continuation create, and after
+    continuation create before result recording. Also fail successor enqueue once,
+    then restore queue. Then Business write has the ordinary successful receipt without
+    quota or fanout rejection; precommit create count remains one independent of membership
+    size.; Every committed eligible row is eventually covered by an idempotently named
+    delivery task through pages of at most20/8s and confirmed successors; no client
+    request starts recovery.; No cursor advances past an unconfirmed row; no 2xx while
+    remaining membership lacks a confirmed successor; failed/uncertain successor retains
+    current task for retry.; Crashes and duplicate tasks resume contiguous progress;
+    stable event IDs, terminal delivery behavior, revision/CAS and user isolation
+    remain intact. Reject Healthy fanout overflow classified as queue outage, silent
+    orphan, newly imposed subscription quota, rejection of otherwise valid business
+    write, per-child precommit create, or future capacity measurement treated as workload
+    enforcement.
+  id: witness-batch-fanout
+  requirement_refs:
+  - req-meaning
+  - req-recovery
+  - req-idle
+  - req-integrity
+- criteria: Given Real Node HTTPS adapter with controllable resolver and certificate
+    fixture. When Return public then private DNS answers, mixed A/AAAA, mapped IPv6,
+    redirect to metadata address, proxy environment, bad TLS, stalled/oversize response.
+    Then No socket reaches a nonpublic address; actual connected IP matches validated
+    result; redirects never followed; bounds enforced. Reject Validation followed
+    by independent fetch resolution, private reconnect, proxy bypass, sensitive diagnostic
+    logging.
+  id: witness-https-guard
+  requirement_refs:
+  - req-delivery
+  - req-security
+  - req-recovery
+  - req-idle
+- criteria: Given Known synthetic keys and captured exact HTTPS request bytes. When
+    Challenge, normal send, retry, verified key rotation, invalid base64, payload
+    at size limit and above. Then Independent Standard Webhooks verifier accepts exact
+    bytes/header mapping; retry timestamp/signature fresh, body and ID stable; overlap
+    carries both signatures only for 10m; oversize never sent. Reject Signing one
+    serialization and sending another, stale timestamp, secret in logs/task/DB plaintext.
+  id: witness-signature-bytes
+  requirement_refs:
+  - req-delivery
+  - req-security
+  - req-recovery
+  - req-idle
+- criteria: Given Pending rows and callback responses 200,410,413,400,408,429,503
+    and disconnects. When Deliver concurrently, lose acknowledgment after callback
+    accepts, crash before persisting result, advance injected clock past retry/lifetime
+    bounds. Then One admitted concurrent send; stable eventId on possible retry duplicate;
+    no retry after410/413; count/deadline bounds terminal; stopped/delivered rows
+    acknowledge task. Reject Fresh ID after unknown result, unbounded retries or sends
+    after observed expiry.
+  id: witness-delivery-status
+  requirement_refs:
+  - req-delivery
+  - req-security
+  - req-recovery
+  - req-idle
+- criteria: Given Active subscription and delivery, Gate verifier with controllable
+    responses. When Race unsubscribe/refresh/secret rotation with send admission;
+    revoke Gate before next attempt; make Gate unavailable. Then Unsubscribe serializes
+    after admitted send and prevents later sends; new attempt checks current generation/expiry
+    and Gate; invalid stops exact connection; outage no send and no false revocation.
+    Reject Post-unsubscribe new admission, stale secret/proof activation, cached Gate
+    approval or cross-connection stop.
+  id: witness-delivery-races
+  requirement_refs:
+  - req-delivery
+  - req-security
+  - req-recovery
+  - req-idle
+- criteria: Given Public Cloud Run-style HTTP surface and synthetic OIDC verifier.
+    When Invoke internal endpoint with no token, business OAuth, spoofed task headers,
+    wrong audience/account, then valid service token. Then Only configured task identity
+    reaches delivery state/adapter. Reject Public internal route or Cloud Tasks header
+    treated as authority.
+  id: witness-task-auth
+  requirement_refs:
+  - req-delivery
+  - req-security
+  - req-recovery
+  - req-idle
+- criteria: Given Gate-side fixture and local Weave adapter using trusted resource
+    credentials; two users/connections/resources. When Check active, expired, revoked,
+    wrong user/client/resource, browser connection, removed account admission, unauthenticated
+    caller, outage and malformed response. Then Only exact authorized OAuth connection
+    returns true; invalid stops exact subscription; unknown prevents send and retains
+    retry state. Reject ClientId-only validity, cross-resource enumeration, fail-open
+    outage, positive cache.
+  id: witness-gate-authority
+  requirement_refs:
+  - req-delivery
+  - req-security
+adrs:
+- decision_input_refs:
+  - decision-input-wakeup
+  id: adr-mcp-events-wakeup
+  status: proposed
+- decision_input_refs:
+  - decision-input-module
+  id: adr-mcp-events-module
+  status: proposed
+- decision_input_refs:
+  - decision-input-wire
+  id: adr-mcp-events-wire
+  status: proposed
+- decision_input_refs:
+  - decision-input-authorization
+  id: adr-mcp-events-authorization
+  status: proposed
+artifact: design-plan-spine
+components:
+- contract_refs:
+  - contract-events-wire
+  id: component-protocol
+  kind: existing
+  paths:
+  - lib/mcp/dispatcher.ts
+  - lib/mcp/protocol.ts
+  - lib/server/node/server.ts
+- contract_refs:
+  - contract-events-wire
+  - contract-delivery
+  id: component-webhook
+  kind: planned
+  paths:
+  - lib/webhook/
+  - lib/adapters/postgres/webhook-store.ts
+  - lib/server/node/webhook-https.ts
+- contract_refs:
+  - contract-atomic-wakeup
+  id: component-commit
+  kind: existing
+  paths:
+  - lib/domain/collaboration.ts
+  - lib/application/ports.ts
+  - lib/adapters/postgres/action-store.ts
+  - db/schema.ts
+  - db/postgres/migrations/
+- contract_refs:
+  - contract-delivery
+  id: component-worker
+  kind: planned
+  paths:
+  - lib/server/node/webhook-delivery.ts
+  - lib/server/node/server.ts
+  - lib/server/node/config.ts
+  - infra/
+- contract_refs:
+  - contract-gate
+  id: component-gate
+  kind: planned
+  paths:
+  - lib/server/node/gate-connection.ts
+  - lib/server/node/authentication.ts
+contracts:
+- adr_refs:
+  - adr-mcp-events-module
+  - adr-mcp-events-wire
+  dimension: integration_contract
+  id: contract-events-wire
+  owner: component-protocol
+  requirement_refs:
+  - req-discovery
+  - req-subscription
+  - req-security
+  - req-integrity
+  unit_refs:
+  - Implement subscription protocol and generic webhook boundary
+  - Close deployment and host acceptance and materialize governing documents
+  verification:
+  - id: verify-wire-lifecycle
+    tier: T2
+  - id: verify-wire-isolation
+    tier: T2
+- adr_refs:
+  - adr-mcp-events-wakeup
+  - adr-mcp-events-module
+  dimension: failure_recovery
+  id: contract-atomic-wakeup
+  owner: component-commit
+  requirement_refs:
+  - req-meaning
+  - req-recovery
+  - req-idle
+  - req-integrity
+  unit_refs:
+  - Integrate atomic wakeup and authenticated task delivery
+  - Close deployment and host acceptance and materialize governing documents
+  verification:
+  - id: verify-atomic-selection
+    tier: T2
+  - id: verify-wakeup-crash
+    tier: T2
+  - id: verify-enqueue-outage
+    tier: T2
+  - id: verify-batch-fanout
+    tier: T2
+- adr_refs:
+  - adr-mcp-events-module
+  - adr-mcp-events-wire
+  - adr-mcp-events-authorization
+  dimension: security_boundary
+  id: contract-delivery
+  owner: component-worker
+  requirement_refs:
+  - req-delivery
+  - req-security
+  - req-recovery
+  - req-idle
+  unit_refs:
+  - Implement subscription protocol and generic webhook boundary
+  - Integrate atomic wakeup and authenticated task delivery
+  - Close deployment and host acceptance and materialize governing documents
+  verification:
+  - id: verify-https-guard
+    tier: T2
+  - id: verify-signature-bytes
+    tier: T2
+  - id: verify-delivery-status
+    tier: T2
+  - id: verify-delivery-races
+    tier: T2
+  - id: verify-task-auth
+    tier: T2
+- adr_refs:
+  - adr-mcp-events-authorization
+  dimension: integration_contract
+  id: contract-gate
+  owner: component-gate
+  requirement_refs:
+  - req-delivery
+  - req-security
+  unit_refs:
+  - Implement Gate validity adapter against shared contract
+  - Close deployment and host acceptance and materialize governing documents
+  verification:
+  - id: verify-gate-authority
+    tier: T2
+dispositions:
+- adr_refs:
+  - adr-mcp-events-wakeup
+  contract_refs:
+  - contract-atomic-wakeup
+  decision_input_ref: decision-input-wakeup
+  disposition: adopted
+- adr_refs:
+  - adr-mcp-events-module
+  contract_refs:
+  - contract-events-wire
+  - contract-atomic-wakeup
+  - contract-delivery
+  decision_input_ref: decision-input-module
+  disposition: adopted
+- adr_refs:
+  - adr-mcp-events-wire
+  contract_refs:
+  - contract-events-wire
+  - contract-delivery
+  decision_input_ref: decision-input-wire
+  disposition: adopted
+- adr_refs:
+  - adr-mcp-events-authorization
+  contract_refs:
+  - contract-gate
+  - contract-delivery
+  decision_input_ref: decision-input-authorization
+  disposition: adopted
+granularity_profile: boundary-complete
+requirements:
+- id: req-discovery
+  priority: must
+  statement: When an authenticated 2026-07-28 client discovers or lists events, the
+    server shall expose the webhook-only event catalog and schemas with cursor pagination.
+  type: event_driven
+- id: req-subscription
+  priority: must
+  statement: When a verified client subscribes, the server shall authorize identity
+    and arguments, verify a safe HTTPS callback and persist one idempotent expiring
+    subscription; unsubscribe shall be authorized and idempotent.
+  type: event_driven
+- id: req-meaning
+  priority: must
+  statement: When a committed shared-path change affects collaboration work relevant
+    to a subscribed connection, the server shall persist one identifier/revision-only
+    logical event per subscription, collaboration and committed revision.
+  type: event_driven
+- id: req-recovery
+  priority: must
+  statement: When pending deliveries are produced, the transaction shall attempt exactly
+    one durable write-batch wakeup before COMMIT. A confirmed wakeup shall survive
+    process exit and fan out all committed pending rows through bounded invocations
+    and durable continuations, without any later client request. Only precommit wakeup
+    enqueue outage or uncertain enqueue permits conditional recovery on the next authenticated
+    request, including refresh.
+  type: complex
+- id: req-idle
+  priority: must
+  statement: While no delivery or recovery request is outstanding, the service shall
+    run no delivery process, polling, open stream or scheduled sweep, and shall preserve
+    request-based Cloud Run billing.
+  type: state_driven
+- id: req-security
+  priority: must
+  statement: The service shall keep subscription and delivery state user/connection
+    scoped; reject unsafe destinations and redirects; encrypt callback secrets; emit
+    no content, credentials or callback URL in logs.
+  type: ubiquitous
+- id: req-delivery
+  priority: must
+  statement: When sending, the service shall check current subscription lifetime and
+    Gate connection validity, sign exact serialized bytes with fresh attempt timestamp,
+    retry transient failures within bounds and stop on revocation, expiry, unsubscribe,
+    410 or 413.
+  type: complex
+- id: req-integrity
+  priority: must
+  statement: The change shall preserve schemaVersion 2, atomic CAS/receipts/history,
+    identical replay, unknown-outcome recovery and existing resource subscriptions,
+    without starting or approving any work.
+  type: ubiquitous
+units:
+- acceptance:
+  - '[{"id": "witness-wire-lifecycle", "precondition": "Real Node HTTP/MCP server,
+    PostgreSQL and controlled HTTPS callback with a synthetic whsec_ secret.", "stimulus":
+    "Discover, list, subscribe twice with reordered argument keys, vary secret/TTL,
+    wrong echo, timeout; unsubscribe twice and race unsubscribe with verification.",
+    "expected_observables": ["Modern catalog/schema/envelopes correct; one active
+    row and stable ID; bad proof does not activate; exact challenge header/body verified;
+    finite TTL and null replay cursor; stale proof cannot win unsubscribe."], "forbidden_outcomes":
+    ["Activation before proof, duplicate rows, -32027 alias, replay claim, changed
+    action revision."]}]'
+  - '[{"id": "witness-wire-isolation", "precondition": "Two users, same client ID,
+    two connections, and legacy resource subscribers.", "stimulus": "Attempt cross-connection
+    unsubscribe and forged public identity headers; call modern methods through 2025
+    negotiation; refresh with Gate outage.", "expected_observables": ["No foreign
+    row changes; legacy resource streams and modern listen keep baseline behavior;
+    no events advertised to legacy; outage is unknown rather than valid."], "forbidden_outcomes":
+    ["User chosen from arguments, revoked refresh, resource subscription regression."]}]'
+  - '[{"id": "witness-https-guard", "precondition": "Real Node HTTPS adapter with
+    controllable resolver and certificate fixture.", "stimulus": "Return public then
+    private DNS answers, mixed A/AAAA, mapped IPv6, redirect to metadata address,
+    proxy environment, bad TLS, stalled/oversize response.", "expected_observables":
+    ["No socket reaches a nonpublic address; actual connected IP matches validated
+    result; redirects never followed; bounds enforced."], "forbidden_outcomes": ["Validation
+    followed by independent fetch resolution, private reconnect, proxy bypass, sensitive
+    diagnostic logging."]}]'
+  - '[{"id": "witness-signature-bytes", "precondition": "Known synthetic keys and
+    captured exact HTTPS request bytes.", "stimulus": "Challenge, normal send, retry,
+    verified key rotation, invalid base64, payload at size limit and above.", "expected_observables":
+    ["Independent Standard Webhooks verifier accepts exact bytes/header mapping; retry
+    timestamp/signature fresh, body and ID stable; overlap carries both signatures
+    only for 10m; oversize never sent."], "forbidden_outcomes": ["Signing one serialization
+    and sending another, stale timestamp, secret in logs/task/DB plaintext."]}]'
+  - '[{"id": "witness-delivery-status", "precondition": "Pending rows and callback
+    responses 200,410,413,400,408,429,503 and disconnects.", "stimulus": "Deliver
+    concurrently, lose acknowledgment after callback accepts, crash before persisting
+    result, advance injected clock past retry/lifetime bounds.", "expected_observables":
+    ["One admitted concurrent send; stable eventId on possible retry duplicate; no
+    retry after410/413; count/deadline bounds terminal; stopped/delivered rows acknowledge
+    task."], "forbidden_outcomes": ["Fresh ID after unknown result, unbounded retries
+    or sends after observed expiry."]}]'
+  - '[{"id": "witness-delivery-races", "precondition": "Active subscription and delivery,
+    Gate verifier with controllable responses.", "stimulus": "Race unsubscribe/refresh/secret
+    rotation with send admission; revoke Gate before next attempt; make Gate unavailable.",
+    "expected_observables": ["Unsubscribe serializes after admitted send and prevents
+    later sends; new attempt checks current generation/expiry and Gate; invalid stops
+    exact connection; outage no send and no false revocation."], "forbidden_outcomes":
+    ["Post-unsubscribe new admission, stale secret/proof activation, cached Gate approval
+    or cross-connection stop."]}]'
+  - '[{"id": "witness-task-auth", "precondition": "Public Cloud Run-style HTTP surface
+    and synthetic OIDC verifier.", "stimulus": "Invoke internal endpoint with no token,
+    business OAuth, spoofed task headers, wrong audience/account, then valid service
+    token.", "expected_observables": ["Only configured task identity reaches delivery
+    state/adapter."], "forbidden_outcomes": ["Public internal route or Cloud Tasks
+    header treated as authority."]}]'
+  chunk: chunk-core
+  contract_refs:
+  - contract-events-wire
+  - contract-delivery
+  depends_on: []
+  files:
+  - lib/webhook/
+  - lib/adapters/postgres/webhook-store.ts
+  - lib/server/node/webhook-https.ts
+  - lib/mcp/dispatcher.ts
+  - lib/mcp/protocol.ts
+  - db/schema.ts
+  - db/postgres/migrations/
+  - tests/
+  objective: 'Modern-only event catalog, verified idempotent subscribe/refresh and
+    unsubscribe.
+
+    Safe signed webhook delivery with revocation, expiry, concurrency and retry control.'
+  output_format: 'lib/webhook/
+
+    lib/adapters/postgres/webhook-store.ts
+
+    lib/server/node/webhook-https.ts
+
+    lib/mcp/dispatcher.ts
+
+    lib/mcp/protocol.ts
+
+    db/schema.ts
+
+    db/postgres/migrations/
+
+    tests/'
+  task_boundaries: Generic mechanics and subscription wire; worker composition is
+    completed in chunk-integration. Pure decisions use injected readonly inputs; real
+    adapters own effects.
+  title: Implement subscription protocol and generic webhook boundary
+  tool_guidance: '{"contract_refs": ["contract-events-wire", "contract-delivery"],
+    "verification_refs": ["verify-wire-lifecycle", "verify-wire-isolation", "verify-https-guard",
+    "verify-signature-bytes", "verify-delivery-status", "verify-delivery-races", "verify-task-auth"]}'
+- acceptance:
+  - '[{"id": "witness-gate-authority", "precondition": "Gate-side fixture and local
+    Weave adapter using trusted resource credentials; two users/connections/resources.",
+    "stimulus": "Check active, expired, revoked, wrong user/client/resource, browser
+    connection, removed account admission, unauthenticated caller, outage and malformed
+    response.", "expected_observables": ["Only exact authorized OAuth connection returns
+    true; invalid stops exact subscription; unknown prevents send and retains retry
+    state."], "forbidden_outcomes": ["ClientId-only validity, cross-resource enumeration,
+    fail-open outage, positive cache."]}]'
+  chunk: chunk-core
+  contract_refs:
+  - contract-gate
+  depends_on: []
+  files:
+  - lib/server/node/gate-connection.ts
+  - tests/
+  objective: Resource-authenticated online connection-validity boundary and separate
+    Gate handoff.
+  output_format: 'lib/server/node/gate-connection.ts
+
+    tests/'
+  task_boundaries: Local port/adapter and fixture only. Gate service/SDK implementation
+    and release belong to Gate owner, outside repository scope.
+  title: Implement Gate validity adapter against shared contract
+  tool_guidance: '{"contract_refs": ["contract-gate"], "verification_refs": ["verify-gate-authority"]}'
+- acceptance:
+  - Shared-path real PostgreSQL crash/replay/CAS/Undo/user-isolation witnesses pass.
+  - Internal task authority and actual socket destination controls are verified.
+  - No recovery timer or scheduled sweep.
+  chunk: chunk-integration
+  contract_refs:
+  - contract-atomic-wakeup
+  - contract-delivery
+  depends_on:
+  - chunk-core
+  files:
+  - lib/adapters/postgres/action-store.ts
+  - lib/application/ports.ts
+  - lib/server/node/webhook-delivery.ts
+  - lib/server/node/server.ts
+  - lib/server/node/config.ts
+  - infra/
+  - tests/
+  - scripts/testing/
+  objective: 'Domain event selection, atomic write-batch outbox and one precommit
+    wakeup with durable bounded fanout.
+
+    Safe signed webhook delivery with revocation, expiry, concurrency and retry control.'
+  output_format: 'lib/adapters/postgres/action-store.ts
+
+    lib/application/ports.ts
+
+    lib/server/node/webhook-delivery.ts
+
+    lib/server/node/server.ts
+
+    lib/server/node/config.ts
+
+    infra/
+
+    tests/
+
+    scripts/testing/'
+  task_boundaries: '{"in_scope": ["Authenticated 2026-07-28 events methods and collaboration_changed
+    hints", "Subscription and outbox schema, guarded HTTPS, signatures, Cloud Tasks
+    and Gate validity port", "Cross-repository Gate API handoff, migrations and actual-host
+    acceptance obligations", "Narrow AGENTS.md and ARCHITECTURE.md responsibility
+    correction and change-package projections"], "out_of_scope": ["Polling, push,
+    listChanged, gap/terminated, replay history", "AI scheduling, starting or approving
+    work, person notifications", "Changes to action API schemaVersion 2, resource
+    subscriptions or Cloud Run billing", "Gate repository writes or deployment in
+    this invocation; shared package publication"]}'
+  title: Integrate atomic wakeup and authenticated task delivery
+  tool_guidance: '{"contract_refs": ["contract-atomic-wakeup", "contract-delivery"],
+    "verification_refs": ["verify-atomic-selection", "verify-wakeup-crash", "verify-enqueue-outage",
+    "verify-batch-fanout", "verify-https-guard", "verify-signature-bytes", "verify-delivery-status",
+    "verify-delivery-races", "verify-task-auth"]}'
+- acceptance:
+  - pnpm check and pnpm build; existing resource stream/listen baseline and new webhook
+    tests pass without skips.
+  - Actual Gate release, Cloud Tasks OIDC/dedup/retry/crash recovery, Neon and subscribed
+    Work chat acceptance recorded against the same source/artifact/version.
+  - Requirements decision3 is replaced with consultation correction and authorized
+    outage exception; existing unaffected scenarios retained.
+  chunk: chunk-acceptance
+  contract_refs:
+  - contract-events-wire
+  - contract-atomic-wakeup
+  - contract-delivery
+  - contract-gate
+  depends_on:
+  - chunk-integration
+  files:
+  - AGENTS.md
+  - ARCHITECTURE.md
+  - docs/technical/
+  - docs/changes/change-20261030-mcp-events-webhook/
+  - scripts/testing/
+  objective: 'Modern-only event catalog, verified idempotent subscribe/refresh and
+    unsubscribe.
+
+    Domain event selection, atomic write-batch outbox and one precommit wakeup with
+    durable bounded fanout.
+
+    Safe signed webhook delivery with revocation, expiry, concurrency and retry control.
+
+    Resource-authenticated online connection-validity boundary and separate Gate handoff.'
+  output_format: 'AGENTS.md
+
+    ARCHITECTURE.md
+
+    docs/technical/
+
+    docs/changes/change-20261030-mcp-events-webhook/
+
+    scripts/testing/'
+  task_boundaries: '{"in_scope": ["Authenticated 2026-07-28 events methods and collaboration_changed
+    hints", "Subscription and outbox schema, guarded HTTPS, signatures, Cloud Tasks
+    and Gate validity port", "Cross-repository Gate API handoff, migrations and actual-host
+    acceptance obligations", "Narrow AGENTS.md and ARCHITECTURE.md responsibility
+    correction and change-package projections"], "out_of_scope": ["Polling, push,
+    listChanged, gap/terminated, replay history", "AI scheduling, starting or approving
+    work, person notifications", "Changes to action API schemaVersion 2, resource
+    subscriptions or Cloud Run billing", "Gate repository writes or deployment in
+    this invocation; shared package publication"]}'
+  title: Close deployment and host acceptance and materialize governing documents
+  tool_guidance: '{"contract_refs": ["contract-events-wire", "contract-atomic-wakeup",
+    "contract-delivery", "contract-gate"], "verification_refs": ["verify-wire-lifecycle",
+    "verify-wire-isolation", "verify-atomic-selection", "verify-wakeup-crash", "verify-enqueue-outage",
+    "verify-batch-fanout", "verify-https-guard", "verify-signature-bytes", "verify-delivery-status",
+    "verify-delivery-races", "verify-task-auth", "verify-gate-authority"]}'
+version: 2
