@@ -7,7 +7,7 @@ role: verification
 
 # Verification
 
-Local working tree on 2026-10-30, before commit.
+Local working tree on 2026-10-30, verified before commit `c6c85bf`.
 
 ## Commands
 
@@ -36,3 +36,13 @@ Local working tree on 2026-10-30, before commit.
 
 - Deployed Cloud Run/Neon behavior and whether ChatGPT or Codex now stay on 2026-07-28, call subscriptions/listen, render the UI or deliver hints to a model. These require deployment and production log observation.
 - That the 400 seen in production was a 2026-07-28 probe: request bodies were not logged, so this remains an inference from the request pattern.
+
+## Production release
+
+On 2026-10-30, source `c6c85bf`, pushed to main as a fast-forward, was released as revision `weave-api-mcp-c6c85bf` with image `sha256:82cb1823871bb54816a39e6c4100f00b518dffc981e4bb21f573f0d4d6457f51` (Docker Buildx, linux/amd64), replacing `weave-api-nav-10da467`. See the [release evidence](../../evidence/20261030-mcp-stateless-release/release.json).
+
+- No schema or administrative code changed, so no backup or migration ran and the jobs keep their previous image. The no-traffic tagged revision answered liveness and readiness with 200 before receiving 100% of traffic; the tag was removed.
+- Public checks after the switch: readiness 200, an untrusted-origin preflight 403, the SPA-origin preflight 204 with its exact origin and credentials, protected-resource metadata 200 and an unauthenticated session 401. MCP with an invalid bearer returned 401 for a legacy tools/list and for a 2026-07-28 server/discover, the latter with the protected-resource metadata challenge, so authentication still precedes era handling. The revision logged nothing above the probes' expected 4xx, and the two MCP lines carried the new method, version and error fields.
+- The static SPA was not redeployed: every built file has the same hash as the published release.
+
+Not verified in production: an authenticated 2026-07-28 tool call and listen stream; whether ChatGPT and Codex now stay on 2026-07-28, stop receiving the per-call 400 or call subscriptions/listen; ChatGPT widget rendering under the new era. No ChatGPT request had reached the revision when this was recorded. The nightly backup is still blocked until the backup role can read `state.client_names`.

@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-30",
+  "changes": [
+    "change-20261030-mcp-stateless-protocol"
+  ],
+  "source": {
+    "commit": "c6c85bf7e125279eb8065070bea1d738362f464d",
+    "cleanWorktree": true
+  },
+  "checks": {
+    "pnpmCheck": {
+      "tests": 677,
+      "passed": 677,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "lint": "passed",
+      "typecheck": "passed"
+    },
+    "pnpmBuild": "passed",
+    "testNodeBuilt": "passed, including mcp_modern"
+  },
+  "api": {
+    "image": "sha256:82cb1823871bb54816a39e6c4100f00b518dffc981e4bb21f573f0d4d6457f51",
+    "imageBuild": "Docker Buildx, linux/amd64",
+    "previousRevision": "weave-api-nav-10da467",
+    "revision": "weave-api-mcp-c6c85bf",
+    "traffic": "100% after a no-traffic tagged liveness and readiness probe (both 200); tag removed",
+    "jobs": "no schema or administrative change; migrator and backup jobs were neither run nor updated and keep the dc0b0ef image",
+    "publicChecks": {
+      "healthReady": 200,
+      "mcpLegacyInvalidBearer": "401 after 0.5 s",
+      "mcpModernDiscoverInvalidBearer": "401 with the protected-resource metadata challenge after 0.3 s",
+      "untrustedOriginPreflight": 403,
+      "spaOriginPreflight": "204 with exact origin and credentials",
+      "protectedResourceMetadata": 200,
+      "unauthenticatedSession": 401
+    },
+    "revisionLogs": "warnings only for the probes' expected 401 and 403; the two MCP probe lines carry the new fields (method, version 2026-07-28 for the modern probe, error unauthenticated)"
+  },
+  "spa": {
+    "deployed": false,
+    "reason": "all six built SPA files have the same SHA-256 as the published 10da467 release; the static host keeps version 89402f96-cc2f-48ea-8184-dbc372a09ba9"
+  },
+  "unverified": [
+    "Whether ChatGPT and Codex now stay on 2026-07-28, stop receiving the per-call 400, call subscriptions/listen or deliver hints to a model; no openai-mcp request had reached the revision when this record was written",
+    "ChatGPT widget rendering and tool calls under the 2026-07-28 era",
+    "An authenticated 2026-07-28 tool call and listen stream against the hosted service",
+    "Nightly backup (still blocked until the backup role can read state.client_names)"
+  ]
+}
