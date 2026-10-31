@@ -10,6 +10,7 @@ import {
 
 export interface ListGesturePorts {
   readonly scroller: HTMLElement;
+  readonly settled?: () => void;
   readonly showPull: (distance: number) => void;
   readonly clearPull: () => void;
   readonly allowed: () => boolean;
@@ -114,7 +115,7 @@ export function installListGesture(document: Document, window: Window, ports: Li
         return;
       }
     }
-    if (state.phase === 'idle') { activeRow = null; activeSource = null; activeContactId = null; }
+    if (state.phase === 'idle') { activeRow = null; activeSource = null; activeContactId = null; ports.settled?.(); }
   }
 
   function rowFor(target: Element): {row: ListGestureRow | null; element: HTMLElement | null} {
@@ -260,6 +261,7 @@ export function installListGesture(document: Document, window: Window, ports: Li
 
   return {
     cancel,
+    get active() { return state.phase !== 'idle' && state.phase !== 'scroll'; },
     get stableRows() { return state.phase === 'swipe' || state.phase === 'held' || state.phase === 'move'; },
     dispose() {
       if (disposed) return;

@@ -5,7 +5,6 @@ export interface RefreshPorts {
   readonly isIdle: () => boolean;
   readonly onIdle: (listener: () => void) => () => void;
   readonly schedule: (callback: () => void) => void;
-  readonly publish: (message: string) => void;
   readonly stateChanged?: (state: RefreshState) => void;
 }
 
@@ -23,11 +22,10 @@ export function createRefreshCoordinator(ports: RefreshPorts) {
   function flush(): Promise<void> {
     if (disposed || !started || !pending || running || !ports.isIdle()) return running ?? Promise.resolve();
     pending = false;
-    ports.publish('Refreshing…');
     ports.stateChanged?.('refreshing');
     running = Promise.resolve().then(ports.read).then(
-      () => { if (!disposed) ports.publish('Up to date.'); },
-      () => { if (!disposed) ports.publish('Could not refresh. Your input is retained. Pull down or use Refresh to retry.'); },
+      () => {},
+      () => {},
     ).finally(() => {
       running = null;
       if (!disposed) ports.stateChanged?.('idle');

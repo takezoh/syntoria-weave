@@ -13,7 +13,16 @@ export interface UiResult {
 }
 export interface UiSnapshot {revision:number;actions:DraftAction[];result?:UiResult;[key:string]:unknown}
 export interface UiPreview {expectedRevision:number;kind:string;payload:Record<string,unknown>;[key:string]:unknown}
+export type ReadStatus = 'idle'|'refreshing'|'ready'|'error';
+export interface FeedbackTarget {kind:'action'|'project'|'tag';id:string}
+export interface OperationNotice {id:number;text:string;undoOf:string|null;target:FeedbackTarget|null}
+export interface AdvisoryNotice {id:number;kind:'info'|'error'|'verification';text:string;target:FeedbackTarget|null}
 export interface UiState {
+ readStatus:ReadStatus;
+ operationNotice:OperationNotice|null;
+ advisoryNotice:AdvisoryNotice|null;
+ pendingUndo:string|null;
+ recoveryOpen:boolean;
  collaborationEdits:Record<string,{version:number;proposal:CollaborationProposal}>;
  collaborationOutcomes:Record<string,string>;
  collaborationDrafts:Record<string,string>;

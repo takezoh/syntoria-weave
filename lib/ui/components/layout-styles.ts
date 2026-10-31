@@ -16,9 +16,9 @@ main>header{position:relative;z-index:20;display:flex;flex:0 0 auto;align-items:
 .view-rail button{flex-shrink:0;justify-content:flex-start;gap:10px;min-width:0;min-height:40px;width:100%;height:auto;padding:8px 12px;color:var(--fg);font-weight:500;white-space:normal;overflow-wrap:anywhere;text-align:left}
 .view-rail button svg{width:18px;height:18px;color:var(--muted)}
 .rail-label{flex:1;min-width:0;text-align:left;overflow-wrap:anywhere}
-.rail-functions{display:grid;grid-template-columns:repeat(4,40px);gap:4px;flex:none}
-.rail-functions button,.view-rail .rail-sign-out{position:relative;justify-content:center;width:40px;min-width:40px;height:40px;padding:0}
-.rail-functions .rail-label,.rail-sign-out .rail-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.rail-functions{display:flex;flex-direction:column;gap:4px;flex:none}
+.rail-functions button,.view-rail .rail-sign-out{position:relative;justify-content:flex-start;width:100%;min-width:0;min-height:40px;height:auto;padding:8px 12px}
+.rail-functions .rail-label,.rail-sign-out .rail-label{position:static;width:auto;height:auto;overflow:visible;white-space:normal}
 .rail-perspectives{flex:none;margin-top:10px;padding-top:6px;border-top:1px solid var(--line);min-width:0}
 .rail-perspectives>p{padding:0 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 #railPerspectiveButtons{display:grid;gap:2px;min-width:0}
@@ -34,9 +34,18 @@ main>header{position:relative;z-index:20;display:flex;flex:0 0 auto;align-items:
 .catalog-toolbar .editor-title{flex:1;min-width:0;margin:0;justify-content:space-between}
 #backToList,#catalogBack{display:none}
 #closeEditor{color:var(--muted)}
-.app-footer{flex:0 0 auto;max-height:30dvh;overflow-y:auto;padding:0 24px;background:var(--surface);border-top:1px solid var(--line)}
-.app-footer .feedback{margin:0;min-height:36px}
-.app-footer #retained,.app-footer #unknown{margin:4px 0}
+.feedback-host:empty{display:none}
+.contextual-feedback{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;overflow-wrap:anywhere;background:var(--surface);font-size:12px}
+.contextual-feedback p{margin:0 0 6px}
+#operationNotice,#advisoryNotice{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 10px}
+#operationNotice>p,#advisoryNotice>p{flex:1 1 10ch;min-width:0;margin:0}
+#operationNotice .icon-button,#advisoryNotice .icon-button{flex:0 0 36px;width:36px;padding:6px}
+.contextual-feedback button{min-height:36px;padding:6px 8px}
+#operationFailure,#unknown{border-color:var(--warning);color:var(--warning)}
+#retained{display:grid;gap:4px;margin:0;padding:0;border:0}
+#retained button{justify-content:flex-start;text-align:left;white-space:normal;overflow-wrap:anywhere}
+#localSaveFeedback{color:var(--muted);border:0;padding:0}
+#refresh[data-state="refreshing"]>svg{animation:save-spin 1s linear infinite}
 @media(max-width:1100px){
 .workspace,.workspace.has-editor{grid-template-columns:208px minmax(0,1fr)}
 .workspace.has-editor{grid-template-columns:208px minmax(0,1fr) 340px}
@@ -61,7 +70,5 @@ main>header{min-height:58px;padding:10px 16px}
 #catalogBack{display:inline-flex;flex:none;margin:0 4px 0 0;padding:0 8px;color:var(--fg)}
 .catalog-toolbar .editor-title{justify-content:flex-end}
 #closeEditor{display:none}
-.app-footer{padding:0 16px}
-.app-footer .feedback{min-height:32px;font-size:11px}
 }
 `;

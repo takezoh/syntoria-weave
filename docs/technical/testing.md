@@ -64,3 +64,9 @@ The harness uses the actual Gate `oidc-provider` service and Firestore storage, 
 Local authorization state uses Node's SQLite support in an explicitly configured private directory. This storage contains only the consumer's OAuth state; it is not a business-data database or a backend-selection mechanism. Transaction tests establish cross-process serialization and generation protection; D1 tests separately establish the retained standalone adapter contract. Production business persistence remains PostgreSQL.
 
 `tests/postgres/application-user-scope.test.mjs` runs fresh and historical schema upgrades as a schema owner with NOSUPERUSER/NOBYPASSRLS, checks removal of row policies and preserves existing journal entries and exact Unicode history. All ordinary PostgreSQL and HTTP/MCP tests run against RLS-disabled tables. Same-ID cross-user tests exercise reads, receipts, updates, deletion and change feeds through the bound application store; raw database credentials are not an end-user interface.
+
+## Contextual feedback witnesses
+
+`tests/ui/feedback.test.mjs` covers independent read/save/operation provenance, Action and Catalog recovery, stale notice dismissal, pending and failed Undo, exact unknown Undo replay and narrow/wide target placement. `tests/ui/dom.test.mjs` covers generated-resource inline recovery, explicit untimed dismissal, catalog drafts across mobile navigation, unchanged composition nodes and deferred feedback geometry during a claimed swipe. The former save-status aggregation tests are replaced by the typed feedback contract; refresh coordinator tests assert lane transitions while controller tests own read results.
+
+Browser geometry, native scrolling and pull checks must use the same built widget as the source under evaluation. Simulated DOM and local Chromium do not establish physical iOS or authenticated deployed-host behavior.
