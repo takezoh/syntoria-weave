@@ -91,6 +91,7 @@ export interface InspectorPanelProps {
   readonly elements: InspectorPanelElements;
   readonly action: ActionDetailsProps | null;
   readonly catalog: CatalogDetailsProps | null;
+  readonly detailVisible: boolean;
 }
 
 function button(
@@ -242,7 +243,7 @@ export function InspectorPanel(props: InspectorPanelProps): void {
   elements.actionPanel.hidden = !action;
   elements.catalogPanel.hidden = !catalog;
   elements.placeholder.hidden = active;
-  elements.workspace.classList.toggle('has-editor', active);
+  elements.workspace.classList.toggle('has-editor', props.detailVisible);
   if (action) ActionDetails(action);
   if (catalog) CatalogDetails(catalog);
 }

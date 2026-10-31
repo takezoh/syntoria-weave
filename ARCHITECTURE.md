@@ -44,6 +44,8 @@ flowchart LR
 
 Pure code is deterministic and does not mutate inputs. DB, HTTP, DOM, host communication, clock and IDs are injected effects. UI components consume readonly models and explicit callbacks; rendering does not initialize or mutate application state. UI never connects directly to the database. HTTP and MCP share transitions and user-bound persistence. Verified identity binds every business SQL query to an explicit user; PostgreSQL RLS and connection-local identity settings are not used. Caller text is data, never executable policy or authorization.
 
+The shared UI's global Search is a local projection of the complete confirmed Action snapshot plus retained visible title/Notes drafts. Its pure matcher performs literal NFKC, case-insensitive substring matching, returning unique flat rows in canonical Action order across every lifecycle and Defer state. It does not search metadata/catalog/collaboration records or add a backend operation. The controller owns query, return-navigation and narrow-layout Detail state; the DOM owns input composition and focus.
+
 A consumer reads current state before reconciling its context. Saved changes do not automatically update a caller LLM's context. Complete reads return a user-wide revision; filtered selections are not bootstrap snapshots. Perspectives are extraction definitions, not an independent management engine.
 
 Operational topology, database guarantees and release requirements are defined in [infrastructure](docs/technical/infrastructure.md), [data model](docs/technical/data-model.md) and [deployment](docs/technical/deployment.md).

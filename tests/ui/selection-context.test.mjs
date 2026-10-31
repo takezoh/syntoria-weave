@@ -63,3 +63,10 @@ test('visible pruning follows the current outline order and retains active separ
  const visible=interactionTransition(state,{type:'occurrence.visible',entries:rows});
  assert.deepEqual(visible.selection.keys,rows.map(row=>row.key));assert.deepEqual(visible.selection.occurrences.map(row=>row.key),rows.map(row=>row.key));assert.equal(visible.selection.activeOccurrence.id,otherActionId);
 });
+
+test('Search context reports only its view and visible explicit occurrences, never the raw query or drafts',()=>{
+ const selection={keys:['action:'+actionId],ids:[actionId],occurrences:[{key:'action:'+actionId,kind:'action',id:actionId}],anchor:null,active:'action:'+actionId,activeOccurrence:{key:'action:'+actionId,kind:'action',id:actionId}},search={...navigation,view:'search',classificationId:'all',perspectiveId:null,searchQuery:'private notes'};
+ const context=projectSelectionContext({instanceId:'widget-instance',contextVersion:2,snapshot,navigation:search,selection,activeOccurrence:selection.activeOccurrence});
+ assert.deepEqual(context.view,{kind:'search',classificationId:null,perspectiveId:null});assert.deepEqual(context.selected.map(item=>item.id),[actionId]);
+ const encoded=JSON.stringify(context);assert.equal(encoded.includes('private notes'),false);assert.equal(encoded.includes('private project description'),false);assert.equal(encoded.includes('private notes'),false);
+});

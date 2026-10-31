@@ -1,0 +1,723 @@
+{
+  "mode": "explore",
+  "goal": "Find an Action from remembered human-facing text without knowing its current location or lifecycle, and continue inspecting/editing it without losing work.",
+  "target_users": [
+    "Authenticated people using shared desktop or narrow embedded/web UI"
+  ],
+  "user_goals": [
+    {
+      "id": "goal-find-action",
+      "actor": "Person",
+      "context": "Remembers title or note text but not view, classification or lifecycle",
+      "desired_outcome": "Find and open the matching Action",
+      "success_observation": "A matching deferred, completed or dropped Action can be opened directly from search."
+    },
+    {
+      "id": "goal-retain-work",
+      "actor": "Person",
+      "context": "Has unsaved edits or an unknown write outcome when searching",
+      "desired_outcome": "Locate another Action while preserving exact work and recovery",
+      "success_observation": "Returning preserves raw draft fields and recovery reuses the same request."
+    }
+  ],
+  "confirmed_constraints": [
+    {
+      "id": "constraint-visual",
+      "statement": "Icon-first compact controls, named native input/buttons, hidden caller metadata, separate mobile List and Detail.",
+      "provenance": {
+        "source": "repository_evidence",
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "docs/design/design-ui-visual-policy.md"
+        ],
+        "rationale": "Observed current contract; preserve during search."
+      }
+    },
+    {
+      "id": "constraint-state",
+      "statement": "Search must preserve drafts, refresh merging, conflict feedback and exact unknown request identity; search itself is read-only.",
+      "provenance": {
+        "source": "repository_evidence",
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "lib/ui/application/controller.ts",
+          "docs/technical/ui-architecture.md"
+        ],
+        "rationale": "Observed current contract; preserve during search."
+      }
+    },
+    {
+      "id": "constraint-owner",
+      "statement": "Pure matching/projection and interaction decisions belong to model; orchestration to controller; DOM/focus/IME to effects; renderer only consumes readonly data.",
+      "provenance": {
+        "source": "repository_evidence",
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "docs/technical/ui-architecture.md"
+        ],
+        "rationale": "Observed current contract; preserve during search."
+      }
+    }
+  ],
+  "existing_system_context": [
+    {
+      "id": "context-snapshot",
+      "statement": "UI has a complete authenticated user snapshot; navigation currently exposes Inbox, Collaboration, Flagged, catalog trees, history, Changes and saved perspectives, but no Action text search.",
+      "provenance": {
+        "source": "repository_evidence",
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "lib/ui/model/navigation.ts",
+          "docs/technical/mcp-api.md"
+        ],
+        "rationale": "Observed current contract; preserve during search."
+      }
+    },
+    {
+      "id": "context-query",
+      "statement": "Perspective query supports structured classification/lifecycle predicates and sorting, not text matching. Existing Project/Tag picker fuzzy search ranks catalog names only and is not an Action query contract.",
+      "provenance": {
+        "source": "repository_evidence",
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "lib/domain/perspective-query.ts",
+          "lib/ui/model/picker.ts"
+        ],
+        "rationale": "Observed current contract; preserve during search."
+      }
+    },
+    {
+      "id": "context-overlay",
+      "statement": "Controller projects drafts/transient creation separately from confirmed snapshot and retains unknown writes privately.",
+      "provenance": {
+        "source": "repository_evidence",
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "lib/ui/application/controller.ts"
+        ],
+        "rationale": "Observed current contract; preserve during search."
+      }
+    }
+  ],
+  "product_assumptions": [
+    {
+      "id": "assumption-verification-1",
+      "statement": "Can representative large snapshots keep typing, IME composition and result focus responsive? Measure in browser; if not, revise projection caching/indexing before proposing new API or arbitrary result truncation.",
+      "validation": "Can representative large snapshots keep typing, IME composition and result focus responsive? Measure in browser; if not, revise projection caching/indexing before proposing new API or arbitrary result truncation.",
+      "invalidation_behavior": "Do not claim acceptance when this observation fails or is unverified. Correct the owning projection, interaction or recovery responsibility and repeat the relevant verification; seek a new product decision only if meeting the selected default requires changing its observable meaning.",
+      "decision_refs": [
+        "DP-MATCH",
+        "DP-ORDER"
+      ],
+      "provenance": {
+        "source": "proposed_for_validation",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "docs/technical/ui-architecture.md",
+          "lib/ui/application/controller.ts"
+        ],
+        "rationale": "This is a verification obligation for the selected defaults, not an unanswered user consultation question."
+      }
+    },
+    {
+      "id": "assumption-verification-2",
+      "statement": "Does narrow-host and assistive technology acceptance confirm discoverable Search, announced count/empty state, stable input caret and return focus?",
+      "validation": "Does narrow-host and assistive technology acceptance confirm discoverable Search, announced count/empty state, stable input caret and return focus?",
+      "invalidation_behavior": "Do not claim acceptance when this observation fails or is unverified. Correct the owning projection, interaction or recovery responsibility and repeat the relevant verification; seek a new product decision only if meeting the selected default requires changing its observable meaning.",
+      "decision_refs": [
+        "DP-ENTRY"
+      ],
+      "provenance": {
+        "source": "proposed_for_validation",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "docs/technical/ui-architecture.md",
+          "lib/ui/application/controller.ts"
+        ],
+        "rationale": "This is a verification obligation for the selected defaults, not an unanswered user consultation question."
+      }
+    },
+    {
+      "id": "assumption-verification-3",
+      "statement": "Do application and DOM tests show exact drafts and unknown requests survive row disappearance, refresh, navigation and input composition? Failure blocks acceptance; do not weaken retention.",
+      "validation": "Do application and DOM tests show exact drafts and unknown requests survive row disappearance, refresh, navigation and input composition? Failure blocks acceptance; do not weaken retention.",
+      "invalidation_behavior": "Do not claim acceptance when this observation fails or is unverified. Correct the owning projection, interaction or recovery responsibility and repeat the relevant verification; seek a new product decision only if meeting the selected default requires changing its observable meaning.",
+      "decision_refs": [
+        "DP-DRAFT"
+      ],
+      "provenance": {
+        "source": "proposed_for_validation",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "docs/technical/ui-architecture.md",
+          "lib/ui/application/controller.ts"
+        ],
+        "rationale": "This is a verification obligation for the selected defaults, not an unanswered user consultation question."
+      }
+    }
+  ],
+  "design_hypotheses": [
+    {
+      "id": "hypothesis-local",
+      "statement": "A pure snapshot projection is sufficient for initial search and avoids a second HTTP/query consistency path; assess actual representative dataset response time before claiming scale.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "lib/ui/model/navigation.ts",
+          "lib/ui/application/controller.ts"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    }
+  ],
+  "technology_candidates": [
+    {
+      "id": "candidate-snapshot",
+      "candidate": "Pure local Action text projection from existing UI snapshot",
+      "source": "repository_context",
+      "proposed_for": [
+        "Search matching and stable result identity"
+      ],
+      "required_capabilities": [
+        "All user Actions including notes available",
+        "Deterministic Unicode case/width normalization",
+        "Pure function without input mutation"
+      ],
+      "ux_constraints_relevant_to_evaluation": [
+        "Draft retention",
+        "No new unknown network read state per keystroke",
+        "IME-safe input"
+      ],
+      "design_questions": [
+        "Confirmed versus draft-overlay projection boundary",
+        "Selection-context and movement rules for flat filtered results",
+        "Embedding new factory into generated shared resource"
+      ],
+      "disqualifiers": [
+        "Metadata can influence results",
+        "Mutates action state",
+        "Cannot preserve exact unknown request"
+      ]
+    }
+  ],
+  "decision_points": [
+    {
+      "id": "DP-SCOPE",
+      "decision_key": "search-scope",
+      "question": "Search which records?",
+      "layer": "product",
+      "subject": "default",
+      "consultation_policy": "may_default",
+      "contract_effect": "default",
+      "answer_status": "defaulted",
+      "validation_status": "not_applicable",
+      "options": [
+        {
+          "id": "OPT-SCOPE-A",
+          "label": "Recommended default",
+          "outcome": "Global title and notes across every Action including deferred/completed/dropped; exclude Project/Tag records, metadata, collaboration records and hidden IDs."
+        },
+        {
+          "id": "OPT-SCOPE-B",
+          "label": "Alternative",
+          "outcome": "Current view Actions only"
+        }
+      ],
+      "selected_option_ref": "OPT-SCOPE-A",
+      "user_impact": [
+        "Global title and notes across every Action including deferred/completed/dropped; exclude Project/Tag records, metadata, collaboration records and hidden IDs."
+      ],
+      "affected_refs": [
+        "goal-find-action",
+        "goal-retain-work"
+      ],
+      "recommendation": {
+        "option_ref": "OPT-SCOPE-A",
+        "basis": "planner_judgment",
+        "evidence_refs": [
+          "lib/ui/model/navigation.ts",
+          "lib/ui/application/controller.ts",
+          "docs/design/design-ui-visual-policy.md"
+        ],
+        "confidence": "medium",
+        "reversibility": "easy"
+      },
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "id": "DP-MATCH",
+      "decision_key": "text-match",
+      "question": "How does query text match?",
+      "layer": "product",
+      "subject": "default",
+      "consultation_policy": "may_default",
+      "contract_effect": "default",
+      "answer_status": "defaulted",
+      "validation_status": "not_applicable",
+      "options": [
+        {
+          "id": "OPT-MATCH-A",
+          "label": "Recommended default",
+          "outcome": "Trim query edges, apply Unicode NFKC and lowercase to query and each field, and match the whole normalized query as a literal contiguous substring within title OR notes. Empty/whitespace query shows no search results. No token operators, fuzzy, accent folding or cross-field concatenation."
+        },
+        {
+          "id": "OPT-MATCH-B",
+          "label": "Alternative",
+          "outcome": "Tokenized fuzzy matching"
+        }
+      ],
+      "selected_option_ref": "OPT-MATCH-A",
+      "user_impact": [
+        "Trim query edges, apply Unicode NFKC and lowercase to query and each field, and match the whole normalized query as a literal contiguous substring within title OR notes. Empty/whitespace query shows no search results. No token operators, fuzzy, accent folding or cross-field concatenation."
+      ],
+      "affected_refs": [
+        "goal-find-action",
+        "goal-retain-work"
+      ],
+      "recommendation": {
+        "option_ref": "OPT-MATCH-A",
+        "basis": "planner_judgment",
+        "evidence_refs": [
+          "lib/ui/model/navigation.ts",
+          "lib/ui/application/controller.ts",
+          "docs/design/design-ui-visual-policy.md"
+        ],
+        "confidence": "medium",
+        "reversibility": "easy"
+      },
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "id": "DP-ORDER",
+      "decision_key": "result-order",
+      "question": "How are matches ordered?",
+      "layer": "product",
+      "subject": "default",
+      "consultation_policy": "may_default",
+      "contract_effect": "default",
+      "answer_status": "defaulted",
+      "validation_status": "not_applicable",
+      "options": [
+        {
+          "id": "OPT-ORDER-A",
+          "label": "Recommended default",
+          "outcome": "Unique flat Action rows in existing canonical action-tree order, without inserting nonmatching parents. Keep existing state badges and parent/catalog context."
+        },
+        {
+          "id": "OPT-ORDER-B",
+          "label": "Alternative",
+          "outcome": "Relevance-ranked matches"
+        }
+      ],
+      "selected_option_ref": "OPT-ORDER-A",
+      "user_impact": [
+        "Unique flat Action rows in existing canonical action-tree order, without inserting nonmatching parents. Keep existing state badges and parent/catalog context."
+      ],
+      "affected_refs": [
+        "goal-find-action",
+        "goal-retain-work"
+      ],
+      "recommendation": {
+        "option_ref": "OPT-ORDER-A",
+        "basis": "planner_judgment",
+        "evidence_refs": [
+          "lib/ui/model/navigation.ts",
+          "lib/ui/application/controller.ts",
+          "docs/design/design-ui-visual-policy.md"
+        ],
+        "confidence": "medium",
+        "reversibility": "easy"
+      },
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "id": "DP-ENTRY",
+      "decision_key": "search-entry",
+      "question": "How is search reached and exited?",
+      "layer": "interaction",
+      "subject": "default",
+      "consultation_policy": "may_default",
+      "contract_effect": "default",
+      "answer_status": "defaulted",
+      "validation_status": "not_applicable",
+      "options": [
+        {
+          "id": "OPT-ENTRY-A",
+          "label": "Recommended default",
+          "outcome": "Visible header magnifier with accessible Search name and tooltip opens/focuses named search input; icon clear empties query; Escape closes search when not composing and returns focus to Search; selecting navigation exits to that destination. Close restores previous navigation settings."
+        },
+        {
+          "id": "OPT-ENTRY-B",
+          "label": "Alternative",
+          "outcome": "Permanent input filtering current list"
+        }
+      ],
+      "selected_option_ref": "OPT-ENTRY-A",
+      "user_impact": [
+        "Visible header magnifier with accessible Search name and tooltip opens/focuses named search input; icon clear empties query; Escape closes search when not composing and returns focus to Search; selecting navigation exits to that destination. Close restores previous navigation settings."
+      ],
+      "affected_refs": [
+        "goal-find-action",
+        "goal-retain-work"
+      ],
+      "recommendation": {
+        "option_ref": "OPT-ENTRY-A",
+        "basis": "planner_judgment",
+        "evidence_refs": [
+          "lib/ui/model/navigation.ts",
+          "lib/ui/application/controller.ts",
+          "docs/design/design-ui-visual-policy.md"
+        ],
+        "confidence": "medium",
+        "reversibility": "easy"
+      },
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "id": "DP-DRAFT",
+      "decision_key": "draft-search",
+      "question": "Do unsaved values participate?",
+      "layer": "product",
+      "subject": "default",
+      "consultation_policy": "may_default",
+      "contract_effect": "default",
+      "answer_status": "defaulted",
+      "validation_status": "not_applicable",
+      "options": [
+        {
+          "id": "OPT-DRAFT-A",
+          "label": "Recommended default",
+          "outcome": "Match visible title/notes draft overlays and local nonempty Action proposals as the user currently sees them; invalid raw drafts stay intact. Existing inspector remains reachable when its edited row stops matching."
+        },
+        {
+          "id": "OPT-DRAFT-B",
+          "label": "Alternative",
+          "outcome": "Match only confirmed persisted text"
+        }
+      ],
+      "selected_option_ref": "OPT-DRAFT-A",
+      "user_impact": [
+        "Match visible title/notes draft overlays and local nonempty Action proposals as the user currently sees them; invalid raw drafts stay intact. Existing inspector remains reachable when its edited row stops matching."
+      ],
+      "affected_refs": [
+        "goal-find-action",
+        "goal-retain-work"
+      ],
+      "recommendation": {
+        "option_ref": "OPT-DRAFT-A",
+        "basis": "planner_judgment",
+        "evidence_refs": [
+          "lib/ui/model/navigation.ts",
+          "lib/ui/application/controller.ts",
+          "docs/design/design-ui-visual-policy.md"
+        ],
+        "confidence": "medium",
+        "reversibility": "easy"
+      },
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    }
+  ],
+  "critique_resolutions": [],
+  "ux_alternatives": [
+    {
+      "id": "ALT-GLOBAL",
+      "primary_entry": "Header Search icon opens a compact search input and dedicated flat result list",
+      "summary": "Global discovery across all lifecycle/defer states; clear/close restores previous navigation.",
+      "structural_dimensions": [
+        "Scope independent of current view",
+        "Flat unique Action results",
+        "Existing snapshot projection"
+      ],
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "id": "ALT-CONTEXT",
+      "primary_entry": "Search input filters current navigation result",
+      "summary": "Preserves current grouping and filters but cannot find an Action hidden by current lifecycle, classification or perspective.",
+      "structural_dimensions": [
+        "Scope limited by selected view",
+        "Current tree/ordering",
+        "Existing snapshot projection"
+      ],
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "id": "ALT-REMOTE",
+      "primary_entry": "Dedicated global search route with server query and pending/error state",
+      "summary": "Supports independently scalable search but adds query API, request ordering and stale-response recovery despite already loaded complete snapshot.",
+      "structural_dimensions": [
+        "Server query",
+        "Asynchronous results",
+        "New query contract"
+      ],
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    }
+  ],
+  "alternative_comparison": {
+    "candidates": [
+      {
+        "alternative_ref": "ALT-GLOBAL",
+        "source_draft": "draft-1",
+        "disposition": "selected",
+        "rationale": [
+          "Global discovery across all lifecycle/defer states; clear/close restores previous navigation.",
+          "Global local search best fits uncertain location without adding a second data source."
+        ]
+      },
+      {
+        "alternative_ref": "ALT-CONTEXT",
+        "source_draft": "draft-2",
+        "disposition": "deferred",
+        "rationale": [
+          "Preserves current grouping and filters but cannot find an Action hidden by current lifecycle, classification or perspective.",
+          "Retain as future option only if demonstrated user need or dataset evidence justifies it."
+        ]
+      },
+      {
+        "alternative_ref": "ALT-REMOTE",
+        "source_draft": "draft-3",
+        "disposition": "deferred",
+        "rationale": [
+          "Supports independently scalable search but adds query API, request ordering and stale-response recovery despite already loaded complete snapshot.",
+          "Retain as future option only if demonstrated user need or dataset evidence justifies it."
+        ]
+      }
+    ],
+    "selected_ref": "ALT-GLOBAL",
+    "approval": "confirmed",
+    "approved_by_user": true,
+    "approval_provenance": {
+      "source": "user_consultation",
+      "confidence": "confirmed",
+      "evidence_refs": [
+        "ux.md"
+      ],
+      "rationale": "The user explicitly replied 承認 to the proposed global Action title/Notes search on 2026-10-31."
+    }
+  },
+  "recommended_direction": [
+    {
+      "statement": "Global title and notes across every Action including deferred/completed/dropped; exclude Project/Tag records, metadata, collaboration records and hidden IDs.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "statement": "Trim query edges, apply Unicode NFKC and lowercase to query and each field, and match the whole normalized query as a literal contiguous substring within title OR notes. Empty/whitespace query shows no search results. No token operators, fuzzy, accent folding or cross-field concatenation.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "statement": "Unique flat Action rows in existing canonical action-tree order, without inserting nonmatching parents. Keep existing state badges and parent/catalog context.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "statement": "Visible header magnifier with accessible Search name and tooltip opens/focuses named search input; icon clear empties query; Escape closes search when not composing and returns focus to Search; selecting navigation exits to that destination. Close restores previous navigation settings.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "statement": "Match visible title/notes draft overlays and local nonempty Action proposals as the user currently sees them; invalid raw drafts stay intact. Existing inspector remains reachable when its edited row stops matching.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Recommended reversible default within requested search scope."
+      }
+    },
+    {
+      "statement": "UAC-001: Given Inbox hides a deferred Action and history contains completed/dropped Actions, when searching a literal found in their title or notes, then all matching records appear once with correct lifecycle/defer cues; a nonmatching parent and metadata-only match do not appear.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-002: Given title contains ＡＢＣ and notes contain Mixed Case, when searching abc or mixed case with outer spaces, then the respective Action matches; whitespace-only query yields no results. A literal punctuation query is not interpreted as regex/operators; matches do not span title/notes boundaries.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-003: Given a nondefault Project/Tag/perspective selection and display choices, when opening search, typing, opening a result and returning from narrow Detail, then the query/result context survives; closing search restores the previous view and choices, with drafts intact.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-004: Given an unsaved raw title/notes/date, catalog draft or collaboration proposal/feedback, when searching, clearing, selecting another result or navigating away/back, then those exact values remain. A title edit may remove its row from matches, but the open editor remains reachable and its text is not discarded.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-005: Given an unknown write and its exact request, when entering search and receiving a host refresh, then recovery remains visible/reachable, no duplicate write is created, and lookup/replay retains operation ID and exact arguments. Search never clears conflicts, proposals or recovery-required state.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-006: Given keyboard/screen-reader use, when activating Search then entering text, then focus reaches a named input and result availability is announced without moving focus on every keystroke. Clear and close have accessible names; result activation opens existing Detail; Escape during IME composition does not close or commit composition.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-007: Given no matches, then a short No results state distinguishes empty results from stale/loading/failure. Given initial load or refresh failure, then the existing error/retry and retained snapshot remain visible and the query is retained; unavailable snapshot is never announced as a successful zero match.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-008: Given matching actions in multiple Tag occurrences, then search lists each Action once in canonical order, and opening/selecting it targets that Action. Filtered result selection must not claim invisible rows are selected or allow ambiguous drop destinations.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-009: Given refresh changes persisted text or status, then current query reapplies to the latest accepted snapshot plus retained drafts; stale refresh does not replace newer state, and no lifecycle/date/order/revision changes occur solely from search.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    },
+    {
+      "statement": "UAC-010: Given compact desktop and narrow touch layouts, then Search/input/clear fit the existing toolbar and available width, existing save/recovery remains reachable, input does not create horizontal overflow, and mobile Detail remains a separate page.",
+      "provenance": {
+        "source": "planner_proposal",
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Proposed discriminating acceptance for main-session specification and implementation; not historical user approval."
+      }
+    }
+  ],
+  "validation_questions": []
+}

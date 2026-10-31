@@ -8,6 +8,8 @@ export interface CatalogContext {type:'project'|'tag';target:string|null;parentI
 export interface CatalogSubmission {type:'project'|'tag';target:string|null;parentId?:string|null;name:string;contextToken:number|null;navigation:string;direct?:boolean;selectionVersion?:number}
 export interface InteractionViewState {
  navigation:NavigationState;
+ returnNavigation:NavigationState|null;
+ searchDetailOpen:boolean;
  collapsed:string[];
  /** Add menu, Project/Tag pickers, or the Deadline/Hide until editor opened from its property chip. */
  pickerOpen:'add'|'project'|'tag'|'due'|'defer'|null;
@@ -38,6 +40,11 @@ export interface InteractionViewState {
 export type ViewEvent=
  |{[K in keyof InteractionViewState]:{type:'view.set';field:K;value:InteractionViewState[K]}}[keyof InteractionViewState]
  |{type:'view.navigation';patch:Partial<NavigationState>}
+ |{type:'search.open'}
+ |{type:'search.query';query:string}
+ |{type:'search.clear'}
+ |{type:'search.close'}
+ |{type:'search.detail';open:boolean}
  |{type:'view.selection';catalog:string|null}
  |{type:'view.collapse';key:string;open?:boolean}
  |{type:'picker.step';direction:number;count:number}
@@ -50,12 +57,21 @@ export type ViewEvent=
  |{type:'date.pair';id:string;kind:'due'|'defer';pair:DatePair}
  |{type:'view.remap';from:string;to:string};
 const navigation=createNavigationModel(),transient=createTransientModel();
-export function initialViewState():InteractionViewState{return {navigation:navigation.initial(),collapsed:[],pickerOpen:null,pickerTarget:null,projectQuery:'',tagQuery:'',pickerIndex:-1,headerMenu:null,activeCatalogSelection:null,selectionVersion:0,creationReveal:null,catalogContext:null,catalogSequence:0,catalogToken:0,catalogSubmissions:{},catalogName:'',catalogComposerOpen:false,moveChooserOpen:false,movePlacement:'inside',moveDestination:'',catalogMoveSource:null,dateErrors:{},duePairs:{},deferPairs:{},textEditing:null};}
+function cloneNavigation(value:NavigationState):NavigationState{return {...value,statuses:[...value.statuses],...(value.remembered?{remembered:Object.fromEntries(Object.entries(value.remembered).map(([key,settings])=>[key,settings?{...settings,statuses:[...settings.statuses]}:settings]))}: {})};}
+export function initialViewState():InteractionViewState{return {navigation:navigation.initial(),returnNavigation:null,searchDetailOpen:false,collapsed:[],pickerOpen:null,pickerTarget:null,projectQuery:'',tagQuery:'',pickerIndex:-1,headerMenu:null,activeCatalogSelection:null,selectionVersion:0,creationReveal:null,catalogContext:null,catalogSequence:0,catalogToken:0,catalogSubmissions:{},catalogName:'',catalogComposerOpen:false,moveChooserOpen:false,movePlacement:'inside',moveDestination:'',catalogMoveSource:null,dateErrors:{},duePairs:{},deferPairs:{},textEditing:null};}
 /** Semantic view state changes are pure; DOM measurements and focus effects stay outside. */
 export function viewTransition(state:InteractionViewState,event:ViewEvent):InteractionViewState {
  switch(event.type){
   case 'view.set':return state[event.field]===event.value?state:{...state,[event.field]:event.value};
-  case 'view.navigation':return {...state,navigation:navigation.select(state.navigation,event.patch)};
+  case 'view.navigation':return {...state,navigation:navigation.select(state.navigation,event.patch),...(event.patch.view&&event.patch.view!=='search'&&state.navigation.view==='search'?{returnNavigation:null,searchDetailOpen:false}:{})};
+  case 'search.open':{
+   if(state.navigation.view==='search')return state;
+   return {...state,navigation:navigation.select(state.navigation,{view:'search',classificationId:'all',perspectiveId:null,includeDescendants:false,statuses:[],includeDeferred:false,searchQuery:''}),returnNavigation:cloneNavigation(state.navigation),searchDetailOpen:false,pickerOpen:null,pickerTarget:null,pickerIndex:-1,headerMenu:null};
+  }
+  case 'search.query':return state.navigation.view==='search'&&state.navigation.searchQuery!==event.query?{...state,navigation:{...state.navigation,searchQuery:event.query}}:state;
+  case 'search.clear':return state.navigation.view==='search'&&state.navigation.searchQuery!==''?{...state,navigation:{...state.navigation,searchQuery:''}}:state;
+  case 'search.close':return state.navigation.view==='search'&&state.returnNavigation?{...state,navigation:cloneNavigation(state.returnNavigation),returnNavigation:null,searchDetailOpen:false}:state;
+  case 'search.detail':return state.navigation.view==='search'&&state.searchDetailOpen!==event.open?{...state,searchDetailOpen:event.open}:state;
   case 'view.selection':return {...state,selectionVersion:state.selectionVersion+1,activeCatalogSelection:event.catalog};
   case 'view.collapse':{const open=event.open??state.collapsed.includes(event.key);return {...state,collapsed:open?state.collapsed.filter(key=>key!==event.key):[...new Set([...state.collapsed,event.key])]};}
   case 'picker.open':return {...state,pickerOpen:event.kind,pickerTarget:event.kind==='add'?null:event.target,pickerIndex:-1,projectQuery:event.kind==='project'?'':state.projectQuery,tagQuery:event.kind==='tag'?'':state.tagQuery,headerMenu:null};

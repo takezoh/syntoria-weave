@@ -64,3 +64,19 @@ test('text editing follows only the selected Action, survives local identity rem
  assert.equal(normalizeTextEditing('a',null,true),null);
  assert.equal(normalizeTextEditing(null,'a',false),null);
 });
+
+test('search lifecycle saves and restores a cloned navigation, keeps the raw query, and separates mobile detail state',async()=>{
+ const {initialViewState,viewTransition}=await import('../../lib/ui/model/view-state.ts');let view=initialViewState();
+ view=viewTransition(view,{type:'view.navigation',patch:{view:'projects',classificationId:'project-1',includeDescendants:true,statuses:['completed','dropped'],includeDeferred:true}});
+ view=viewTransition(view,{type:'view.set',field:'collapsed',value:['project:project-1']});const prior=structuredClone(view.navigation);view=viewTransition(view,{type:'search.open'});
+ assert.equal(view.navigation.view,'search');assert.equal(view.navigation.searchQuery,'');assert.equal(view.searchDetailOpen,false);assert.deepEqual(view.returnNavigation,prior);
+ view=viewTransition(view,{type:'search.query',query:'  raw Ａbc  '});view=viewTransition(view,{type:'search.detail',open:true});assert.equal(view.navigation.searchQuery,'  raw Ａbc  ');assert.equal(view.searchDetailOpen,true);
+ view=viewTransition(view,{type:'search.clear'});assert.equal(view.navigation.searchQuery,'');assert.equal(view.searchDetailOpen,true);
+ view=viewTransition(view,{type:'search.close'});assert.deepEqual(view.navigation,prior);assert.equal(view.returnNavigation,null);assert.equal(view.searchDetailOpen,false);
+ assert.deepEqual(prior.statuses,['completed','dropped']);assert.deepEqual(view.collapsed,['project:project-1']);
+});
+
+test('choosing a navigation destination exits Search directly and discards only the return-navigation pointer',async()=>{
+ const {initialViewState,viewTransition}=await import('../../lib/ui/model/view-state.ts');let view=initialViewState();view=viewTransition(view,{type:'view.navigation',patch:{view:'tags',classificationId:'tag-1'}});view=viewTransition(view,{type:'search.open'});view=viewTransition(view,{type:'search.query',query:'keep raw'});
+ view=viewTransition(view,{type:'view.navigation',patch:{view:'history'}});assert.equal(view.navigation.view,'history');assert.equal(view.returnNavigation,null);assert.equal(view.searchDetailOpen,false);assert.equal(view.navigation.searchQuery,'');
+});

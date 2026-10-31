@@ -1,27 +1,11 @@
 import type {UiActionRecord,ProjectedActionRow,projectCatalogRow} from '../model/ui-projections';
 import type {DeepReadonly} from '../model/types';
+import type {OutlineEntry as ModelOutlineEntry} from '../model/catalog-tree';
 
 export type ActionRecord=DeepReadonly<Pick<UiActionRecord,'id'|'title'|'status'|'parent_id'|'flagged'>>;
-
-export interface ActionOutlineEntry {
-  readonly kind: 'action';
-  readonly key: string;
-  readonly id: string;
-  readonly action: ActionRecord;
-  readonly level: number;
-  readonly catalogId?: string | null;
-}
-
-export interface CatalogOutlineEntry {
-  readonly kind: 'project' | 'tag' | 'group';
-  readonly key: string;
-  readonly id: string;
-  readonly level: number;
-  readonly label: string;
-  readonly expandable: boolean;
-}
-
-export type OutlineEntry = ActionOutlineEntry | CatalogOutlineEntry;
+export type ActionOutlineEntry=Extract<ModelOutlineEntry<ActionRecord>,{kind:'action'}>;
+export type CatalogOutlineEntry=Exclude<ModelOutlineEntry<ActionRecord>,{kind:'action'}>;
+export type OutlineEntry=ModelOutlineEntry<ActionRecord>;
 
 export type RowBadge=DeepReadonly<ProjectedActionRow['badges'][number]>;
 

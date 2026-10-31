@@ -1,5 +1,7 @@
 import type {NavigationSnapshot,NavigationCatalog,NavigationAction,NavigationFilter} from './navigation';
-export interface OutlineEntry {key:string;kind:'project'|'tag'|'group'|'action';id:string;level:number;label:string;parentKey:string|null;catalogId:string|null;expandable:boolean;action?:NavigationAction}
+export interface ActionOutlineEntry<TAction=NavigationAction> {readonly key:string;readonly kind:'action';readonly id:string;readonly level:number;readonly label:string;readonly parentKey:string|null;readonly catalogId:string|null;readonly expandable:boolean;readonly action:TAction}
+export interface CatalogOutlineEntry {readonly key:string;readonly kind:'project'|'tag'|'group';readonly id:string;readonly level:number;readonly label:string;readonly parentKey:string|null;readonly catalogId:string|null;readonly expandable:boolean}
+export type OutlineEntry<TAction=NavigationAction> = ActionOutlineEntry<TAction>|CatalogOutlineEntry;
 interface MembershipIndex {rows:NavigationAction[];ids:Set<string>;children:Map<string,NavigationAction[]>;roots:NavigationAction[]}
 const membershipKey=(id:string|null)=>id===null?'\u0000':id;
 function catalogIndex(catalog:readonly NavigationCatalog[]){return new Map(catalog.map(record=>[record.id,record]));}

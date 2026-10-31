@@ -3,6 +3,7 @@ import {createSaveStatusModel} from './model/save-status';
 import {createTreeDropModel} from './model/tree-drop';
 import {createPickerModel} from './model/picker';
 import {createCatalogTreeModel} from './model/catalog-tree';
+import {createOutlineModel} from './model/outline';
 import {createCatalogDraftModel} from './model/catalog-drafts';
 import {createDateInputModel} from './model/date-input';
 import {createMovementModel} from './model/movement';
@@ -42,10 +43,11 @@ if(verification){
  });
 }
 const transport=createHostTransport(effects);
+const navigation=createNavigationModel(),catalogTree=createCatalogTreeModel();
 const model={
  transient:createTransientModel(),saveStatus:createSaveStatusModel(),treeDrop:createTreeDropModel(),picker:createPickerModel(),
- catalogTree:createCatalogTreeModel(),catalogDrafts:createCatalogDraftModel(),dateInput:createDateInputModel(),
- movement:createMovementModel(),autosave:createAutosaveModel(),richText:createRichTextModel(),createdActionId,displayTitle,formatTimestamp,navigation:createNavigationModel(),
+ catalogTree,catalogDrafts:createCatalogDraftModel(),dateInput:createDateInputModel(),outline:createOutlineModel(navigation,catalogTree),
+ movement:createMovementModel(),autosave:createAutosaveModel(),richText:createRichTextModel(),createdActionId,displayTitle,formatTimestamp,navigation,
  errorMessage,warningMessage,actionDepth,reviewChangeSummary,iconSvg,visibleActions,scopeTitle,mergeHostContext,
  editorSelection,acknowledgeDraft,draftPayload,mutationBlocked,hasUnsavedChanges,operationSucceeded,retainRequest,
  editDraft,discardDraft,mergeDrafts,

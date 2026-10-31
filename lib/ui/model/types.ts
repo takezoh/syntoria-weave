@@ -4,6 +4,7 @@ import type {DraftAction, Drafts, DraftValues} from './drafts';
 import type {UiInteractionState} from './interaction';
 import type {MovePayload} from './movement';
 import type {TransientRecord} from './transient-create';
+import type {OutlineProjection} from './outline';
 
 export interface UiResult {
  collaboration_id?:string;
@@ -20,6 +21,7 @@ export interface UiState {
  collaborationHistory:Record<string,readonly CollaborationHistory[]>;
  collaborationShowAll:boolean;
  interaction:UiInteractionState;
+ outline:OutlineProjection|null;
  transients:Record<string,TransientRecord>;
  drafts:Drafts;
  busy:boolean;

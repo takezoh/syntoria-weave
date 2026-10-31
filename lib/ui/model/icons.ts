@@ -3,6 +3,7 @@ export function iconSvg(name:string):string {
  const paths:Record<string,string>={
   tick:'<path d="m5 12 4 4 10-10"/>',
   filters:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>',
+  search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4 4"/>',
   grip:'<circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/>',
   selection:'<rect x="5" y="5" width="14" height="14" rx="3"/>',
   selected:'<rect x="5" y="5" width="14" height="14" rx="3"/><path d="m8 12 3 3 5-6"/>',
