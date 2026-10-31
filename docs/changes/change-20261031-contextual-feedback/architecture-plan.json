@@ -1,0 +1,607 @@
+{
+  "adrs": [
+    {
+      "alternatives": [
+        {
+          "option": "Keeping message(text) as the policy owner permits refresh/autosave overwrites; one generic status string loses provenance.",
+          "why_not": "Violates state provenance, recovery accessibility or no idle footer requirements."
+        }
+      ],
+      "consequences": [
+        "Keep frontend producers and consumers aligned in one feature unit. No compatibility reader or backend migration.",
+        "Invalidate this choice if layout/IME/race witnesses fail; revise structure before accepting."
+      ],
+      "context": "Direct user request authorizes technical design; placement and lifetime are parent-selected technical choices, not a separately confirmed consultation.",
+      "contract_refs": [
+        "contract-feedback-state"
+      ],
+      "decision": "Introduce typed read status and operation notices in application state and a pure readonly feedback projection. Autosave recovery derives from existing drafts/errors/conflicts/unknown/recoveryRequired rather than duplicating them. Refresh icon, accessible name and busy state reflect reads only.",
+      "decision_input_refs": [
+        "decision-input-typed"
+      ],
+      "id": "adr-contextual-typed",
+      "related_requirements": [
+        "req-navigation",
+        "req-feedback",
+        "req-recovery",
+        "req-undo",
+        "req-interaction"
+      ],
+      "status": "accepted",
+      "title": "Separate feedback ownership"
+    },
+    {
+      "alternatives": [
+        {
+          "option": "Timed toast loses Undo and unresolved failures; permanent footer consumes idle space; overlay obscures controls and interrupts gestures.",
+          "why_not": "Violates state provenance, recovery accessibility or no idle footer requirements."
+        }
+      ],
+      "consequences": [
+        "Keep frontend producers and consumers aligned in one feature unit. No compatibility reader or backend migration.",
+        "Invalidate this choice if layout/IME/race witnesses fail; revise structure before accepting."
+      ],
+      "context": "Direct user request authorizes technical design; placement and lifetime are parent-selected technical choices, not a separately confirmed consultation.",
+      "contract_refs": [
+        "contract-feedback-placement"
+      ],
+      "decision": "Pane-local in-flow outcome/recovery blocks; local detail save feedback; always reachable toolbar recovery entry when the affected draft is offscreen. No reserved global footer. Undo persists until explicit dismissal, replacement by newer eligible Undo or successful Undo; Changes remains available.",
+      "decision_input_refs": [
+        "decision-input-placement"
+      ],
+      "id": "adr-contextual-placement",
+      "related_requirements": [
+        "req-navigation",
+        "req-feedback",
+        "req-recovery",
+        "req-undo",
+        "req-interaction"
+      ],
+      "status": "accepted",
+      "title": "Contextual placement and explicit lifetime"
+    }
+  ],
+  "chunks": [
+    {
+      "id": "chunk-feedback",
+      "units": [
+        {
+          "acceptance": [
+            "pnpm check and pnpm build pass; generated DOM and browser geometry evidence covers all witnesses."
+          ],
+          "contract_refs": [
+            "contract-feedback-state",
+            "contract-feedback-placement"
+          ],
+          "files_touched": [
+            "lib/ui/model/",
+            "lib/ui/application/",
+            "lib/ui/components/",
+            "lib/ui/effects/dom.js",
+            "lib/ui/client.ts",
+            "lib/widget.ts",
+            "lib/ui/model/types.ts",
+            "docs/changes/change-20261031-contextual-feedback/",
+            "docs/technical/ui-architecture.md",
+            "tests/ui/"
+          ],
+          "title": "Implement the contextual feedback/navigation feature"
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "id": "component-state",
+      "name": "state",
+      "repo_grounding": {
+        "accepted_adr_refs": [],
+        "integration_points": [
+          "lib/ui/client.ts composition root; model projections to controller/view"
+        ],
+        "kind": "existing",
+        "owner": "Shared UI",
+        "paths": [
+          "lib/ui/application/controller.ts",
+          "lib/ui/application/refresh.ts",
+          "lib/ui/model/save-status.ts"
+        ],
+        "rationale": "DOM currently mixes messages in message() and substitutes saveStatus icons into Refresh; controller already retains exact unknown requests and draft baselines.",
+        "test_seams": [
+          "Pure projection tests",
+          "Controller fake tool ports",
+          "Generated HTML DOM tests",
+          "Browser layout and gesture harnesses"
+        ]
+      },
+      "responsibility": "Own typed read and operation state, exact request/draft recovery and deterministic readonly feedback projection."
+    },
+    {
+      "id": "component-view",
+      "name": "view",
+      "repo_grounding": {
+        "accepted_adr_refs": [],
+        "integration_points": [
+          "lib/ui/client.ts composition root; model projections to controller/view"
+        ],
+        "kind": "existing",
+        "owner": "Shared UI",
+        "paths": [
+          "lib/ui/effects/dom.js",
+          "lib/ui/components/layout-styles.ts"
+        ],
+        "rationale": "DOM currently mixes messages in message() and substitutes saveStatus icons into Refresh; controller already retains exact unknown requests and draft baselines.",
+        "test_seams": [
+          "Pure projection tests",
+          "Controller fake tool ports",
+          "Generated HTML DOM tests",
+          "Browser layout and gesture harnesses"
+        ]
+      },
+      "responsibility": "Render readonly feedback, explicit callbacks, pane-local layout and stable nodes; DOM geometry/focus are effects only."
+    }
+  ],
+  "decision_dispositions": [
+    {
+      "adr_refs": [
+        "adr-contextual-typed"
+      ],
+      "contract_refs": [
+        "contract-feedback-state"
+      ],
+      "decision_input_ref": "decision-input-typed",
+      "disposition": "adopted",
+      "rationale": "User delegates structural design; source inspection supports separating typed decisions from effects. No claim of specific user consultation approval."
+    },
+    {
+      "adr_refs": [
+        "adr-contextual-placement"
+      ],
+      "contract_refs": [
+        "contract-feedback-placement"
+      ],
+      "decision_input_ref": "decision-input-placement",
+      "disposition": "adopted",
+      "rationale": "User delegates structural design; source inspection supports separating typed decisions from effects. No claim of specific user consultation approval."
+    }
+  ],
+  "goal": "Implement contextual UI feedback and labelled navigation with no permanent footer.",
+  "implementation_contracts": [
+    {
+      "decision_rules": [
+        {
+          "condition": "Idle or read transitions occur while save/error state exists",
+          "epistemic_state": "determinate",
+          "evidence_mode": "total",
+          "id": "decision-read",
+          "input_refs": [
+            "input-state"
+          ],
+          "observable_refs": [
+            "observable-state"
+          ],
+          "outcome": "Read pending/success/failure is local to Refresh/pull; successful refresh never clears save errors, operation notices or Undo. Refresh failure remains actionable until retry succeeds. No save icon is projected as refresh status.",
+          "rationale": "Separate authoritative application state from rendering effects and preserve delegated UX."
+        },
+        {
+          "condition": "Unknown save, draft validation/conflict, operation failure or retained offscreen input exists",
+          "epistemic_state": "determinate",
+          "evidence_mode": "total",
+          "id": "decision-recovery",
+          "input_refs": [
+            "input-state"
+          ],
+          "observable_refs": [
+            "observable-state"
+          ],
+          "outcome": "Derive labelled recovery items with target/context and explicit callbacks. Visible target uses inline controls; hidden target is reachable from a persistent toolbar recovery entry opening a focused in-flow recovery surface. Items clear only on authoritative resolution or explicit draft discard when existing controller permits it; never by unrelated read/success/dismiss.",
+          "rationale": "Separate authoritative application state from rendering effects and preserve delegated UX."
+        },
+        {
+          "condition": "Acknowledged write gives lastOperation or explicit Undo/dismiss event occurs",
+          "epistemic_state": "determinate",
+          "evidence_mode": "total",
+          "id": "decision-undo",
+          "input_refs": [
+            "input-state"
+          ],
+          "observable_refs": [
+            "observable-state"
+          ],
+          "outcome": "Store notice identity and undoOf, dismiss only matching notice identity. Capture undoOf before dispatch; disable pending Undo, retain notice on failure and show conflict without automatic retry against fresh revision. If newer write replaces notice while old Undo settles, old completion cannot dismiss newer notice. Dismiss clears only presentation, not lastOperation/history; Changes retains server-retained history.",
+          "rationale": "Separate authoritative application state from rendering effects and preserve delegated UX."
+        }
+      ],
+      "dimension": "failure_recovery",
+      "domain_details": {
+        "implementation": "Use a small model projection and one reusable contextual feedback component with readonly props/callbacks. Names/file splits are private within existing layer rules; avoid a notification framework. Preserve all current callers of message by migrating them to typed application notices or dedicated read state, not an untyped catch-all footer.",
+        "verification_event": "client.ts verification discarded callback must publish an explicit typed feedback event instead of directly writing #status; retain visible verification feedback."
+      },
+      "failure_semantics": [
+        {
+          "class": "Read/write response failure or revision conflict",
+          "id": "failure-state",
+          "outcome": "Retain input/exact unknown requests; expose contextual retry/check; preserve failed Undo notice and newer notice identity. No automatic fresh-ID duplicate.",
+          "recovery": "retry",
+          "requirement_effect": "preserves",
+          "source": "transient"
+        }
+      ],
+      "id": "contract-feedback-state",
+      "invariants": [
+        "Rendering never initializes or mutates application state.",
+        "Read status, operation notice and save recovery cannot clear each other.",
+        "Exact unknown args/operation IDs, proposal baselines and IME remain owned by existing controller.",
+        "No clock-based Undo expiration; dismissal never edits history."
+      ],
+      "observable_effects": [
+        {
+          "description": "All decision rules for this owner are externally observable through projected controls and DOM.",
+          "id": "observable-state",
+          "input_closure_reason": "Current application state, navigation and gesture state supply all feedback decisions; no additional backend reads are introduced.",
+          "operational_input_refs": [
+            "input-state"
+          ],
+          "scope": "local"
+        }
+      ],
+      "open_design_choices": [],
+      "operational_inputs": [
+        {
+          "acquired_at": "Application transition and readonly projection",
+          "id": "input-state",
+          "invalidation_behavior": "Ignore stale notice dismissal; use current revision through existing guarded controller; never manufacture new IDs for unknown retries.",
+          "kind": "versioned_state",
+          "mutable_between_acquire_and_use": true,
+          "owner_component_ref": "component-state",
+          "preservation": "current_lookup",
+          "producer": {
+            "component_ref": "component-state",
+            "kind": "component"
+          },
+          "required_until": "Render and callback validation; unknown request retained until authoritative resolution.",
+          "source": "Controller current snapshot/drafts/errors/conflicts/unknown exact request, notice identity/undoOf, typed refresh state and current navigation/gesture state.",
+          "stability_basis": "Reproject each publication; callbacks carry identity and recheck eligibility.",
+          "unavailable_outcome": "No fabricated success/Undo. Retain available proposal and show current controller recovery instead.",
+          "witness_refs": [
+            "witness-read",
+            "witness-recovery",
+            "witness-undo"
+          ]
+        }
+      ],
+      "owner_component_ref": "component-state",
+      "related_requirements": [
+        "req-feedback",
+        "req-recovery",
+        "req-undo"
+      ],
+      "semantic_profiles": [],
+      "subject": "Typed feedback and lifetime",
+      "verification": [
+        {
+          "criterion": "All referenced witnesses pass; record concrete failures and unexecuted hardware acceptance. Retain existing no-skips harness contract.",
+          "id": "verify-state",
+          "method": "Pure typed projection + controller fake-port tests: simultaneous read/save errors; unrelated success; exact check/replay; navigation with retained drafts; explicit Undo dismissal and old/new notice races.",
+          "requirement_refs": [
+            "req-feedback",
+            "req-recovery",
+            "req-undo"
+          ],
+          "tier": "T2"
+        }
+      ],
+      "witnesses": [
+        {
+          "expected_observable_refs": [
+            "observable-state"
+          ],
+          "expected_observables": [
+            "Read pending/success/failure is local to Refresh/pull; successful refresh never clears save errors, operation notices or Undo. Refresh failure remains actionable until retry succeeds. No save icon is projected as refresh status."
+          ],
+          "forbidden_outcomes": [
+            "Silent loss of recovery/Undo, stale callback clearing newer state, layout overflow, focus/IME loss or refresh altering write identity."
+          ],
+          "id": "witness-read",
+          "precondition": "Idle or read transitions occur while save/error state exists",
+          "requirement_refs": [
+            "req-feedback",
+            "req-recovery",
+            "req-undo"
+          ],
+          "stimulus": "Publish relevant application transition and render; exercise explicit controls and adverse concurrent events.",
+          "verification_refs": [
+            "verify-state"
+          ]
+        },
+        {
+          "expected_observable_refs": [
+            "observable-state"
+          ],
+          "expected_observables": [
+            "Derive labelled recovery items with target/context and explicit callbacks. Visible target uses inline controls; hidden target is reachable from a persistent toolbar recovery entry opening a focused in-flow recovery surface. Items clear only on authoritative resolution or explicit draft discard when existing controller permits it; never by unrelated read/success/dismiss."
+          ],
+          "forbidden_outcomes": [
+            "Silent loss of recovery/Undo, stale callback clearing newer state, layout overflow, focus/IME loss or refresh altering write identity."
+          ],
+          "id": "witness-recovery",
+          "precondition": "Unknown save, draft validation/conflict, operation failure or retained offscreen input exists",
+          "requirement_refs": [
+            "req-feedback",
+            "req-recovery",
+            "req-undo"
+          ],
+          "stimulus": "Publish relevant application transition and render; exercise explicit controls and adverse concurrent events.",
+          "verification_refs": [
+            "verify-state"
+          ]
+        },
+        {
+          "expected_observable_refs": [
+            "observable-state"
+          ],
+          "expected_observables": [
+            "Store notice identity and undoOf, dismiss only matching notice identity. Capture undoOf before dispatch; disable pending Undo, retain notice on failure and show conflict without automatic retry against fresh revision. If newer write replaces notice while old Undo settles, old completion cannot dismiss newer notice. Dismiss clears only presentation, not lastOperation/history; Changes retains server-retained history."
+          ],
+          "forbidden_outcomes": [
+            "Silent loss of recovery/Undo, stale callback clearing newer state, layout overflow, focus/IME loss or refresh altering write identity."
+          ],
+          "id": "witness-undo",
+          "precondition": "Acknowledged write gives lastOperation or explicit Undo/dismiss event occurs",
+          "requirement_refs": [
+            "req-feedback",
+            "req-recovery",
+            "req-undo"
+          ],
+          "stimulus": "Publish relevant application transition and render; exercise explicit controls and adverse concurrent events.",
+          "verification_refs": [
+            "verify-state"
+          ]
+        }
+      ]
+    },
+    {
+      "decision_rules": [
+        {
+          "condition": "List or detail renders without relevant feedback",
+          "epistemic_state": "determinate",
+          "evidence_mode": "total",
+          "id": "decision-idle",
+          "input_refs": [
+            "input-view"
+          ],
+          "observable_refs": [
+            "observable-view"
+          ],
+          "outcome": "Render standard navigation icon plus visible wrapping label at all breakpoints. Remove footer and its flex/grid reservation. Keep safe-area padding once and bounded list/nav/detail scrolling; retain existing Changes navigation.",
+          "rationale": "Separate authoritative application state from rendering effects and preserve delegated UX."
+        },
+        {
+          "condition": "Notice or recovery is projected on List, narrow detail or wide split",
+          "epistemic_state": "determinate",
+          "evidence_mode": "total",
+          "id": "decision-panes",
+          "input_refs": [
+            "input-view"
+          ],
+          "observable_refs": [
+            "observable-view"
+          ],
+          "outcome": "List notices live in flow in List content; narrow Action/Catalog notices live in their detail content below toolbar; wide split routes target feedback to matching pane, with unmatched outcomes in List. Shared recovery entry in current page toolbar exposes offscreen targets without implicit navigation or draft discard. Notices have stable keys, polite status announcements; blocking failures use explicit text/actions without stealing focus.",
+          "rationale": "Separate authoritative application state from rendering effects and preserve delegated UX."
+        },
+        {
+          "condition": "Feedback publishes during editing, pulling, swiping or held movement",
+          "epistemic_state": "determinate",
+          "evidence_mode": "total",
+          "id": "decision-gesture",
+          "input_refs": [
+            "input-view"
+          ],
+          "observable_refs": [
+            "observable-view"
+          ],
+          "outcome": "Update compatible nodes without remounting editors. No focus, scrollIntoView or scroll reset on feedback publication. Defer geometry-changing insertion/removal during claimed gesture until settle; retain recovery state meanwhile and invalidate gesture geometry after layout. Explicit recovery activation may navigate/focus target with preventScroll and existing page restoration.",
+          "rationale": "Separate authoritative application state from rendering effects and preserve delegated UX."
+        }
+      ],
+      "dimension": "user_observability",
+      "domain_details": {
+        "implementation": "Use a small model projection and one reusable contextual feedback component with readonly props/callbacks. Names/file splits are private within existing layer rules; avoid a notification framework. Preserve all current callers of message by migrating them to typed application notices or dedicated read state, not an untyped catch-all footer."
+      },
+      "failure_semantics": [
+        {
+          "class": "Read/write response failure or revision conflict",
+          "id": "failure-view",
+          "outcome": "Retain input/exact unknown requests; expose contextual retry/check; preserve failed Undo notice and newer notice identity. No automatic fresh-ID duplicate.",
+          "recovery": "retry",
+          "requirement_effect": "preserves",
+          "source": "transient"
+        }
+      ],
+      "id": "contract-feedback-placement",
+      "invariants": [
+        "Rendering never initializes or mutates application state.",
+        "Read status, operation notice and save recovery cannot clear each other.",
+        "Exact unknown args/operation IDs, proposal baselines and IME remain owned by existing controller.",
+        "No clock-based Undo expiration; dismissal never edits history."
+      ],
+      "observable_effects": [
+        {
+          "description": "All decision rules for this owner are externally observable through projected controls and DOM.",
+          "id": "observable-view",
+          "input_closure_reason": "Current application state, navigation and gesture state supply all feedback decisions; no additional backend reads are introduced.",
+          "operational_input_refs": [
+            "input-view"
+          ],
+          "scope": "local"
+        }
+      ],
+      "open_design_choices": [],
+      "operational_inputs": [
+        {
+          "acquired_at": "Application transition and readonly projection",
+          "id": "input-view",
+          "invalidation_behavior": "Ignore stale notice dismissal; use current revision through existing guarded controller; never manufacture new IDs for unknown retries.",
+          "kind": "versioned_state",
+          "mutable_between_acquire_and_use": true,
+          "owner_component_ref": "component-view",
+          "preservation": "current_lookup",
+          "producer": {
+            "component_ref": "component-state",
+            "kind": "component"
+          },
+          "required_until": "Render and callback validation; unknown request retained until authoritative resolution.",
+          "source": "Controller current snapshot/drafts/errors/conflicts/unknown exact request, notice identity/undoOf, typed refresh state and current navigation/gesture state.",
+          "stability_basis": "Reproject each publication; callbacks carry identity and recheck eligibility.",
+          "unavailable_outcome": "No fabricated success/Undo. Retain available proposal and show current controller recovery instead.",
+          "witness_refs": [
+            "witness-idle",
+            "witness-panes",
+            "witness-gesture"
+          ]
+        }
+      ],
+      "owner_component_ref": "component-view",
+      "related_requirements": [
+        "req-navigation",
+        "req-interaction",
+        "req-feedback",
+        "req-recovery",
+        "req-undo"
+      ],
+      "semantic_profiles": [],
+      "subject": "Pane placement, navigation and geometry",
+      "verification": [
+        {
+          "criterion": "All referenced witnesses pass; record concrete failures and unexecuted hardware acceptance. Retain existing no-skips harness contract.",
+          "id": "verify-view",
+          "method": "Generated resource DOM plus real browser geometry at narrow List/Action/Catalog and wide split; long labels, safe areas, large text; measure root bounds and scrollers; focus/caret/composition; pull/swipe/hold transitions during feedback. pnpm check and pnpm build required. Browser emulation does not prove physical iOS.",
+          "requirement_refs": [
+            "req-navigation",
+            "req-interaction",
+            "req-feedback",
+            "req-recovery",
+            "req-undo"
+          ],
+          "tier": "T2"
+        }
+      ],
+      "witnesses": [
+        {
+          "expected_observable_refs": [
+            "observable-view"
+          ],
+          "expected_observables": [
+            "Render standard navigation icon plus visible wrapping label at all breakpoints. Remove footer and its flex/grid reservation. Keep safe-area padding once and bounded list/nav/detail scrolling; retain existing Changes navigation."
+          ],
+          "forbidden_outcomes": [
+            "Silent loss of recovery/Undo, stale callback clearing newer state, layout overflow, focus/IME loss or refresh altering write identity."
+          ],
+          "id": "witness-idle",
+          "precondition": "List or detail renders without relevant feedback",
+          "requirement_refs": [
+            "req-navigation",
+            "req-interaction",
+            "req-feedback",
+            "req-recovery",
+            "req-undo"
+          ],
+          "stimulus": "Publish relevant application transition and render; exercise explicit controls and adverse concurrent events.",
+          "verification_refs": [
+            "verify-view"
+          ]
+        },
+        {
+          "expected_observable_refs": [
+            "observable-view"
+          ],
+          "expected_observables": [
+            "List notices live in flow in List content; narrow Action/Catalog notices live in their detail content below toolbar; wide split routes target feedback to matching pane, with unmatched outcomes in List. Shared recovery entry in current page toolbar exposes offscreen targets without implicit navigation or draft discard. Notices have stable keys, polite status announcements; blocking failures use explicit text/actions without stealing focus."
+          ],
+          "forbidden_outcomes": [
+            "Silent loss of recovery/Undo, stale callback clearing newer state, layout overflow, focus/IME loss or refresh altering write identity."
+          ],
+          "id": "witness-panes",
+          "precondition": "Notice or recovery is projected on List, narrow detail or wide split",
+          "requirement_refs": [
+            "req-navigation",
+            "req-interaction",
+            "req-feedback",
+            "req-recovery",
+            "req-undo"
+          ],
+          "stimulus": "Publish relevant application transition and render; exercise explicit controls and adverse concurrent events.",
+          "verification_refs": [
+            "verify-view"
+          ]
+        },
+        {
+          "expected_observable_refs": [
+            "observable-view"
+          ],
+          "expected_observables": [
+            "Update compatible nodes without remounting editors. No focus, scrollIntoView or scroll reset on feedback publication. Defer geometry-changing insertion/removal during claimed gesture until settle; retain recovery state meanwhile and invalidate gesture geometry after layout. Explicit recovery activation may navigate/focus target with preventScroll and existing page restoration."
+          ],
+          "forbidden_outcomes": [
+            "Silent loss of recovery/Undo, stale callback clearing newer state, layout overflow, focus/IME loss or refresh altering write identity."
+          ],
+          "id": "witness-gesture",
+          "precondition": "Feedback publishes during editing, pulling, swiping or held movement",
+          "requirement_refs": [
+            "req-navigation",
+            "req-interaction",
+            "req-feedback",
+            "req-recovery",
+            "req-undo"
+          ],
+          "stimulus": "Publish relevant application transition and render; exercise explicit controls and adverse concurrent events.",
+          "verification_refs": [
+            "verify-view"
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "req-navigation",
+      "priority": "must",
+      "statement": "The UI shall show visible names beside standard sidebar icons at every width and reserve no idle footer space.",
+      "type": "ubiquitous"
+    },
+    {
+      "id": "req-feedback",
+      "priority": "must",
+      "statement": "When refresh, save or an operation changes state, the UI shall project their typed states independently at the responsible control or pane.",
+      "type": "ubiquitous"
+    },
+    {
+      "id": "req-recovery",
+      "priority": "must",
+      "statement": "While input, unknown writes or failures remain unresolved, the UI shall keep actionable recovery reachable across navigation without losing drafts or exact requests.",
+      "type": "ubiquitous"
+    },
+    {
+      "id": "req-undo",
+      "priority": "must",
+      "statement": "When a write provides Undo, the UI shall retain an untimed dismissible Undo affordance and preserve Changes history and conflict protection.",
+      "type": "ubiquitous"
+    },
+    {
+      "id": "req-interaction",
+      "priority": "must",
+      "statement": "Feedback changes shall preserve input focus, caret, IME, active gestures and bounded independent scroll areas.",
+      "type": "ubiquitous"
+    }
+  ],
+  "revision": "contextual-feedback-v1",
+  "scope": {
+    "in_scope": [
+      "Shared UI model/controller/component/DOM feedback and sidebar layout; owning contextual-feedback change package; tests and architecture documentation."
+    ],
+    "out_of_scope": [
+      "Backend, API, persistence, auth, native iOS acceptance, new notification platform."
+    ]
+  }
+}

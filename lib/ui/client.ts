@@ -1,5 +1,4 @@
 import {createTransientModel} from './model/transient-create';
-import {createSaveStatusModel} from './model/save-status';
 import {createTreeDropModel} from './model/tree-drop';
 import {createPickerModel} from './model/picker';
 import {createCatalogTreeModel} from './model/catalog-tree';
@@ -39,13 +38,13 @@ let effects:HostEffects={
 if(verification){
  effects=createDiscardingEffects(effects,{
   consume:()=>{const el=document.getElementById('discardNext') as HTMLInputElement|null;if(!el?.checked)return false;el.checked=false;return true;},
-  discarded:()=>{const status=document.getElementById('status');if(status)status.textContent='Save response discarded for verification. Waiting for the normal timeout.';},
+  discarded:()=>mounted.controller.notify('verification','Save response discarded for verification. Waiting for the normal timeout.'),
  });
 }
 const transport=createHostTransport(effects);
 const navigation=createNavigationModel(),catalogTree=createCatalogTreeModel();
 const model={
- transient:createTransientModel(),saveStatus:createSaveStatusModel(),treeDrop:createTreeDropModel(),picker:createPickerModel(),
+ transient:createTransientModel(),treeDrop:createTreeDropModel(),picker:createPickerModel(),
  catalogTree,catalogDrafts:createCatalogDraftModel(),dateInput:createDateInputModel(),outline:createOutlineModel(navigation,catalogTree),
  movement:createMovementModel(),autosave:createAutosaveModel(),richText:createRichTextModel(),createdActionId,displayTitle,formatTimestamp,navigation,
  errorMessage,warningMessage,actionDepth,reviewChangeSummary,iconSvg,visibleActions,scopeTitle,mergeHostContext,
@@ -59,4 +58,4 @@ const diagnostics:UiDiagnosticsPort|undefined=document.documentElement.dataset.u
 }:undefined;
 // Browser storage can throw on access in sandboxed host frames; the adapter then keeps the mark in memory.
 const reviewMarks=createReviewMarkStore(()=>{try{return window.localStorage;}catch{return null;}});
-mountDom(document,window,transport,{next:()=>crypto.randomUUID()},model,createToolClient,createUiController,createDisplayBridge,diagnostics,reviewMarks);
+const mounted=mountDom(document,window,transport,{next:()=>crypto.randomUUID()},model,createToolClient,createUiController,createDisplayBridge,diagnostics,reviewMarks);

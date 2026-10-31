@@ -24,3 +24,9 @@ A final-build browser workload injected 1,000 synthetic Actions, each with 310-c
 ## Unexecuted
 
 Actual MCP host resource rendering/client acceptance, real assistive technology acceptance and deployment were not attempted; local tests and browser preview do not establish them.
+
+## Main integration after deployment
+
+The user's subsequent main publication request integrated the mobile/feedback changes through `1c80569`. Search now uses the shared screen projection for retained-inspector List/Detail visibility, preserves explicitly focused list inputs during deferred scroll restoration, and removes the stale mobile header-hiding rule so Search remains reachable from Detail. Existing refresh coordination and touch/pen gesture ownership remain intact. The search DOM fixture now advances its controlled animation frames and supplies explicit mobile scroll geometry; interrupted runs with an unresolved mocked frame and the subsequent missing-geometry failure were superseded by the final passing run.
+
+The integrated source passed `pnpm check`: lint, typecheck and 758/758 tests, with zero failure, cancellation, skip or TODO. `pnpm build` passed. Real local Chromium at 390 px verified Detail → Search input focus after deferred restoration, five lifecycle matches, result Detail → Back with the query retained, and no horizontal overflow. At 1280 px the list and inspector remained simultaneously visible without overflow. These integration adjustments were not redeployed as part of the main publication request; the prior deployment source remains recorded separately.

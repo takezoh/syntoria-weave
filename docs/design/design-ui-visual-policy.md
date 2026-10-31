@@ -4,9 +4,8 @@ kind: design
 title: Shared UI Visual and Interaction Policy
 status: active
 created: '2026-10-30'
-summary: The shared UI is icon-first, text-minimal and dense; mobile uses separate
-  List and Detail pages; human-facing text renders as Markdown while caller metadata
-  stays hidden.
+summary: The shared UI uses labelled navigation destinations, compact icon-first toolbars,
+  pane-local feedback and recovery, and separate narrow List and Detail pages.
 scope_type: policy
 responsibilities:
 - id: RESP-001
@@ -84,7 +83,7 @@ The shared UI exists so a person can see and correct shared state quickly in a c
 - **Controls.** Status choices (Open, Waiting, Done, Dropped), Flag, Edit/Done editing, Close, Back, Refresh, Add, Display options, Copy request for AI, History, Undo, Send and Stop are icon-only buttons. Their names live in `aria-label` and `title`. Pressed or current state is shown by fill, background or color, not by added words.
 - **Text.** Visible text is limited to user and caller content (titles, notes, proposals, reports, names, dates) and the few words a decision cannot do without, such as a primary action label like Approve or a short status pill. Do not add helper sentences, Markdown syntax hints, relative-date suffixes, version lines or "why this is disabled" explanations.
 - **Density.** Toolbars are one row. Action properties (Project, Deadline, Hide until, Tags) are wrapping chips under the title; an unset property is an icon-only chip. An editor opens inline only for the chip being edited. Form inputs carry accessible names instead of visible labels when their content is self-evident. Labels that must stay visible are short enough never to wrap a toolbar or row.
-- **Navigation.** Desktop uses a compact icon rail, the list and a Detail pane. Narrow widths push from Action List to a full-page Action Detail with Back; returning restores the list scroll position and selected row. Unsaved drafts and unknown outcomes are retained across the transition by the controller, as for any other navigation.
+- **Navigation.** Desktop uses a labelled sidebar, the list and a Detail pane. All navigation destinations show an icon and a visible, naturally wrapping name at every width. Destination identity is not conveyed sufficiently by an icon alone. Narrow widths push from Action List to a full-page Action Detail with Back; returning restores the list scroll position and selected row. Unsaved drafts and unknown outcomes are retained across the transition by the controller, as for any other navigation.
 
 ## Boundaries
 
@@ -110,9 +109,13 @@ Sizes, spacing and colors may change within the existing light/dark token set in
 
 ## Conformance
 
-Check UI changes against INV-001 to INV-005. The narrow-width view rail panel keeps visible names because it is a menu of destinations, not a toolbar.
+Check UI changes against INV-001 to INV-005. The view rail keeps visible destination names at every width because destination identity requires a name. The same rule applies to standard views and saved perspectives. This is the user-authorized navigation-label exception; icon-sufficient toolbar controls remain icon-only.
 
 ## Related Decisions
 
 - [Product design](product.md)
 - [Action state and perspectives](design-action-state-and-perspectives.md)
+
+## Feedback placement
+
+Idle views reserve no footer space. Read feedback belongs to Refresh and the pull indicator; save feedback belongs to the affected detail. Relevant operation outcomes and Undo appear in flow within the visible pane. Recovery text and explicitly distinguished Check result / Retry same request actions are necessary decisions, not decorative explanatory copy. Unresolved input and unknown results remain reachable from the current toolbar. Undo has no timed expiration; explicit dismissal affects presentation only, and Changes remains available.

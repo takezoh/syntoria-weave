@@ -1,0 +1,539 @@
+{
+  "alternative_comparison": {
+    "approval": "provisional",
+    "approved_by_user": false,
+    "candidates": [
+      {
+        "alternative_ref": "ALT-PANE",
+        "disposition": "selected",
+        "rationale": [
+          "Matches contextual feedback request and keeps unrelated pane editing quiet."
+        ],
+        "source_draft": "draft-1"
+      },
+      {
+        "alternative_ref": "ALT-SHARED",
+        "disposition": "rejected",
+        "rationale": [
+          "Simpler placement but repeatedly consumes shared workspace height for local edits."
+        ],
+        "source_draft": "draft-2"
+      }
+    ],
+    "selected_ref": "ALT-PANE"
+  },
+  "confirmed_constraints": [
+    {
+      "id": "constraint-idle",
+      "provenance": {
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "explicit_user_requirement"
+      },
+      "statement": "No permanent footer in ordinary idle use; labelled standard sidebar navigation is settled."
+    },
+    {
+      "id": "constraint-integrity",
+      "provenance": {
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "explicit_user_requirement"
+      },
+      "statement": "Preserve exact unknown operation requests, drafts, IME and normal input focus; no backend/API/database/auth change."
+    },
+    {
+      "id": "constraint-scope",
+      "provenance": {
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "explicit_user_requirement"
+      },
+      "statement": "Update visual navigation policy to reflect user-authorized labelled destinations while retaining icon-only toolbar controls."
+    }
+  ],
+  "critique_resolutions": [],
+  "decision_points": [
+    {
+      "affected_refs": [
+        "exp-contextual-feedback"
+      ],
+      "answer_status": "defaulted",
+      "consultation_policy": "may_default",
+      "contract_effect": "default",
+      "decision_key": "feedback-placement",
+      "id": "DP-PLACEMENT",
+      "layer": "interaction",
+      "options": [
+        {
+          "id": "OPT-PANE",
+          "label": "Contextual panes",
+          "outcome": "Local outcomes in an in-flow contextual strip below each pane header; global unresolved recovery is available from a compact shared attention entry. Refresh owns refresh feedback."
+        },
+        {
+          "id": "OPT-SHARED",
+          "label": "Shared conditional strip",
+          "outcome": "All outcomes and recovery use one expandable in-flow strip above the workspace; refresh remains local to its control."
+        }
+      ],
+      "provenance": {
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "planner_proposal"
+      },
+      "question": "Where should relevant operation feedback and unresolved attention remain reachable?",
+      "recommendation": {
+        "basis": "explicit_user_goal",
+        "confidence": "medium",
+        "evidence_refs": [
+          "input-source.json",
+          "lib/ui/effects/dom.js:35",
+          "lib/ui/effects/dom.js:188"
+        ],
+        "option_ref": "OPT-PANE",
+        "reversibility": "easy"
+      },
+      "selected_option_ref": "OPT-PANE",
+      "subject": "default",
+      "user_impact": [
+        "Avoids a global bar for ordinary Detail edits while retaining offscreen recovery.",
+        "Requires coherent projection of multiple feedback items."
+      ],
+      "validation_status": "not_applicable"
+    }
+  ],
+  "design_hypotheses": [
+    {
+      "id": "hypothesis-context",
+      "provenance": {
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "planner_proposal"
+      },
+      "statement": "Pane-local in-flow outcome strips plus a shared unresolved-attention entry best balance space and recovery locality."
+    }
+  ],
+  "existing_system_context": [
+    {
+      "id": "context-message",
+      "provenance": {
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "lib/ui/effects/dom.js:35",
+          "lib/ui/effects/dom.js:151",
+          "lib/ui/effects/dom.js:188",
+          "lib/ui/model/save-status.ts"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "repository_evidence"
+      },
+      "statement": "DOM message(text) combines raw notices and save-status projection; Undo uses lastOperation, unknown and retained UI are separate elements."
+    },
+    {
+      "id": "context-prior",
+      "provenance": {
+        "confidence": "confirmed",
+        "evidence_refs": [
+          "docs/changes/change-20261031-responsive-scroll-ownership/requirements.md",
+          "docs/design/design-ui-visual-policy.md"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "repository_evidence"
+      },
+      "statement": "Prior responsive requirements retained recovery footer and built-in icon-only controls; current authorized change replaces those presentation choices, preserving scroll and data guarantees."
+    }
+  ],
+  "experience_contracts": [
+    {
+      "context_refs": [
+        "context-message",
+        "context-prior"
+      ],
+      "flow_refs": [
+        "F-001",
+        "F-002",
+        "F-003",
+        "F-004",
+        "F-005",
+        "F-006"
+      ],
+      "goal_refs": [
+        "goal-clear-feedback"
+      ],
+      "id": "exp-contextual-feedback",
+      "interaction_rules": [
+        {
+          "condition": "Ordinary loaded idle use",
+          "outcome": "No reserved feedback footer; visible sidebar destination names.",
+          "rationale": "Settled user request."
+        },
+        {
+          "condition": "Actionable outcome, pending save or unresolved attention",
+          "outcome": "Expose only relevant contextual feedback with untimed recovery controls.",
+          "rationale": "Recovery must survive removal of permanent chrome."
+        }
+      ],
+      "invariants": [
+        "Rendering does not mutate state.",
+        "No destructive unknown-result retry, draft loss, focus steal, obscuring overlay or gesture viewport jump.",
+        "Announcements are tied to new events rather than rerender."
+      ],
+      "observations": [
+        {
+          "condition": "Loaded idle",
+          "observable": "Content occupies former footer area.",
+          "phase": "entry"
+        },
+        {
+          "condition": "Refresh/save active",
+          "observable": "Named local control indicates progress without focus move.",
+          "phase": "progress"
+        },
+        {
+          "condition": "Unknown/error/conflict",
+          "observable": "Persistent named recovery entry opens exact target.",
+          "phase": "failure"
+        },
+        {
+          "condition": "Confirmed resolution",
+          "observable": "Attention clears while unrelated drafts and Undo remain.",
+          "phase": "recovery"
+        },
+        {
+          "condition": "Eligible operation committed",
+          "observable": "Undo available until explicit dismissal/supersession/inapplicability.",
+          "phase": "success"
+        },
+        {
+          "condition": "Feedback dismissed/resolved",
+          "observable": "No idle feedback space remains.",
+          "phase": "exit"
+        }
+      ],
+      "open_product_choices": [],
+      "phase_exclusions": [],
+      "scenario_refs": [
+        "UAC-001",
+        "UAC-002",
+        "UAC-003",
+        "UAC-004",
+        "UAC-005",
+        "UAC-006"
+      ],
+      "subject": "Contextual operation feedback and durable recovery"
+    }
+  ],
+  "flows": [
+    {
+      "acceptance_scenarios": [
+        {
+          "contract_refs": [
+            "exp-contextual-feedback"
+          ],
+          "counterexample": "An empty footer remains, or destination names appear only on hover.",
+          "given": "Loaded List, narrow Action/Catalog Detail, or wide split with no pending operation or unresolved recovery",
+          "id": "UAC-001",
+          "observations": {
+            "assistive_technology": [
+              "New progress/outcome is announced once through a polite live region; actionable failures receive a concise announcement and named reachable controls. Re-rendering unchanged feedback does not announce it again."
+            ],
+            "user_visible": [
+              "No footer or saved/loading placeholder consumes idle space. Standard sidebar destinations show their names, selected state and accessible name; toolbars stay icon-only."
+            ]
+          },
+          "then": "No footer or saved/loading placeholder consumes idle space. Standard sidebar destinations show their names, selected state and accessible name; toolbars stay icon-only.",
+          "vs_legacy": "must-fail",
+          "when": "Browse and change destinations by mouse, touch or keyboard"
+        }
+      ],
+      "experience_closure_reason": "",
+      "experience_contract_refs": [
+        "exp-contextual-feedback"
+      ],
+      "goal_refs": [
+        "goal-clear-feedback"
+      ],
+      "id": "F-001",
+      "name": "Idle and named navigation",
+      "steps": [
+        "[pointer/touch/keyboard] Browse and change destinations by mouse, touch or keyboard",
+        "[assistive technology] Observe the same outcome without moving focus."
+      ]
+    },
+    {
+      "acceptance_scenarios": [
+        {
+          "contract_refs": [
+            "exp-contextual-feedback"
+          ],
+          "counterexample": "Refresh writes text into the global save message or replaces a draft.",
+          "given": "Any supported layout with a dirty proposal",
+          "id": "UAC-002",
+          "observations": {
+            "assistive_technology": [
+              "New progress/outcome is announced once through a polite live region; actionable failures receive a concise announcement and named reachable controls. Re-rendering unchanged feedback does not announce it again."
+            ],
+            "user_visible": [
+              "Refresh progress and completion belong to Refresh or pull feedback; errors persist with retry. Proposals, selection and editor focus/IME survive. No footer is recreated."
+            ]
+          },
+          "then": "Refresh progress and completion belong to Refresh or pull feedback; errors persist with retry. Proposals, selection and editor focus/IME survive. No footer is recreated.",
+          "vs_legacy": "must-fail",
+          "when": "Refresh using button, narrow List pull, or host notification"
+        }
+      ],
+      "experience_closure_reason": "",
+      "experience_contract_refs": [
+        "exp-contextual-feedback"
+      ],
+      "goal_refs": [
+        "goal-clear-feedback"
+      ],
+      "id": "F-002",
+      "name": "Refresh",
+      "steps": [
+        "[pointer/touch/keyboard] Refresh using button, narrow List pull, or host notification",
+        "[assistive technology] Observe the same outcome without moving focus."
+      ]
+    },
+    {
+      "acceptance_scenarios": [
+        {
+          "contract_refs": [
+            "exp-contextual-feedback"
+          ],
+          "counterexample": "A timer removes Undo before keyboard or screen-reader users can reach it, or dismissal clears history.",
+          "given": "An eligible successful action operation has completed",
+          "id": "UAC-003",
+          "observations": {
+            "assistive_technology": [
+              "New progress/outcome is announced once through a polite live region; actionable failures receive a concise announcement and named reachable controls. Re-rendering unchanged feedback does not announce it again."
+            ],
+            "user_visible": [
+              "Undo remains reachable without timeout until dismissed, superseded by the next eligible committed operation, or no longer applicable. Dismissal removes the outcome and moves focus safely to its origin; Changes remains the separate history route. No outcome disappears while focused."
+            ]
+          },
+          "then": "Undo remains reachable without timeout until dismissed, superseded by the next eligible committed operation, or no longer applicable. Dismissal removes the outcome and moves focus safely to its origin; Changes remains the separate history route. No outcome disappears while focused.",
+          "vs_legacy": "must-fail",
+          "when": "Continue browsing, then activate Undo or dismiss its compact contextual outcome"
+        }
+      ],
+      "experience_closure_reason": "",
+      "experience_contract_refs": [
+        "exp-contextual-feedback"
+      ],
+      "goal_refs": [
+        "goal-clear-feedback"
+      ],
+      "id": "F-003",
+      "name": "Undo lifetime",
+      "steps": [
+        "[pointer/touch/keyboard] Continue browsing, then activate Undo or dismiss its compact contextual outcome",
+        "[assistive technology] Observe the same outcome without moving focus."
+      ]
+    },
+    {
+      "acceptance_scenarios": [
+        {
+          "contract_refs": [
+            "exp-contextual-feedback"
+          ],
+          "counterexample": "An unrelated save success hides an unresolved failure, or Retry generates a new ID.",
+          "given": "Save outcome unknown or any action/catalog draft has error/conflict, including outside current Detail",
+          "id": "UAC-004",
+          "observations": {
+            "assistive_technology": [
+              "New progress/outcome is announced once through a polite live region; actionable failures receive a concise announcement and named reachable controls. Re-rendering unchanged feedback does not announce it again."
+            ],
+            "user_visible": [
+              "A persistent compact attention entry remains reachable on every page and opens the exact affected draft/request. Unknown outcome offers Check and identical Retry using the retained operation ID/arguments; validation/conflict recovery opens the affected draft. No dismiss action conceals an unresolved issue."
+            ]
+          },
+          "then": "A persistent compact attention entry remains reachable on every page and opens the exact affected draft/request. Unknown outcome offers Check and identical Retry using the retained operation ID/arguments; validation/conflict recovery opens the affected draft. No dismiss action conceals an unresolved issue.",
+          "vs_legacy": "must-pass",
+          "when": "Navigate List to Detail and back, refresh, then use the recovery action"
+        }
+      ],
+      "experience_closure_reason": "",
+      "experience_contract_refs": [
+        "exp-contextual-feedback"
+      ],
+      "goal_refs": [
+        "goal-clear-feedback"
+      ],
+      "id": "F-004",
+      "name": "Durable recovery",
+      "steps": [
+        "[pointer/touch/keyboard] Navigate List to Detail and back, refresh, then use the recovery action",
+        "[assistive technology] Observe the same outcome without moving focus."
+      ]
+    },
+    {
+      "acceptance_scenarios": [
+        {
+          "contract_refs": [
+            "exp-contextual-feedback"
+          ],
+          "counterexample": "A banner pushes the pointer target mid-gesture, or a live region replaces the focused editor.",
+          "given": "User is dragging/swiping/pulling, composing text, or scrolling a long List/Detail",
+          "id": "UAC-005",
+          "observations": {
+            "assistive_technology": [
+              "New progress/outcome is announced once through a polite live region; actionable failures receive a concise announcement and named reachable controls. Re-rendering unchanged feedback does not announce it again."
+            ],
+            "user_visible": [
+              "No content-obscuring overlay appears. Feedback uses in-flow contextual surfaces; active gesture geometry and viewport position are preserved by deferring disruptive insertion until gesture end. Existing focus and IME remain intact; urgent feedback is announced without stealing focus."
+            ]
+          },
+          "then": "No content-obscuring overlay appears. Feedback uses in-flow contextual surfaces; active gesture geometry and viewport position are preserved by deferring disruptive insertion until gesture end. Existing focus and IME remain intact; urgent feedback is announced without stealing focus.",
+          "vs_legacy": "must-pass",
+          "when": "Progress, success, error or Undo arrives while gesture/input continues"
+        }
+      ],
+      "experience_closure_reason": "",
+      "experience_contract_refs": [
+        "exp-contextual-feedback"
+      ],
+      "goal_refs": [
+        "goal-clear-feedback"
+      ],
+      "id": "F-005",
+      "name": "Geometry and concurrent feedback",
+      "steps": [
+        "[pointer/touch/keyboard] Progress, success, error or Undo arrives while gesture/input continues",
+        "[assistive technology] Observe the same outcome without moving focus."
+      ]
+    },
+    {
+      "acceptance_scenarios": [
+        {
+          "contract_refs": [
+            "exp-contextual-feedback"
+          ],
+          "counterexample": "A single last-message slot makes recovery and Undo mutually destructive.",
+          "given": "An offscreen action or catalog draft remains dirty while another operation succeeds",
+          "id": "UAC-006",
+          "observations": {
+            "assistive_technology": [
+              "New progress/outcome is announced once through a polite live region; actionable failures receive a concise announcement and named reachable controls. Re-rendering unchanged feedback does not announce it again."
+            ],
+            "user_visible": [
+              "Unresolved attention takes priority but does not erase a still-applicable Undo. Each entry identifies its target; selected Detail feedback stays near its editor, List feedback near its scope header, wide view uses the responsible pane and a shared attention entry for off-pane issues. Resolved attention disappears only after confirmed resolution; idle space returns after dismissal."
+            ]
+          },
+          "then": "Unresolved attention takes priority but does not erase a still-applicable Undo. Each entry identifies its target; selected Detail feedback stays near its editor, List feedback near its scope header, wide view uses the responsible pane and a shared attention entry for off-pane issues. Resolved attention disappears only after confirmed resolution; idle space returns after dismissal.",
+          "vs_legacy": "must-fail",
+          "when": "Navigate or finish another operation, resolve the outstanding draft, then acknowledge the successful outcome"
+        }
+      ],
+      "experience_closure_reason": "",
+      "experience_contract_refs": [
+        "exp-contextual-feedback"
+      ],
+      "goal_refs": [
+        "goal-clear-feedback"
+      ],
+      "id": "F-006",
+      "name": "Multiple contexts and recovery success",
+      "steps": [
+        "[pointer/touch/keyboard] Navigate or finish another operation, resolve the outstanding draft, then acknowledge the successful outcome",
+        "[assistive technology] Observe the same outcome without moving focus."
+      ]
+    }
+  ],
+  "goal": "Remove permanent idle footer, label sidebar destinations and preserve contextual accessible feedback, Undo and durable recovery without backend changes.",
+  "mode": "explore",
+  "product_assumptions": [],
+  "recommended_direction": [
+    {
+      "decision_refs": [],
+      "provenance": {
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "planner_proposal"
+      },
+      "statement": "Default to pane-local outcomes with shared unresolved-attention access. Successful nonactionable text may dismiss explicitly; Undo is untimed and explicitly dismissible. Errors, unknown saves and retained drafts persist until resolved; do not auto-dismiss or silently replace them."
+    },
+    {
+      "decision_refs": [],
+      "provenance": {
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "planner_proposal"
+      },
+      "statement": "Model feedback by typed cause, target, lifecycle and recovery actions rather than matching displayed text. Refresh and save outcomes must not overwrite each other. Exact pixels and projection/controller APIs are design responsibility."
+    }
+  ],
+  "target_users": [
+    "People using the shared UI with mouse, touch, keyboard or assistive technology"
+  ],
+  "technology_candidates": [],
+  "user_goals": [
+    {
+      "actor": "Person using shared actions",
+      "context": "List, narrow Action/Catalog Detail and wide split view",
+      "desired_outcome": "Use space for actions while seeing relevant outcomes and recovering safely",
+      "id": "goal-clear-feedback",
+      "success_observation": "No idle footer; named destinations; relevant outcomes and recovery remain reachable without focus or content loss."
+    }
+  ],
+  "ux_alternatives": [
+    {
+      "id": "ALT-PANE",
+      "primary_entry": "Responsible pane feedback and shared attention entry",
+      "provenance": {
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "planner_proposal"
+      },
+      "structural_dimensions": [
+        "locality: responsible pane",
+        "recovery: shared attention entry",
+        "idle: no strip"
+      ],
+      "summary": "Local outcomes in an in-flow contextual strip below each pane header; global unresolved recovery is available from a compact shared attention entry. Refresh owns refresh feedback."
+    },
+    {
+      "id": "ALT-SHARED",
+      "primary_entry": "Single conditional shared feedback strip below workspace header",
+      "provenance": {
+        "confidence": "provisional",
+        "evidence_refs": [
+          "input-source.json"
+        ],
+        "rationale": "Delegated interaction choice within the authorized outcome.",
+        "source": "planner_proposal"
+      },
+      "structural_dimensions": [
+        "locality: global",
+        "recovery: shared strip",
+        "idle: no strip"
+      ],
+      "summary": "All outcomes and recovery use one expandable in-flow strip above the workspace; refresh remains local to its control."
+    }
+  ],
+  "validation_questions": []
+}
