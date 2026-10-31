@@ -53,6 +53,7 @@ main>header{position:relative;z-index:20;display:flex;flex:0 0 auto;align-items:
 }
 @media(max-width:850px){
 main>header{min-height:58px;padding:10px 16px}
+main[data-mobile-screen="action"]>header,main[data-mobile-screen="catalog"]>header{display:none}
 #scopeTitle{max-width:none}
 .workspace,.workspace.has-editor{display:flex;flex-direction:column}
 .list-panel{flex:1 1 0;padding:20px 16px 24px}

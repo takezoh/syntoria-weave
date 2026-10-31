@@ -528,7 +528,7 @@ test('a long touch press on a Tag row lifts it and, released in place, opens the
  assert.equal(d.getElementById('moveChooser').hidden,false);assert.equal(d.querySelector('#movePlacement option[value="before"]').hidden,false);assert.equal(d.getElementById('movePlacement').value,'inside');assert.equal(f.requests.some(r=>r.name==='apply_change'),false);
 });
 
-test('narrow details preserve the independent list position and retain the header and pane-local recovery without a footer',async t=>{
+test('narrow details preserve the independent list position, hide the global header and retain pane-local recovery without a footer',async t=>{
  const f=createFixture(widgetHtml,{matchMedia:mobileMatchMedia,prepareState:state=>{state.projects=[{id:'project-one',name:'Work',parent_id:null,order:0}];state.tags=[{id:'tag-one',name:'Focus',parent_id:null,order:0}];}});t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document;
  const list=d.querySelector('.list-panel');Object.defineProperties(list,{scrollHeight:{value:1200},clientHeight:{value:500}});list.scrollTop=420;d.querySelector('.detail-content').scrollTop=90;
  selectFirst(f);await settle();assert(d.querySelector('.workspace').classList.contains('has-editor'));assert.equal(d.querySelector('.detail-content').scrollTop,0);assert.equal(d.querySelector('main').dataset.mobileScreen,'action');
@@ -536,42 +536,62 @@ test('narrow details preserve the independent list position and retain the heade
  d.querySelector('[data-view="projects"]').click();const project=d.querySelector('[data-catalog-id="project-one"] .catalog-select'),projectKey=project.dataset.focusKey;project.focus();project.click();assert.equal(d.querySelector('main').dataset.mobileScreen,'catalog');d.getElementById('catalogBack').click();f.flushFrames();await settle();assert.equal(d.activeElement?.dataset.focusKey,projectKey,'Project Back returns focus to its selected outline row');
  d.querySelector('[data-view="tags"]').click();const tag=d.querySelector('[data-catalog-id="tag-one"] .catalog-select'),tagKey=tag.dataset.focusKey;tag.focus();tag.click();assert.equal(d.querySelector('main').dataset.mobileScreen,'catalog');d.getElementById('catalogBack').click();f.flushFrames();await settle();assert.equal(d.activeElement?.dataset.focusKey,tagKey,'Tag Back returns focus to its selected outline row');
  assert.equal(d.querySelector('footer'),null);assert.equal(d.getElementById('unknown').parentElement.id,'listFeedback');assert.equal(d.getElementById('recoveryPanel').parentElement.id,'listFeedback');
- assert.doesNotMatch(d.querySelector('style').textContent,/main:has\(\.workspace\.has-editor\) header\{display:none\}/);
- assert.doesNotMatch(d.querySelector('style').textContent,/main\[data-mobile-screen=[^}]+>header\{display:none\}/);
+ assert.match(d.querySelector('style').textContent,/main\[data-mobile-screen="action"\]>header,main\[data-mobile-screen="catalog"\]>header\{display:none\}/,'the shared mobile layout owns global-header visibility for both Detail screen kinds');
 });
 
-test('global Action search filters the saved snapshot and retained proposals, announces results, and respects narrow List/Detail state',async t=>{
- const f=createFixture();t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window;
+test('global Action Search filters the saved snapshot and retained proposals while the wide inspector stays open',async t=>{
+ const f=createFixture(widgetHtml,{matchMedia:wideMatchMedia});t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window;
+ f.action.notes='needle in saved Notes';
+ const onHold={...f.action,id:'on-hold',title:'Needle waiting',status:'on-hold',view:'normal',is_deferred:false,order:5};
  const deferred={...f.action,id:'deferred',title:'Ｎｅｅｄｌｅ later',notes:'',status:'active',view:'normal',is_deferred:true,defer_until:'2099-01-01T09:00:00.000Z',order:1};
  const completed={...f.action,id:'completed',title:'Finished',notes:'needle in saved Notes',status:'completed',view:'completed',is_deferred:false,order:2};
  const dropped={...f.action,id:'dropped',title:'Needle dropped',notes:'',status:'dropped',view:'dropped',is_deferred:false,order:3};
  const other={...f.action,id:'other',title:'Other action',notes:'',status:'active',view:'normal',is_deferred:false,order:4};
- f.state.actions.push(deferred,completed,dropped,other);f.state.list_scopes.inbox.push(deferred.id,other.id);f.state.list_scopes.completed=[completed.id];f.state.list_scopes.cancelled=[dropped.id];
+ f.state.actions.push(deferred,completed,dropped,other,onHold);f.state.list_scopes.inbox.push(deferred.id,other.id);f.state.list_scopes.completed=[completed.id];f.state.list_scopes.cancelled=[dropped.id];
  d.getElementById('refresh').click();await settle();
- w.matchMedia=query=>({matches:query.replaceAll(' ','')==='(max-width:850px)',media:query});
- w.dispatchEvent(new w.Event('resize'));const list=d.querySelector('.list-panel');Object.defineProperties(list,{scrollHeight:{value:1500},clientHeight:{value:500}});list.scrollTop=320;
+ const list=d.querySelector('.list-panel');Object.defineProperties(list,{scrollHeight:{value:1500},clientHeight:{value:500}});list.scrollTop=320;
  d.querySelector('[data-action-id="'+f.action.id+'"] .action-select').click();await settle();
  assert(d.querySelector('.workspace').classList.contains('has-editor'));
+ editText(f);const notes=d.getElementById('editNotes');notes.value='unsaved proposal needle';notes.dispatchEvent(new w.Event('input',{bubbles:true}));
  const writes=f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length,reads=f.requests.filter(request=>request.name==='list_actions').length;
  d.getElementById('searchToggle').click();
  assert.equal(d.getElementById('searchQuery').getAttribute('aria-label'),'Search actions by title or notes');assert.equal(d.activeElement,d.getElementById('searchQuery'));
- f.flushFrames();assert.equal(d.activeElement,d.getElementById('searchQuery'),'deferred mobile list restoration must preserve explicit search focus');
- assert.equal(d.querySelector('.workspace').classList.contains('has-editor'),false,'Search returns to the List while preserving the inspector selection');assert.equal(w.getComputedStyle(d.querySelector('.editor-panel')).display,'none');assert.equal(list.scrollTop,320);
+ assert.equal(d.querySelector('.workspace').classList.contains('has-editor'),true,'wide Search leaves the inspector open');assert.equal(w.getComputedStyle(d.querySelector('.editor-panel')).display,'flex');assert.equal(list.scrollTop,320);
  const query=d.getElementById('searchQuery');query.value='  needle  ';query.dispatchEvent(new w.Event('input',{bubbles:true}));
- assert.equal(d.getElementById('searchStatus').textContent,'3 results.');assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),['deferred','completed','dropped']);
+ assert.equal(d.getElementById('searchStatus').textContent,'2 results.');assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),[f.action.id,'on-hold']);
  assert.equal(f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length,writes,'query entry and typing do not persist');assert.equal(f.requests.filter(request=>request.name==='list_actions').length,reads,'query entry and typing do not read');
+ d.getElementById('displayMenuToggle').click();const menu=d.getElementById('displayMenu');assert.equal(menu.hidden,false);assert.equal(d.querySelector('[data-display-choice="active"]').getAttribute('aria-checked'),'true');assert.equal(d.querySelector('[data-display-choice="on-hold"]').getAttribute('aria-checked'),'true');assert.equal(d.querySelector('[data-display-choice="completed"]').getAttribute('aria-checked'),'false');
+ const menuEscape=new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true});menu.dispatchEvent(menuEscape);assert.equal(menuEscape.defaultPrevented,true);assert.equal(menu.hidden,true);assert.equal(d.getElementById('searchControls').hidden,false,'menu Escape does not close Search');assert.equal(query.value,'  needle  ','menu Escape retains the Search query');
+ d.getElementById('displayMenuToggle').click();d.querySelector('[data-display-choice="completed"]').click();assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),[f.action.id,'completed','on-hold']);
+ d.querySelector('[data-display-choice="deferred"]').click();assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),[f.action.id,'deferred','completed','on-hold']);
+ d.querySelector('[data-display-choice="dropped"]').click();assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),[f.action.id,'deferred','completed','dropped','on-hold']);
+ d.querySelector('[data-display-choice="active"]').click();assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),['completed','dropped','on-hold'],'status choices intersect with deferred inclusion');
+ d.querySelector('[data-display-choice="active"]').click();assert.equal(query.value,'  needle  ');assert.equal(d.getElementById('editNotes').value,'unsaved proposal needle');assert.equal(d.getElementById('editor').hidden,false,'Search display toggles retain the inspector and unsaved draft');
+ assert.equal(f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length,writes,'Search display toggles do not autosave');assert.equal(f.requests.filter(request=>request.name==='list_actions').length,reads,'Search display toggles do not read');d.getElementById('displayMenuToggle').click();
  query.dispatchEvent(new w.CompositionEvent('compositionstart',{bubbles:true}));query.value='not committed';query.dispatchEvent(new w.Event('input',{bubbles:true}));d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(d.getElementById('searchControls').hidden,false,'Escape during composition leaves Search open');
- query.value='needle';query.dispatchEvent(new w.CompositionEvent('compositionend',{bubbles:true}));assert.equal(d.getElementById('searchStatus').textContent,'3 results.');
+ query.value='needle';query.dispatchEvent(new w.CompositionEvent('compositionend',{bubbles:true}));assert.equal(d.getElementById('searchStatus').textContent,'5 results.');
  query.value='no match';query.dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(d.getElementById('searchStatus').textContent,'No results.');assert.equal(d.querySelector('.action-row'),null);
  query.value='   ';query.dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(d.getElementById('searchStatus').textContent,'No results.','whitespace-only query is a real zero-result search');
- d.getElementById('clearSearch').click();assert.equal(query.value,'');assert.equal(d.getElementById('searchStatus').textContent,'Search actions by title or notes.');
- query.value='保存済み';query.dispatchEvent(new w.Event('input',{bubbles:true}));d.querySelector('[data-action-id="'+f.action.id+'"] .action-select').click();await settle();assert.equal(d.querySelector('.workspace').classList.contains('has-editor'),true,'reselecting the existing inspector target opens Search Detail');assert.equal(d.getElementById('editTitle').value,'保存済み');
- d.getElementById('backToList').click();await settle();assert.equal(d.querySelector('.workspace').classList.contains('has-editor'),false);
- query.value='other';query.dispatchEvent(new w.Event('input',{bubbles:true}));d.querySelector('[data-action-id="other"] .action-select').click();await settle();
- assert.equal(d.querySelector('.workspace').classList.contains('has-editor'),true,'selecting a result opens Detail on narrow layouts');assert.equal(d.getElementById('editor').hidden,false);assert.equal(d.getElementById('searchQuery').value,'other');
- d.getElementById('backToList').click();await settle();assert.equal(d.querySelector('.workspace').classList.contains('has-editor'),false,'Back follows model-owned search detail state');assert.equal(list.scrollTop,320);assert.equal(d.getElementById('searchQuery').value,'other');
- d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(d.getElementById('searchControls').hidden,true);assert.equal(d.activeElement,d.getElementById('searchToggle'));assert.equal(d.querySelector('[data-view="inbox"]').getAttribute('aria-current'),'page');
- assert.equal(f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length,writes,'closing Search does not persist');
+ d.getElementById('clearSearch').click();assert.equal(query.value,'');assert.equal(d.getElementById('searchStatus').textContent,'Search actions by title or notes.');d.getElementById('displayMenuToggle').click();assert.equal(d.querySelector('[data-display-choice="completed"]').getAttribute('aria-checked'),'true');assert.equal(d.querySelector('[data-display-choice="deferred"]').getAttribute('aria-checked'),'true');d.getElementById('displayMenuToggle').click();
+ query.value='other';query.dispatchEvent(new w.Event('input',{bubbles:true}));assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),['other']);
+ const writesBeforeClose=f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length;d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(d.getElementById('searchControls').hidden,true);assert.equal(d.activeElement,d.getElementById('searchToggle'));assert.equal(d.querySelector('[data-view="inbox"]').getAttribute('aria-current'),'page');
+ assert.equal(f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length,writesBeforeClose,'closing Search does not persist');
+ d.getElementById('searchToggle').click();assert.equal(query.value,'','a fresh Search resets the prior Search query');assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),[]);d.getElementById('closeSearch').click();
+});
+
+test('mobile Action Search stays on the List and Back restores its query and scroll position',async t=>{
+ const f=createFixture(widgetHtml,{matchMedia:mobileMatchMedia});t.after(()=>f.dom.window.close());await settle();const d=f.dom.window.document,w=f.dom.window;
+ const other={...f.action,id:'other',title:'Other action',notes:'',status:'active',view:'normal',is_deferred:false,order:1};f.state.actions.push(other);f.state.list_scopes.inbox.push(other.id);d.getElementById('refresh').click();await settle();
+ const list=d.querySelector('.list-panel');Object.defineProperties(list,{scrollHeight:{value:1500},clientHeight:{value:500}});list.scrollTop=320;
+ d.querySelector('[data-action-id="'+f.action.id+'"] .action-select').click();await settle();assert.equal(d.querySelector('main').dataset.mobileScreen,'action');
+ d.getElementById('backToList').click();f.flushFrames();await settle();assert.equal(d.querySelector('main').dataset.mobileScreen,'list');assert.equal(list.scrollTop,320);assert.equal(d.activeElement?.dataset.focusKey,'select:'+f.action.id);
+ const writes=f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length,reads=f.requests.filter(request=>request.name==='list_actions').length;
+ d.getElementById('searchToggle').click();const query=d.getElementById('searchQuery');assert.equal(d.activeElement,query);f.flushFrames();assert.equal(d.activeElement,query,'opening Search preserves explicit focus after restoring the mobile List');
+ query.value='other';query.dispatchEvent(new w.Event('input',{bubbles:true}));assert.deepEqual([...d.querySelectorAll('.action-row')].map(row=>row.dataset.actionId),['other']);
+ assert.equal(f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length,writes,'mobile Search does not persist');assert.equal(f.requests.filter(request=>request.name==='list_actions').length,reads,'mobile Search does not read');
+ d.querySelector('[data-action-id="other"] .action-select').click();await settle();assert.equal(d.querySelector('main').dataset.mobileScreen,'action');assert.equal(d.getElementById('editor').hidden,false);
+ d.getElementById('backToList').click();f.flushFrames();await settle();assert.equal(d.querySelector('main').dataset.mobileScreen,'list');assert.equal(list.scrollTop,320);assert.equal(query.value,'other','Back preserves the Search query');
+ const writesBeforeClose=f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length;d.getElementById('closeSearch').click();assert.equal(d.getElementById('searchControls').hidden,true);assert.equal(f.requests.filter(request=>request.name==='apply_change'||request.name==='preview_change').length,writesBeforeClose,'closing Search does not persist');
 });
 
 test('Deadline and Hide until editors open from their chips, show the draft on the chip and close on Escape or an outside press',async t=>{

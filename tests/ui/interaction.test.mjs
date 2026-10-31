@@ -69,11 +69,12 @@ test('search lifecycle saves and restores a cloned navigation, keeps the raw que
  const {initialViewState,viewTransition}=await import('../../lib/ui/model/view-state.ts');let view=initialViewState();
  view=viewTransition(view,{type:'view.navigation',patch:{view:'projects',classificationId:'project-1',includeDescendants:true,statuses:['completed','dropped'],includeDeferred:true}});
  view=viewTransition(view,{type:'view.set',field:'collapsed',value:['project:project-1']});const prior=structuredClone(view.navigation);view=viewTransition(view,{type:'search.open'});
- assert.equal(view.navigation.view,'search');assert.equal(view.navigation.searchQuery,'');assert.equal(view.searchDetailOpen,false);assert.deepEqual(view.returnNavigation,prior);
- view=viewTransition(view,{type:'search.query',query:'  raw Ａbc  '});view=viewTransition(view,{type:'search.detail',open:true});assert.equal(view.navigation.searchQuery,'  raw Ａbc  ');assert.equal(view.searchDetailOpen,true);
+ assert.equal(view.navigation.view,'search');assert.equal(view.navigation.searchQuery,'');assert.deepEqual(view.navigation.statuses,['active','on-hold']);assert.equal(view.navigation.includeDeferred,false);assert.equal(view.searchDetailOpen,false);assert.deepEqual(view.returnNavigation,prior);
+ view=viewTransition(view,{type:'view.navigation',patch:{statuses:['completed'],includeDeferred:true}});view=viewTransition(view,{type:'search.query',query:'  raw Ａbc  '});view=viewTransition(view,{type:'search.detail',open:true});assert.equal(view.navigation.searchQuery,'  raw Ａbc  ');assert.equal(view.searchDetailOpen,true);assert.deepEqual(view.navigation.statuses,['completed']);assert.equal(view.navigation.includeDeferred,true);
  view=viewTransition(view,{type:'search.clear'});assert.equal(view.navigation.searchQuery,'');assert.equal(view.searchDetailOpen,true);
  view=viewTransition(view,{type:'search.close'});assert.deepEqual(view.navigation,prior);assert.equal(view.returnNavigation,null);assert.equal(view.searchDetailOpen,false);
  assert.deepEqual(prior.statuses,['completed','dropped']);assert.deepEqual(view.collapsed,['project:project-1']);
+ view=viewTransition(view,{type:'search.open'});view=viewTransition(view,{type:'view.navigation',patch:{statuses:['dropped'],includeDeferred:true}});view=viewTransition(view,{type:'search.close'});view=viewTransition(view,{type:'search.open'});assert.deepEqual(view.navigation.statuses,['active','on-hold']);assert.equal(view.navigation.includeDeferred,false);assert.equal(view.navigation.searchQuery,'','every fresh Search open resets filters and query');
 });
 
 test('choosing a navigation destination exits Search directly and discards only the return-navigation pointer',async()=>{

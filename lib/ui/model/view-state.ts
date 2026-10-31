@@ -66,7 +66,7 @@ export function viewTransition(state:InteractionViewState,event:ViewEvent):Inter
   case 'view.navigation':return {...state,navigation:navigation.select(state.navigation,event.patch),...(event.patch.view&&event.patch.view!=='search'&&state.navigation.view==='search'?{returnNavigation:null,searchDetailOpen:false}:{})};
   case 'search.open':{
    if(state.navigation.view==='search')return state;
-   return {...state,navigation:navigation.select(state.navigation,{view:'search',classificationId:'all',perspectiveId:null,includeDescendants:false,statuses:[],includeDeferred:false,searchQuery:''}),returnNavigation:cloneNavigation(state.navigation),searchDetailOpen:false,pickerOpen:null,pickerTarget:null,pickerIndex:-1,headerMenu:null};
+   return {...state,navigation:navigation.select(state.navigation,{view:'search',classificationId:'all',perspectiveId:null,includeDescendants:false,statuses:['active','on-hold'],includeDeferred:false,searchQuery:''}),returnNavigation:cloneNavigation(state.navigation),searchDetailOpen:false,pickerOpen:null,pickerTarget:null,pickerIndex:-1,headerMenu:null};
   }
   case 'search.query':return state.navigation.view==='search'&&state.navigation.searchQuery!==event.query?{...state,navigation:{...state.navigation,searchQuery:event.query}}:state;
   case 'search.clear':return state.navigation.view==='search'&&state.navigation.searchQuery!==''?{...state,navigation:{...state.navigation,searchQuery:''}}:state;
