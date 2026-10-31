@@ -1,7 +1,6 @@
 import {
   listGestureTransition,
   LIST_HOLD_DELAY,
-  LIST_PULL_THRESHOLD,
   type ListGestureEffect,
   type ListGestureEvent,
   type ListGestureRow,
@@ -11,7 +10,8 @@ import {
 
 export interface ListGesturePorts {
   readonly scroller: HTMLElement;
-  readonly indicator: HTMLElement;
+  readonly showPull: (distance: number) => void;
+  readonly clearPull: () => void;
   readonly allowed: () => boolean;
   readonly canStart: () => boolean;
   readonly pullAllowed: () => boolean;
@@ -42,16 +42,6 @@ export function installListGesture(document: Document, window: Window, ports: Li
   let activeContactId: number | null = null;
   let disposed = false;
 
-  const drawPull = (distance: number, text: string) => {
-    const transform = `translateY(${distance - 40}px)`;
-    if (ports.indicator.style.transform !== transform) ports.indicator.style.transform = transform;
-    if (ports.indicator.textContent !== text) ports.indicator.textContent = text;
-    ports.indicator.hidden = false;
-  };
-  const clearPull = () => {
-    ports.indicator.hidden = true;
-    ports.indicator.style.transform = 'translateY(-40px)';
-  };
   const clearTimer = () => {
     if (timer === null) return;
     cancelTimer(timer);
@@ -74,9 +64,9 @@ export function installListGesture(document: Document, window: Window, ports: Li
         return event.defaultPrevented;
       case 'cancel-hold': clearTimer(); return true;
       case 'show-pull':
-        drawPull(effect.distance, effect.distance >= LIST_PULL_THRESHOLD ? 'Release to refresh' : 'Pull down to refresh');
+        ports.showPull(effect.distance);
         return true;
-      case 'clear-pull': clearPull(); return true;
+      case 'clear-pull': ports.clearPull(); return true;
       case 'show-swipe': {
         const row = activeRow;
         if (!row) return true;
@@ -287,7 +277,7 @@ export function installListGesture(document: Document, window: Window, ports: Li
       document.removeEventListener('visibilitychange', visibility);
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('resize', onResize);
-      clearPull();
+      ports.clearPull();
     },
   };
 }

@@ -23,6 +23,7 @@ export function createRefreshCoordinator(ports: RefreshPorts) {
   function flush(): Promise<void> {
     if (disposed || !started || !pending || running || !ports.isIdle()) return running ?? Promise.resolve();
     pending = false;
+    ports.publish('Refreshing…');
     ports.stateChanged?.('refreshing');
     running = Promise.resolve().then(ports.read).then(
       () => { if (!disposed) ports.publish('Up to date.'); },

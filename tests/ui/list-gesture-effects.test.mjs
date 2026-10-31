@@ -9,7 +9,7 @@ function fixture(){
  row.getBoundingClientRect=()=>({left:0,right:300,top:0,bottom:60,width:300,height:60});
  let allowed=true,pullAllowed=true,swipeAllowance={finish:true,ask:true},timerId=0;const timers=new Map(),effects={refreshes:0,suppressed:0,moves:[],begins:[],ends:0,cancels:0,opens:[],swipes:[],allowanceReads:0,widthReads:0};
  const originalBounds=row.getBoundingClientRect.bind(row);row.getBoundingClientRect=()=>{effects.widthReads++;return originalBounds();};
- const api=installListGesture(document,window,{scroller,indicator,allowed:()=>allowed,canStart:()=>true,pullAllowed:()=>pullAllowed,swipeAllowance:()=>{effects.allowanceReads++;return swipeAllowance;},refresh:()=>effects.refreshes++,beginMove:(...args)=>{effects.begins.push(args);return true;},move:(x,y)=>effects.moves.push([x,y]),endMove:()=>effects.ends++,cancelMove:()=>effects.cancels++,openMove:(...args)=>effects.opens.push(args),swipe:(...args)=>effects.swipes.push(args),suppressClick:()=>effects.suppressed++,timers:{schedule:(fn,ms)=>{const id=++timerId;timers.set(id,{fn,ms});return id;},cancel:id=>timers.delete(id)}});
+ const api=installListGesture(document,window,{scroller,showPull:()=>{indicator.hidden=false;},clearPull:()=>{indicator.hidden=true;},allowed:()=>allowed,canStart:()=>true,pullAllowed:()=>pullAllowed,swipeAllowance:()=>{effects.allowanceReads++;return swipeAllowance;},refresh:()=>effects.refreshes++,beginMove:(...args)=>{effects.begins.push(args);return true;},move:(x,y)=>effects.moves.push([x,y]),endMove:()=>effects.ends++,cancelMove:()=>effects.cancels++,openMove:(...args)=>effects.opens.push(args),swipe:(...args)=>effects.swipes.push(args),suppressClick:()=>effects.suppressed++,timers:{schedule:(fn,ms)=>{const id=++timerId;timers.set(id,{fn,ms});return id;},cancel:id=>timers.delete(id)}});
  const active=new Map();
  function touch(target,type,x=10,y=10,id=1,{cancelable=true,count=1}={}){
   let origin=active.get(id)?.target||target;if(type==='touchstart'){origin=target;active.set(id,{target:origin,x,y});}
@@ -26,7 +26,7 @@ function fixture(){
 test('Touch listeners bind once up front, non-passive and only to the active list scroller',()=>{
  const f=fixture();try{
   const registered=[];const add=f.scroller.addEventListener.bind(f.scroller);f.scroller.addEventListener=(type,listener,options)=>{registered.push([type,options?.passive]);add(type,listener,options);};
-  const api=installListGesture(f.document,f.window,{scroller:f.scroller,indicator:f.indicator,allowed:()=>true,canStart:()=>true,pullAllowed:()=>true,swipeAllowance:()=>({finish:true,ask:false}),refresh:()=>{},beginMove:()=>true,move:()=>{},endMove:()=>{},cancelMove:()=>{},openMove:()=>{},swipe:()=>{},suppressClick:()=>{}});
+  const api=installListGesture(f.document,f.window,{scroller:f.scroller,showPull:()=>{},clearPull:()=>{},allowed:()=>true,canStart:()=>true,pullAllowed:()=>true,swipeAllowance:()=>({finish:true,ask:false}),refresh:()=>{},beginMove:()=>true,move:()=>{},endMove:()=>{},cancelMove:()=>{},openMove:()=>{},swipe:()=>{},suppressClick:()=>{}});
   assert.deepEqual(registered.filter(([type])=>type.startsWith('touch')).sort(),[['touchcancel',undefined],['touchend',undefined],['touchmove',false],['touchstart',false]].sort());
   api.dispose();
  }finally{f.api.dispose();f.dom.window.close();}

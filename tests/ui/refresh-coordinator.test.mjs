@@ -10,15 +10,26 @@ function fixture(){
 }
 
 test('the application lane coalesces overlapping callers and reports one read outcome',async()=>{
- const f=fixture();const started=f.coordinator.start();await settle();assert.equal(f.reads,1);const first=f.coordinator.request(),second=f.coordinator.request();assert.equal(f.reads,1);f.complete();await Promise.all([started,first,second]);assert.deepEqual(f.messages,['Up to date.']);assert.deepEqual(f.states,['refreshing','idle']);f.coordinator.dispose();
+ const f=fixture();const started=f.coordinator.start();await settle();assert.equal(f.reads,1);const first=f.coordinator.request(),second=f.coordinator.request();assert.equal(f.reads,1);f.complete();await Promise.all([started,first,second]);assert.deepEqual(f.messages,['Refreshing…','Up to date.']);assert.deepEqual(f.states,['refreshing','idle']);f.coordinator.dispose();
 });
 
 test('writes and IME defer one read until an explicit idle notification, outside publication',async()=>{
  const f=fixture();f.setIdle(false);f.coordinator.start();f.coordinator.request();f.coordinator.request();await settle();assert.equal(f.reads,0);
- f.setIdle(true);assert.equal(f.reads,0,'the idle observer only queues work');f.runScheduled();await settle();assert.equal(f.reads,1);f.complete();await settle();assert.deepEqual(f.messages,['Up to date.']);f.coordinator.dispose();
+ f.setIdle(true);assert.equal(f.reads,0,'the idle observer only queues work');f.runScheduled();await settle();assert.equal(f.reads,1);f.complete();await settle();assert.deepEqual(f.messages,['Refreshing…','Up to date.']);f.coordinator.dispose();
 });
 
 test('failed reads keep the coordinator reusable and dispose detaches idle publication',async()=>{
- const f=fixture();f.coordinator.start();await settle();f.fail();await settle();assert.match(f.messages[0],/Could not refresh/);assert.deepEqual(f.states,['refreshing','idle']);
- f.coordinator.request();await settle();assert.equal(f.reads,2);f.coordinator.dispose();f.setIdle(false);assert.equal(f.scheduled.length,0);f.fail();await settle();assert.equal(f.messages.length,1);
+ const f=fixture();f.coordinator.start();await settle();f.fail();await settle();assert.match(f.messages[1],/Could not refresh/);assert.deepEqual(f.states,['refreshing','idle']);
+ f.coordinator.request();await settle();assert.equal(f.reads,2);f.coordinator.dispose();f.setIdle(false);assert.equal(f.scheduled.length,0);f.fail();await settle();assert.equal(f.messages.length,3);
+});
+
+
+test('a new read replaces stale success immediately and publishes success only after settlement',async()=>{
+ const f=fixture();const initial=f.coordinator.start();await settle();f.complete();await initial;
+ assert.equal(f.messages.at(-1),'Up to date.');
+ f.setIdle(false);await f.coordinator.request();assert.equal(f.messages.at(-1),'Up to date.','a deferred request has not started a read');
+ f.setIdle(true);f.runScheduled();assert.equal(f.messages.at(-1),'Refreshing…','actual read start replaces the prior result');
+ await settle();assert.equal(f.reads,2);assert.equal(f.messages.at(-1),'Refreshing…');
+ const joined=f.coordinator.request();assert.equal(f.messages.filter(message=>message==='Refreshing…').length,2,'joining does not republish a new read');
+ f.complete();await joined;assert.equal(f.messages.at(-1),'Up to date.');f.coordinator.dispose();
 });
