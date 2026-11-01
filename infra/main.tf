@@ -99,7 +99,7 @@ resource "google_cloud_run_v2_service" "api" {
     timeout                          = "30s"
     max_instance_request_concurrency = 20
     scaling {
-      min_instance_count = 1
+      min_instance_count = 0
       max_instance_count = 3
     }
 

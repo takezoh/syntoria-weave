@@ -90,7 +90,7 @@ These are initial operating values, not measured results. IaC validates configur
 | Cloud Run region | asia-southeast1 (Singapore) | Same region / local Node |
 | Neon region | aws-ap-southeast-1 (Singapore) | Separate staging project / PostgreSQL 18 |
 | API CPU / memory | 1 vCPU / 512 MiB | Same for comparison |
-| Service min / max instances | 1 / 3 | 0 / 1 |
+| Service min / max instances | 0 / 3 | 0 / 1 |
 | Request concurrency | 20 per instance | 20 |
 | Cloud Run request timeout | 30 seconds | Same |
 | Application deadline | 20 seconds; no new SQL after deadline | Same |
@@ -101,7 +101,7 @@ These are initial operating values, not measured results. IaC validates configur
 | Neon compute | 0.25 CU minimum, 1 CU maximum; no autosuspend | Scale to zero allowed |
 | PITR window | 7 days, supported paid plan | 1 day minimum |
 
-Neon's documented region list includes Singapore, not Tokyo; select this pair to keep API/DB close rather than assume a GCP-hosted Neon database. The project region is fixed at creation. [Region availability](https://neon.com/docs/introduction/regions). Do not change region by silently creating another production database. Production no-autosuspend and a warm API instance prioritize interactive latency; they have recurring costs. [Compute controls](https://neon.com/docs/manage/computes).
+Neon's documented region list includes Singapore, not Tokyo; select this pair to keep API/DB close rather than assume a GCP-hosted Neon database. The project region is fixed at creation. [Region availability](https://neon.com/docs/introduction/regions). Do not change region by silently creating another production database. The API scales to zero when idle, so the first request after idle includes a Cloud Run cold start in addition to any Gate cold start. Production database no-autosuspend prioritizes interactive latency and has a recurring cost. [Compute controls](https://neon.com/docs/manage/computes).
 
 Budget for 2 simultaneous revisions x 3 instances x 5 connections = 30, plus up to 10 runtime surge connections, 2 migration/backup connections, and at least 22 administrative/provider-reserved connections. Require an actual effective database capacity of at least 64 and validate roles at deployment. Cloud Run max instances is not a hard connection bound during surges; the database role limit adds pressure control, and the database capacity plus bounded acquisition handle overflow. Role connection limits can also race, so do not claim a strict cross-instance mathematical cap. On exhaustion return retryable 503 without changing operation IDs. Do not raise max instances independently of DB capacity. [Cloud Run maximum instances](https://docs.cloud.google.com/run/docs/configuring/max-instances).
 
