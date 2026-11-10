@@ -45,7 +45,7 @@ test('the change feed filters by who made each save, groups by day and explains 
  assert.deepEqual(feed.counts,{all:5,connections:3,you:1});
  assert.deepEqual(feed.groups.map(group=>[group.label,group.cards.map(card=>card.revision)]),[['2026-10-29',[5,4]],['2026-10-28',[3,2,1]]]);
  const cards=feed.groups.flatMap(group=>group.cards);
- assert.deepEqual(cards.map(card=>card.actor),[{kind:'connection',label:'ChatGPT'},{kind:'you',label:'You'},{kind:'connection',label:'ChatGPT'},{kind:'connection',label:'ChatGPT'},{kind:'unknown',label:'Unknown source'}]);
+ assert.deepEqual(cards.map(card=>card.actor),[{kind:'connection',label:'AI'},{kind:'you',label:'You'},{kind:'connection',label:'AI'},{kind:'connection',label:'AI'},{kind:'unknown',label:'Unknown source'}]);
  assert.deepEqual(cards.map(card=>card.isNew),[true,false,false,false,false]);assert.equal(feed.unreviewed,1);assert.equal(feed.reviewed,true);
  assert.equal(cards[0].summary,'Saved from your message.');assert.equal(cards[0].time,'09:00');
  assert.deepEqual(cards.map(card=>[card.undo.available,card.undo.reason]),[[true,''],[false,'Can’t undo: a later change to the same item would be lost.'],[false,'This save was itself an Undo.'],[false,'Already undone.'],[false,'Collaboration records change through their own decisions.']]);
@@ -60,8 +60,8 @@ test('the change feed filters by who made each save, groups by day and explains 
 });
 
 test('actors, review marks, collaboration attention and page validation follow their display contracts',()=>{
- assert.deepEqual(changeActor({actor_kind:'client',client_name:null}),{kind:'connection',label:'Connected app'});
- assert.equal(actorLabel(null),null);assert.equal(actorLabel({kind:'user',client_id:'web'}),'you');assert.equal(actorLabel({kind:'client',client_id:'c',client_name:'Claude'}),'Claude');assert.equal(actorLabel({kind:'client',client_id:'c',client_name:null}),'a connected app');
+ assert.deepEqual(changeActor({actor_kind:'client',client_name:null}),{kind:'connection',label:'AI'});
+ assert.equal(actorLabel(null),null);assert.equal(actorLabel({kind:'user',client_id:'web'}),'you');assert.equal(actorLabel({kind:'client',client_id:'c',client_name:'Claude'}),'AI');assert.equal(actorLabel({kind:'client',client_id:'c',client_name:null}),'AI');
  assert.equal(isUnreviewed({actor_kind:'client',revision_after:4},3),true);assert.equal(isUnreviewed({actor_kind:'user',revision_after:4},3),false);assert.equal(isUnreviewed({actor_kind:'client',revision_after:3},3),false);assert.equal(isUnreviewed({actor_kind:'client',revision_after:4},null),false);
  const record=extra=>({decision:'accepted',progress:'not_started',next_actor:'none',outcome:'none',stop_requested:false,...extra});
  assert.equal(needsPerson(record({progress:'waiting',next_actor:'user'}),'active'),true);

@@ -23,12 +23,8 @@ export function collaborationLabel(record:Collaboration):string {
 export type DelegationChoice=Readonly<{label:string;delegation:CollaborationDelegation}>;
 /** Unapproved work is the person's; approved work is for any AI or the specified one. Names are display data. */
 export function delegationView(record:Collaboration,clients:readonly {client_id:string;name:string}[]):Readonly<{handler:string;runner:string|null;choices:readonly DelegationChoice[];selected:number}> {
- const name=(clientId:string)=>clients.find(row=>row.client_id===clientId)?.name??'AI connection '+clientId.slice(0,8);
- const ids=[...new Set([...clients.map(row=>row.client_id),...(record.delegation.mode==='specified_ai'?[record.delegation.client_id]:[]),...(record.run_actor?.kind==='client'?[record.run_actor.client_id]:[])])];
- const choices:DelegationChoice[]=[{label:'Any AI',delegation:{mode:'any_ai',client_id:null}},...ids.map(clientId=>({label:name(clientId),delegation:{mode:'specified_ai',client_id:clientId} as const}))];
- const selected=record.delegation.mode==='any_ai'?0:choices.findIndex(choice=>choice.delegation.client_id===record.delegation.client_id);
- const target=record.delegation.mode==='any_ai'?'any AI':name(record.delegation.client_id);
- return {handler:record.decision==='accepted'?'For '+target:'Yours until approved · then for '+target,runner:record.run_actor?'Started by '+(record.run_actor.kind==='user'?'you':name(record.run_actor.client_id)):null,choices,selected};
+ void clients;
+ return {handler:record.decision==='accepted'?'For AI':'Yours until approved · then for AI',runner:record.run_actor?'Started by '+(record.run_actor.kind==='user'?'you':'AI'):null,choices:[{label:'AI',delegation:{mode:'any_ai',client_id:null}}],selected:0};
 }
 /**
  * Where a decision appears on its card and how it is shown. `primary` decisions carry a short visible word;

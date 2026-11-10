@@ -67,3 +67,6 @@ gha-creds-*.json
 
 # Local package-manager cache.
 /.pnpm-store/
+
+# Local Cloudflare build and account cache.
+.cloudflare/

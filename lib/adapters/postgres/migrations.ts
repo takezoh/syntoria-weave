@@ -2,6 +2,7 @@ import type {Pool} from 'pg';
 import {readFile,readdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 /** A separate migrator connection serializes the checksummed journal and transactional DDL. */
 export async function migrate(pool:Pool,directory:string) {
  const client=await pool.connect();
@@ -11,13 +12,18 @@ export async function migrate(pool:Pool,directory:string) {
   await client.query('CREATE TABLE IF NOT EXISTS public.schema_migrations(version text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())');
   const files=(await readdir(directory)).filter(x=>/^\d+_[a-z_]+\.sql$/.test(x)).sort();
   for(const file of files){
-   const sql=await readFile(resolve(directory,file),'utf8'),hash=createHash('sha256').update(sql).digest('hex');
+   const sql=await readFile(resolve(directory,file),'utf8');
+   const companion=file.replace(/\.sql$/,'.mjs');
+   const companionCode=(await readdir(directory)).includes(companion)?await readFile(resolve(directory,companion),'utf8'):null;
+   const hash=createHash('sha256').update(companionCode===null?sql:sql+'\0'+companionCode).digest('hex');
    const prior=(await client.query('SELECT checksum FROM public.schema_migrations WHERE version=$1',[file])).rows[0];
    if(prior){if(prior.checksum!==hash)throw new Error('Applied migration checksum differs: '+file);continue;}
    // The successor performs metadata expansion without requiring a privileged role.
    // Preserve and verify the historical checksum when it was already applied.
    if(file==='0007_action_metadata_text.sql'&&files.includes('0009_application_user_scope.sql'))continue;
-   await client.query(sql);await client.query('INSERT INTO public.schema_migrations(version,checksum) VALUES($1,$2)',[file,hash]);
+   await client.query(sql);
+   if(companionCode!==null){const step=await import(pathToFileURL(resolve(directory,companion)).href) as {apply(connection:typeof client):Promise<void>};await step.apply(client);}
+   await client.query('INSERT INTO public.schema_migrations(version,checksum) VALUES($1,$2)',[file,hash]);
   }
   await client.query('COMMIT');
  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
@@ -44,7 +50,7 @@ export async function checkRuntime(pool:Pool) {
  const capacity=(await pool.query('SHOW max_connections')).rows[0].max_connections;if(Number(capacity)<64)throw new Error('Database connection capacity must be at least 64.');
  if(owned.rowCount)throw new Error('Runtime role must not own application tables.');
  const schema=await pool.query("SELECT version FROM public.schema_migrations ORDER BY version");
- if(schema.rows.map(row=>row.version).filter(version=>version!=='0007_action_metadata_text.sql').join(',')!=='0001_state.sql,0002_user_identity.sql,0003_gate_sessions.sql,0004_subject_only_identity.sql,0005_operation_client_provenance.sql,0006_operation_actor_kind.sql,0007_collaboration.sql,0008_mcp_subscriptions.sql,0009_application_user_scope.sql,0010_change_review.sql,0011_collaboration_delegation.sql,0012_collaboration_metadata.sql,0013_webhook_subscriptions.sql,0014_webhook_deliveries.sql')throw new Error('Incompatible schema version.');
+ if(schema.rows.map(row=>row.version).filter(version=>version!=='0007_action_metadata_text.sql').join(',')!=='0001_state.sql,0002_user_identity.sql,0003_gate_sessions.sql,0004_subject_only_identity.sql,0005_operation_client_provenance.sql,0006_operation_actor_kind.sql,0007_collaboration.sql,0008_mcp_subscriptions.sql,0009_application_user_scope.sql,0010_change_review.sql,0011_collaboration_delegation.sql,0012_collaboration_metadata.sql,0013_webhook_subscriptions.sql,0014_webhook_deliveries.sql,0015_shared_ai_actor.sql')throw new Error('Incompatible schema version.');
 }
 export async function grantExport(pool:Pool,role:string) {
  if(!/^[a-z][a-z0-9_]{0,62}$/.test(role))throw new Error('Invalid role identifier.');

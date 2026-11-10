@@ -13,8 +13,7 @@ export function collaborationDelegation(value:unknown):CollaborationDelegation {
  if(value===undefined)return {mode:'any_ai',client_id:null};
  const d=object(value);exact(d,['mode','client_id']);
  if(d.mode==='any_ai'){if(d.client_id!==undefined&&d.client_id!==null)fail('invalid_input','Any AI takes no client_id.');return {mode:'any_ai',client_id:null};}
- if(d.mode==='specified_ai'){if(typeof d.client_id!=='string'||!/^[\x21-\x7e]{1,255}$/u.test(d.client_id))fail('invalid_input','Specify the client_id of the AI connection.');return {mode:'specified_ai',client_id:d.client_id};}
- return fail('invalid_input','delegation.mode must be any_ai or specified_ai.');
+ return fail('invalid_input','delegation.mode must be any_ai; AI callers share one actor.');
 }
 export function collaborationTarget(snapshot:Snapshot,actionId:string|null){
  if(actionId===null)return null;

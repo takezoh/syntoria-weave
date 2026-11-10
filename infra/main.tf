@@ -2,22 +2,25 @@ locals {
 
   secret_ids = toset(["runtime-database", "admin-database", "backup-database", "gate-client-secret", "login-key", "csrf-key", "webhook-key-ring"])
   runtime_secrets = {
-    DATABASE_URL                = "runtime-database"
-    GATE_RESOURCE_CLIENT_SECRET = "gate-client-secret"
-    WEBHOOK_KEY_RING            = "webhook-key-ring"
+    DATABASE_URL     = "runtime-database"
+    WEBHOOK_KEY_RING = "webhook-key-ring"
   }
 
   runtime_env = {
-    PUBLIC_ORIGIN           = var.public_origin
-    OAUTH_ISSUER            = var.oauth_issuer
-    OAUTH_RESOURCE          = "${var.public_origin}/mcp"
-    SHARED_COOKIE_DOMAIN    = var.shared_cookie_domain
-    SPA_ORIGINS             = jsonencode(var.spa_origins)
-    GATE_BROWSER_CLIENT_ID  = var.gate_browser_client_id
-    GATE_RESOURCE_CLIENT_ID = var.gate_resource_client_id
-    CURSOR_EPOCH            = var.cursor_epoch
-    WRITE_MODE              = var.writes_enabled ? "enabled" : "blocked"
-    NODE_ENV                = "production"
+    PUBLIC_ORIGIN                = var.public_origin
+    ACCESS_ISSUER                = var.access_issuer
+    ACCESS_MCP_AUDIENCE          = var.access_mcp_audience
+    ACCESS_BROWSER_AUDIENCE      = var.access_browser_audience
+    ACCESS_OWNER_EMAIL           = var.access_owner_email
+    OWNER_BINDING_ISSUER         = var.owner_binding_issuer
+    OWNER_BINDING_SUBJECT        = var.owner_binding_subject
+    BACKEND_HOSTS                = var.backend_hosts
+    OAUTH_RESOURCE               = "${var.public_origin}/mcp"
+    SHARED_COOKIE_DOMAIN         = var.shared_cookie_domain
+    SPA_ORIGINS                  = jsonencode(var.spa_origins)
+    CURSOR_EPOCH                 = var.cursor_epoch
+    WRITE_MODE                   = var.writes_enabled ? "enabled" : "blocked"
+    NODE_ENV                     = "production"
     WEBHOOK_TASK_QUEUE           = google_cloud_tasks_queue.webhooks.id
     WEBHOOK_TASK_SERVICE_ACCOUNT = google_service_account.identity["tasks"].email
   }
@@ -27,7 +30,7 @@ locals {
 
 resource "google_project_service" "api" {
 
-  for_each           = toset(["run.googleapis.com", "artifactregistry.googleapis.com", "secretmanager.googleapis.com", "iam.googleapis.com", "iamcredentials.googleapis.com", "sts.googleapis.com", "cloudscheduler.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "billingbudgets.googleapis.com", "cloudtasks.googleapis.com"])
+  for_each           = toset(["run.googleapis.com", "artifactregistry.googleapis.com", "secretmanager.googleapis.com", "iam.googleapis.com", "iamcredentials.googleapis.com", "sts.googleapis.com", "cloudscheduler.googleapis.com", "monitoring.googleapis.com", "logging.googleapis.com", "billingbudgets.googleapis.com", "cloudtasks.googleapis.com", "apigateway.googleapis.com", "servicemanagement.googleapis.com", "servicecontrol.googleapis.com"])
   service            = each.value
   disable_on_destroy = false
 
@@ -193,7 +196,7 @@ resource "google_cloud_run_v2_service_iam_member" "https" {
   name     = google_cloud_run_v2_service.api.name
   location = var.region
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = "serviceAccount:${var.gateway_invoker_email}"
 
 }
 

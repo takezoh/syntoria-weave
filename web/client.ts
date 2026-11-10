@@ -1,4 +1,4 @@
-type RuntimeConfig=Readonly<{apiOrigin:string;gateOrigin:string;appId:string;loginRedirectUri:string;appName:string|null}>;
+type RuntimeConfig=Readonly<{apiOrigin:string;gateOrigin:string;appId:string;loginRedirectUri:string;appName:string|null;authProvider?:'access'}>;
 type Session=Readonly<{account_scope:string;csrf_token:string}>;
 
 const frame=document.querySelector<HTMLIFrameElement>('#workspace')!;
@@ -16,10 +16,15 @@ function exactHttpsOrigin(value:unknown){
 }
 
 async function readRuntimeConfig():Promise<RuntimeConfig>{
- const response=await fetch('/runtime-config.json',{cache:'no-store',credentials:'omit',redirect:'error'});
+ const response=await fetch('/runtime-config.json',{cache:'no-store',credentials:'same-origin',redirect:'error'});
  if(!response.ok)throw new Error('Runtime configuration is unavailable.');
  const value=await response.json() as Partial<RuntimeConfig>;
- const apiOrigin=exactHttpsOrigin(value.apiOrigin),gateOrigin=exactHttpsOrigin(value.gateOrigin);
+ const apiOrigin=exactHttpsOrigin(value.apiOrigin);
+ if(value.authProvider==='access'){
+  if(apiOrigin!==window.location.origin)throw new Error('Access browser API must be same-origin.');
+  return Object.freeze({apiOrigin,gateOrigin:apiOrigin,appId:'access',loginRedirectUri:new URL('/auth-return.html',apiOrigin).href,appName:displayName(value.appName),authProvider:'access'});
+ }
+ const gateOrigin=exactHttpsOrigin(value.gateOrigin);
  const redirect=typeof value.loginRedirectUri==='string'?new URL(value.loginRedirectUri):null;
  if(!redirect||redirect.protocol!=='https:'||redirect.username||redirect.password||redirect.search||redirect.hash||redirect.origin!==window.location.origin||redirect.href!==value.loginRedirectUri)throw new Error('Invalid login return URI.');
  if(typeof value.appId!=='string'||!/^[A-Za-z0-9._~-]{1,100}$/.test(value.appId))throw new Error('Invalid registered application ID.');
@@ -77,6 +82,7 @@ async function refreshSession(){
 
 function startLogin(){
  if(!runtime)return;
+ if(runtime.authProvider==='access'){window.open(new URL('/auth-return.html',runtime.apiOrigin).href,'_blank','noopener');return;}
  const target=gateUrl('/browser/login');
  target.searchParams.set('app_id',runtime.appId);
  target.searchParams.set('redirect_uri',runtime.loginRedirectUri);
@@ -85,6 +91,10 @@ function startLogin(){
 
 async function performLogout(){
  if(!runtime)return;
+ if(runtime.authProvider==='access'){
+  window.open(new URL('/cdn-cgi/access/logout',runtime.apiOrigin).href,'_blank','noopener');
+  session=null;blocked=true;showState('Signed out. Your edits are retained.','login');return;
+ }
  try{
   const bootstrap=await fetch(gateUrl('/browser/session'),{cache:'no-store',credentials:'include',mode:'cors'});
   if(!bootstrap.ok){

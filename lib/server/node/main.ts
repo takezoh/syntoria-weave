@@ -7,6 +7,7 @@ import {createIdentityStore} from '../../adapters/postgres/identity-store';
 import {createPostgresActionStore,cursorScope} from '../../adapters/postgres/action-store';
 import {createWebhookSubscriptions} from '../../adapters/postgres/webhook-store';
 import {createWebhookDeliveries} from '../../adapters/postgres/webhook-delivery-store';
+import {createAccessAuthentication} from './access-authentication';
 import {createAuthentication} from './authentication';
 import {createServer} from './server';
 import {createWebhookCrypto,parseKeyRing} from './webhook-crypto';
@@ -19,11 +20,12 @@ import {createTaskAuthentication} from './task-authentication';
 import {actionCall} from '../../application/action-service';
 const config=readConfig(process.env),pool=createPool(config.databaseUrl,{local:config.localDatabase});
 await checkRuntime(pool);
-const auth=createAuthentication(config,createIdentityStore(pool));
+const identities=createIdentityStore(pool);
+const auth=config.access?createAccessAuthentication(config,identities):createAuthentication(config,identities);
 const crypto=createWebhookCrypto(parseKeyRing(config.webhookKeyRing)),transport=createCallbackTransport(),taskAudience=config.origin+'/internal/webhook';
 const worker=createWebhookWorker({deliveries:createWebhookDeliveries(pool),crypto,transport,
  tasks:createCloudTasks({queue:config.webhookTaskQueue,origin:config.origin,serviceAccount:config.webhookTaskServiceAccount,audience:taskAudience,token:metadataAccessToken()}),
- gate:createGateConnectionCheck({issuer:config.issuer,clientId:config.gateClientId,clientSecret:config.gateClientSecret})});
+ gate:config.access?async owner=>{if(owner.subject!==config.access!.ownerSubject||owner.clientId!=='shared-ai'||owner.connectionId!=='shared-ai')return 'invalid';await identities.resolveSubject({issuer:config.access!.ownerIssuer,subject:owner.subject});return 'valid';}:createGateConnectionCheck({issuer:config.issuer,clientId:config.gateClientId,clientSecret:config.gateClientSecret})});
 const server=createServer({config,authentication:auth,subscriptions:createMcpSubscriptions(pool),
  events:webhookEvents({stores:createWebhookSubscriptions(pool),crypto,transport}),
  webhooks:{worker,authenticateTask:createTaskAuthentication({audience:taskAudience,serviceAccount:config.webhookTaskServiceAccount})},

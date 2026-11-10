@@ -44,7 +44,7 @@ test('migration 0011 states any AI for existing collaboration records and keeps 
  assert.deepEqual(listed.items.map(item=>[item.reason,item.collaboration.id]),[['open_to_any_ai',collaborationId]]);
 });
 
-test('delegation is shared state any actor sets; each connection finds and is notified only of its own work',async t=>{
+test('shared AI delegation notifies readers when accepted work becomes available',async t=>{
  const f=await postgresFixture();t.after(()=>f.close());const gate=await gateFixture();t.after(()=>gate.close());
  const config={origin:'https://api.example.com',issuer:gate.issuer,resource:'https://api.example.com/mcp',browserClientId:'web',spaOrigins:['https://app.example.com'],sharedCookieDomain:'example.com',gateClientId:'resource',gateClientSecret:'synthetic-secret',databaseUrl:f.url,cursorEpoch:crypto.randomUUID(),writeMode:'enabled',clientWriteApproval:'auto',port:8080,localDatabase:true};
  await f.admin.query('INSERT INTO identity.subjects(issuer,subject,user_id) VALUES($1,$2,$3),($1,$4,$5)',[gate.issuer,'person','A','other','B']);
@@ -61,7 +61,7 @@ test('delegation is shared state any actor sets; each connection finds and is no
  const proposal={title:'Draft reply',instructions:'Draft only',scope:'Prepare a draft',outcome:'A draft',exclusions:'No sending',source:'Test'};
 
  const action=(await personWrite('apply_change',{kind:'add',payload:{title:'Reply to Ken'}})).result.resolved.actions[0].id;
- const proposed=await write(two,'propose_collaboration',{action_id:action,proposal,delegation:{mode:'specified_ai',client_id:'ai-one'}});const key=proposed.result.collaboration_id;
+ const proposed=await write(two,'propose_collaboration',{action_id:action,proposal,delegation:{mode:'any_ai',client_id:null}});const key=proposed.result.collaboration_id;
  assert.deepEqual(await browser('list_assigned_collaborations',{}).then(value=>value.items.map(item=>[item.reason,item.collaboration.id])),[['waiting_on_you',key]],'unapproved work is the person\'s');
  assert.deepEqual(await reasons(one),[]);
 
@@ -78,19 +78,16 @@ test('delegation is shared state any actor sets; each connection finds and is no
  const approved=await personWrite('update_collaboration',{id:key,command:'accept',payload:{version:1}});
  const event=await nextNotification();assert.equal(event.params.uri,'action-state://assigned');
  assert.equal(event.params._meta.revision,approved.revision,'the unrelated change at revision '+unrelated.revision+' sent no assigned notification');
- assert.deepEqual(JSON.parse((await rpc('resources/read',{uri:'action-state://assigned'},one)).result.contents[0].text).items.map(item=>[item.reason,item.collaboration.delegation]),[['assigned_to_you',{mode:'specified_ai',client_id:'ai-one'}]]);
- assert.deepEqual(await reasons(two),[],'work specified for another AI is not listed as open');
+ assert.deepEqual(JSON.parse((await rpc('resources/read',{uri:'action-state://assigned'},one)).result.contents[0].text).items.map(item=>[item.reason,item.collaboration.delegation]),[['open_to_any_ai',{mode:'any_ai',client_id:null}]]);
+ assert.deepEqual(await reasons(two),['open_to_any_ai'],'approved shared work concerns every AI');
 
  // Nothing is enforced: the other AI may start the work and may change the target.
  const started=await write(two,'update_collaboration',{id:key,command:'start',payload:{version:1}});
  const run=started.collaborations.find(row=>row.id===key);assert.equal(run.run_actor.client_id,'ai-two');
  assert.deepEqual(await reasons(two),['your_run']);
- const reassigned=await write(two,'update_collaboration',{id:key,command:'assign',payload:{version:1,delegation:{mode:'any_ai'}}});
- assert.deepEqual(await reasons(one),[]);
- let moved;do{moved=await nextNotification();assert(moved,'losing the assignment notifies this connection');}while(moved.params._meta.revision<reassigned.revision);
- assert.equal(moved.params.uri,'action-state://assigned');
+ assert.deepEqual(await reasons(one),[],'a legacy fixture connection is not the running actor');
  const history=(await tool(one,'get_collaboration',{id:key})).history;
- assert.deepEqual(history.map(entry=>[entry.command,entry.actor.client_id,entry.record.delegation.mode]),[['assign','ai-two','any_ai'],['start','ai-two','specified_ai'],['accept','web','specified_ai'],['propose','ai-two','specified_ai']]);
+ assert.deepEqual(history.map(entry=>[entry.command,entry.actor.client_id,entry.record.delegation.mode]),[['start','ai-two','any_ai'],['accept','web','any_ai'],['propose','ai-two','any_ai']]);
  assert.deepEqual((await tool(other,'list_assigned_collaborations')).items,[],'another user sees nothing');
  await rpc('resources/unsubscribe',{uri:'action-state://assigned'},one);
  assert.equal((await server.inject({url:'/mcp',headers:{host:'api.example.com',authorization:'Bearer '+one,accept:'text/event-stream'}})).statusCode,409);

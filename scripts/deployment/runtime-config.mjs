@@ -39,6 +39,7 @@ export function renderCloudRunManifest(manifest,settings){
 }
 
 export function validateRuntimeSettings(value){
+ if(value?.authProvider==='access')return validateAccessSettings(value);
  const keys=['project','projectNumber','backupBucket','apiOrigin','gateOrigin','sharedCookieDomain','spaOrigins','appId','loginRedirectUri','browserClientId','gateResourceClientId','appName'];
  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!keys.includes(key)))throw new Error('Runtime settings contain unsupported configuration.');
  const api=exactHttpsOrigin('apiOrigin',value.apiOrigin),gate=exactHttpsOrigin('gateOrigin',value.gateOrigin),parent=parentDomain(value.sharedCookieDomain);
@@ -85,4 +86,26 @@ export function spaHostingRules(){
   '  Cache-Control: public, max-age=31536000, immutable',
  ];
  return Object.freeze({headers:headers.join('\n')+'\n',redirects:'/ /index.html 200\n'});
+}
+
+/** Private Access settings are rendered into backend configuration, never into public assets. */
+function validateAccessSettings(value){
+ const keys=['authProvider','project','projectNumber','backupBucket','apiOrigin','sharedCookieDomain','spaOrigins','appName','access'];
+ if(Object.keys(value).some(key=>!keys.includes(key)))throw new Error('Unsupported Access settings.');
+ if(typeof value.project!=='string'||!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(value.project)||typeof value.projectNumber!=='string'||!/^[1-9][0-9]{5,19}$/.test(value.projectNumber))throw new Error('Explicit project identity is required.');
+ if(typeof value.backupBucket!=='string'||!/^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$/.test(value.backupBucket))throw new Error('Invalid backup bucket.');
+ const api=exactHttpsOrigin('apiOrigin',value.apiOrigin),parent=parentDomain(value.sharedCookieDomain);
+ if(!Array.isArray(value.spaOrigins)||!value.spaOrigins.length)throw new Error('SPA origins required.');
+ const spaOrigins=value.spaOrigins.map(origin=>exactHttpsOrigin('spaOrigin',origin).origin);
+ if(new Set(spaOrigins).size!==spaOrigins.length||!spaOrigins.every(origin=>underParent(new URL(origin).hostname,parent)))throw new Error('Invalid SPA scope.');
+ const access=value.access;
+ const accessKeys=['issuer','mcpAudience','browserAudience','ownerEmail','ownerIssuer','ownerSubject','backendHosts','gatewayInvokerEmail'];
+ if(!access||typeof access!=='object'||Object.keys(access).some(key=>!accessKeys.includes(key)))throw new Error('Explicit Access configuration required.');
+ exactHttpsOrigin('access.issuer',access.issuer);exactHttpsOrigin('access.ownerIssuer',access.ownerIssuer);
+ if(![access.mcpAudience,access.browserAudience].every(v=>typeof v==='string'&&/^[A-Za-z0-9_-]+$/.test(v))||access.mcpAudience===access.browserAudience)throw new Error('Distinct Access audiences required.');
+ if(typeof access.ownerEmail!=='string'||!/^\S+@\S+\.\S+$/.test(access.ownerEmail)||typeof access.ownerSubject!=='string'||!access.ownerSubject||/[\u0000-\u001f\u007f]/u.test(access.ownerSubject))throw new Error('Explicit owner binding required.');
+ if(!Array.isArray(access.backendHosts)||!access.backendHosts.length||!access.backendHosts.every(host=>typeof host==='string'&&/^[-a-z0-9.]+$/.test(host)))throw new Error('Explicit backend hosts required.');
+ if(typeof access.gatewayInvokerEmail!=='string'||!/^[-a-z0-9]+@[-a-z0-9]+\.iam\.gserviceaccount\.com$/.test(access.gatewayInvokerEmail))throw new Error('Dedicated Gateway identity required.');
+ if(value.appName!==undefined&&(typeof value.appName!=='string'||!value.appName.trim()||value.appName.length>60||/[\u0000-\u001f\u007f]/u.test(value.appName)))throw new Error('Invalid app name.');
+ return Object.freeze({...value,apiOrigin:api.origin,sharedCookieDomain:parent,spaOrigins:Object.freeze(spaOrigins),access:Object.freeze({...access,backendHosts:Object.freeze([...access.backendHosts])}),gateOrigin:'',appId:'',loginRedirectUri:'',browserClientId:'',gateResourceClientId:''});
 }

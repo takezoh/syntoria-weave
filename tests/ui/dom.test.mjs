@@ -410,7 +410,7 @@ test('Changes lists saves newest first with claims beside actual changes, filter
  d.querySelector('#viewRail [data-view="changes"]').click();await settle();
  assert.equal(d.getElementById('changesView').hidden,false);assert.equal(d.querySelector('#viewRail [data-view="changes"]').getAttribute('aria-current'),'page');
  const cards=[...d.querySelectorAll('#changesView .change-card')];assert.deepEqual(cards.map(card=>card.dataset.operationId),changes.map(change=>change.operation_id));
- assert.equal(cards[0].querySelector('.change-actor').textContent,'ChatGPT');assert.match(cards[0].querySelector('.change-summary').textContent,/What ChatGPT said it did.*Flagged it because/s);
+ assert.equal(cards[0].querySelector('.change-actor').textContent,'AI');assert.match(cards[0].querySelector('.change-summary').textContent,/What AI said it did.*Flagged it because/s);
  assert.match(cards[0].querySelector('.change-lines').textContent,/Flagged保存済み/);
  assert.equal(cards[1].querySelector('.change-actor').textContent,'You');assert.equal(cards[1].querySelector('[data-undo]'),null);assert.match(cards[1].textContent,/Can’t undo: a later change/);assert.match(cards[1].querySelector('.change-lines').textContent,/Renamed保存済みwas “Old”/);
  d.querySelector('[data-change-filter="you"]').click();await settle();
@@ -437,7 +437,7 @@ test('marking reviewed is kept per browser and later connection saves are counte
 test('Action details name status choices by accessible label only, set Hide until with a quick date and show who added and changed it',async t=>{
  const f=createFixture(widgetHtml,{prepareState:(state,action)=>{action.created_by={kind:'client',client_id:'client-1',client_name:'ChatGPT'};action.updated_by={kind:'user',client_id:'web',client_name:null};}});t.after(()=>f.dom.window.close());await settle();
  selectFirst(f);await settle();const d=f.dom.window.document;
- assert.equal(d.getElementById('createdBy').textContent,'by ChatGPT');assert.equal(d.getElementById('updatedBy').textContent,'by you');for(const removed of ['#statusHint','.field-help','.notes-label'])assert.equal(d.querySelector(removed),null,removed);
+ assert.equal(d.getElementById('createdBy').textContent,'by AI');assert.equal(d.getElementById('updatedBy').textContent,'by you');for(const removed of ['#statusHint','.field-help','.notes-label'])assert.equal(d.querySelector(removed),null,removed);
  assert.deepEqual([...d.querySelectorAll('#statusIcons [data-status]')].map(b=>[b.getAttribute('aria-label'),b.textContent]),[['Open',''],['Waiting',''],['Done',''],['Dropped','']]);
  d.querySelector('[data-quick-date="defer:tomorrow"]').click();await settle();
  assert.match(d.getElementById('deferDate').value,/^\d{4}-\d{2}-\d{2}$/);assert.equal(d.getElementById('deferUntil').value,'09:00');

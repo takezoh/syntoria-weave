@@ -63,7 +63,7 @@ test('Node MCP publishes the current typed tool and Perspective schemas', async 
   const update = tools.find(tool => tool.name === 'update_collaboration'), propose = tools.find(tool => tool.name === 'propose_collaboration');
   assert.ok(update.inputSchema.properties.command.enum.includes('assign'));
   for (const delegation of [update.inputSchema.properties.payload.properties.delegation, propose.inputSchema.properties.delegation]) {
-    assert.deepEqual(delegation.properties.mode.enum, ['any_ai', 'specified_ai']);
+    assert.deepEqual(delegation.properties.mode.enum, ['any_ai']);
     assert.deepEqual(delegation.required, ['mode']);
   }
   assert.equal(tools.find(tool => tool.name === 'list_assigned_collaborations').annotations.readOnlyHint, true);

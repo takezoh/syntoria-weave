@@ -542,3 +542,39 @@ test('Remote 403 preserves structured denial and identifies insufficient scope o
   await assert.rejects(forwardBusinessCall({config, oauth, definitions, fetcher: async () => new Response(JSON.stringify({error: 'write_mode_disabled', error_description: 'Write mode is disabled for this client.'}), {status: 403, headers: {'content-type': 'application/json'}})}, 'apply_change', args), error => error.code === 'write_disabled' && error.message.includes('Write mode is disabled'));
   assert.equal((await store.inspect()).credentials.accessToken, 'still-authorized-token');
 });
+
+test('Access local OAuth uses OAuth discovery, no OIDC ID token, PKCE and refresh with isolated saved state',async t=>{
+ const directory=await mkdtemp(join(tmpdir(),'weave-access-local-'));const gate=await gateFixture();
+ const config=validateLocalConfiguration({authProvider:'access',issuer:gate.issuer,resourceEndpoint,dataDirectory:join(directory,'private')});
+ const store=new AuthorizationStateStore(config.dataDirectory,configurationBinding(config));let registrations=0,managementOrigin=gate.issuer;
+ const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json'}});
+ const fetcher=async(url,options={})=>{
+  const target=new URL(url);
+  if(target.origin===new URL(resourceEndpoint).origin){assert.equal(target.pathname,'/.well-known/cloudflare-access-protected-resource/mcp');return json({resource:resourceEndpoint,authorization_servers:[gate.issuer]});}
+  if(target.pathname==='/.well-known/oauth-authorization-server')return json({issuer:gate.issuer,authorization_endpoint:gate.issuer+'/auth',token_endpoint:gate.issuer+'/token',registration_endpoint:gate.issuer+'/register',response_types_supported:['code'],token_endpoint_auth_methods_supported:['none'],code_challenge_methods_supported:['S256']});
+  if(target.pathname==='/register'){
+   registrations++;const body=JSON.parse(options.body);assert.equal(body.scope,undefined);assert.equal(body.application_type,'native');
+   return json({client_id:'access-native-client',registration_client_uri:managementOrigin+'/registration/access-native-client',redirect_uris:body.redirect_uris,response_types:body.response_types,grant_types:body.grant_types,token_endpoint_auth_method:'none'},201);
+  }
+  assert.equal(target.pathname,'/token');const response=await gate.fetch(url,options),body=await response.json();delete body.id_token;return json(body,response.status);
+ };
+ const oauth=new LocalOAuthClient({config,store,fetcher});t.after(async()=>{await oauth.close();await gate.close();await rm(directory,{recursive:true,force:true});});
+ assert.notEqual(configurationBinding(config),configurationBinding({...config,authProvider:undefined}));
+ const flow=await oauth.connect(),url=new URL(flow.authorizationUrl);assert.equal(url.searchParams.has('scope'),false);assert.equal(url.searchParams.get('resource'),resourceEndpoint);assert.equal(url.searchParams.get('code_challenge_method'),'S256');
+ // The generic TLS fixture requires its own OIDC scope; the Access wire above does not send it.
+ url.searchParams.set('scope','openid');const callback=gate.authorize(url.href);assert.equal((await callbackRequest(callback)).status,200);
+ await waitFor(async()=>Boolean((await store.inspect()).credentials),'OAuth-only code grant did not complete');
+ assert.equal(registrations,1);const first=await oauth.accessToken();assert(first);
+ await store.updateCredentials(async state=>({...state.credentials,expiresAt:Math.floor(Date.now()/1000)-1}));
+ assert.notEqual(await oauth.accessToken(),first);assert.equal(gate.refreshes,1);
+ managementOrigin='https://untrusted.example.test';
+ const otherStore=new AuthorizationStateStore(join(directory,'other'),configurationBinding(config));
+ const other=new LocalOAuthClient({config,store:otherStore,fetcher});
+ await assert.rejects(other.connect(),error=>error.code==='authorization_unavailable'&&/untrusted registration management/.test(error.message));
+ assert.equal((await otherStore.inspect()).registration,null);
+});
+
+test('Access configuration rejects ambiguous profiles and non-root issuers',()=>{
+ assert.throws(()=>validateLocalConfiguration({authProvider:'automatic',issuer:'https://identity.example.test',resourceEndpoint}),error=>error.code==='configuration_invalid');
+ assert.throws(()=>validateLocalConfiguration({authProvider:'access',issuer:'https://identity.example.test/path',resourceEndpoint}),error=>error.code==='configuration_invalid');
+});

@@ -1,0 +1,32 @@
+import{test}from'node:test';
+import assert from'node:assert/strict';
+import{mkdtemp,copyFile,readdir,rm,writeFile}from'node:fs/promises';
+import{tmpdir}from'node:os';
+import{join,resolve}from'node:path';
+import{postgresFixture}from'../helpers/postgres.mjs';
+import{migrate}from'../../lib/adapters/postgres/migrations.ts';
+
+test('shared AI migration preserves arbitrary text, owner rows, immutable history and receipt bytes',async t=>{
+ const directory=await mkdtemp(join(tmpdir(),'shared-ai-migration-'));
+ for(const name of(await readdir('db/postgres/migrations')).filter(name=>name<'0015'))await copyFile(join('db/postgres/migrations',name),join(directory,name));
+ const f=await postgresFixture({migrations:directory});t.after(async()=>{await f.close();await rm(directory,{recursive:true,force:true});});
+ const key='00000000-0000-4000-8000-000000000001',operation='00000000-0000-4000-8000-000000000002';
+ const text='Exact text with NUL \0 and lone surrogate \ud800 and emoji 😀';
+ const original={id:key,action_id:null,revision:1,proposal:{title:'Historical proposal',instructions:text},metadata:text,delegation:{mode:'specified_ai',client_id:'old-client'},run_actor:{kind:'client',client_id:'old-client',connection_id:'old-connection'},run_id:'retained-run'};
+ const body=JSON.stringify(original),actor=JSON.stringify(original.run_actor),payload=JSON.stringify({text}),result=JSON.stringify({text,revision:1});
+ await f.admin.query('INSERT INTO state.collaborations(user_id,id,action_id,revision,body) VALUES($1,$2,NULL,1,$3)',['existing-user',key,body]);
+ await f.admin.query('INSERT INTO state.collaboration_history(user_id,operation_id,collaboration_id,revision,command,actor,body,canonical_payload,result,delta) VALUES($1,$2,$3,1,$4,$5,$6,$7,$8,$9)',['existing-user',operation,key,'start',actor,body,payload,result,'{}']);
+ await f.admin.query('INSERT INTO state.operations(user_id,operation_id,canonical_payload,result,delta,revision_before,revision_after,created_at) VALUES($1,$2,$3,$4,$5,0,1,$6)',['existing-user',operation,payload,result,'{}','2026-01-01T00:00:00.000Z']);
+ await migrate(f.admin,resolve('db/postgres/migrations'));
+ const current=(await f.admin.query('SELECT user_id,body FROM state.collaborations')).rows[0];
+ assert.equal(current.user_id,'existing-user');
+ assert.deepEqual(JSON.parse(current.body),{...original,delegation:{mode:'any_ai',client_id:null},run_actor:{kind:'client',client_id:'shared-ai',connection_id:'shared-ai'}});
+ const history=(await f.admin.query('SELECT body,actor,canonical_payload,result FROM state.collaboration_history')).rows[0];
+ assert.deepEqual(history,{body,actor,canonical_payload:payload,result});
+ assert.deepEqual((await f.admin.query('SELECT canonical_payload,result FROM state.operations')).rows[0],{canonical_payload:payload,result});
+ await copyFile('db/postgres/migrations/0015_shared_ai_actor.sql',join(directory,'0015_shared_ai_actor.sql'));
+ await copyFile('db/postgres/migrations/0015_shared_ai_actor.mjs',join(directory,'0015_shared_ai_actor.mjs'));
+ await writeFile(join(directory,'0015_shared_ai_actor.mjs'),'export async function apply(){throw new Error("tampered companion")}');
+ await assert.rejects(migrate(f.admin,directory),/checksum differs/);
+ assert.equal((await f.admin.query('SELECT count(*)::int AS count FROM state.collaboration_history')).rows[0].count,1);
+});

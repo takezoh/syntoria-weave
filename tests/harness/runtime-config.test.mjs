@@ -57,3 +57,12 @@ test('runtime settings accept an optional plain application name for the SPA tit
  assert.equal(validateRuntimeSettings({...example,appName:'Example Actions'}).appName,'Example Actions');
  for(const appName of ['',' padded ','x'.repeat(61),'bell\u0007',7])assert.throws(()=>validateRuntimeSettings({...example,appName}),/appName/);
 });
+
+test('Access runtime settings require distinct audiences and preserve the existing owner binding',()=>{
+ const access={issuer:'https://identity.example.com',mcpAudience:'mcp-audience',browserAudience:'browser-audience',ownerEmail:'owner@example.com',ownerIssuer:'https://old-identity.example.com',ownerSubject:'existing-owner',backendHosts:['backend.example.test'],gatewayInvokerEmail:'weave-gateway@example-project.iam.gserviceaccount.com'};
+ const input={authProvider:'access',project:'example-project',projectNumber:'123456789012',backupBucket:'example-backups',apiOrigin:'https://api.example.com',sharedCookieDomain:'example.com',spaOrigins:['https://app.example.com'],access};
+ const settings=validateRuntimeSettings(input);
+ assert.equal(settings.access.ownerSubject,'existing-owner');assert(Object.isFrozen(settings.access));assert.equal(settings.gateOrigin,'');
+ for(const change of [{browserAudience:access.mcpAudience},{issuer:'http://identity.example.com'},{ownerEmail:''},{ownerSubject:''},{backendHosts:[]},{gatewayInvokerEmail:'allUsers'},{unexpected:'value'}])assert.throws(()=>validateRuntimeSettings({...input,access:{...access,...change}}));
+ assert.throws(()=>validateRuntimeSettings({...input,gateOrigin:'https://old-identity.example.com'}),/Unsupported/);
+});

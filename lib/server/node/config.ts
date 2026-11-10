@@ -1,6 +1,8 @@
 import {isIP} from 'node:net';
 
+export type AccessConfig=Readonly<{issuer:string;mcpAudience:string;browserAudience:string;ownerEmail:string;ownerIssuer:string;ownerSubject:string}>;
 export type ServiceConfig=Readonly<{
+ access?:AccessConfig;backendHosts?:readonly string[];
  origin:string;issuer:string;resource:string;browserClientId:string;spaOrigins:readonly string[];sharedCookieDomain:string;
  gateClientId:string;gateClientSecret:string;
  databaseUrl:string;cursorEpoch:string;writeMode:'blocked'|'enabled';clientWriteApproval:'auto'|'blocked';port:number;localDatabase:boolean;
@@ -44,12 +46,13 @@ function parseSpaOrigins(value:string,parent:string){
 export function readConfig(env:NodeJS.ProcessEnv):ServiceConfig {
  const originUrl=exactHttpsOrigin('PUBLIC_ORIGIN',required(env,'PUBLIC_ORIGIN'));
  const origin=originUrl.origin;
- const issuerValue=required(env,'OAUTH_ISSUER');let issuerUrl:URL;
+ const accessEnabled=env.ACCESS_ISSUER!==undefined;
+ const issuerValue=accessEnabled?required(env,'ACCESS_ISSUER'):required(env,'OAUTH_ISSUER');let issuerUrl:URL;
  try{issuerUrl=new URL(issuerValue);}catch{throw new Error('OAUTH_ISSUER must be an HTTPS issuer origin.');}
  if(issuerUrl.protocol!=='https:'||issuerUrl.username||issuerUrl.password||issuerUrl.pathname!=='/'||issuerUrl.search||issuerUrl.hash)throw new Error('OAUTH_ISSUER must be an HTTPS issuer origin.');
  const issuer=issuerValue;
  const sharedCookieDomain=dnsParent(required(env,'SHARED_COOKIE_DOMAIN'));
- if(!underParent(issuerUrl.hostname,sharedCookieDomain,true))throw new Error('OAUTH_ISSUER must be a proper subdomain of SHARED_COOKIE_DOMAIN.');
+ if(!accessEnabled&&!underParent(issuerUrl.hostname,sharedCookieDomain,true))throw new Error('OAUTH_ISSUER must be a proper subdomain of SHARED_COOKIE_DOMAIN.');
  if(!underParent(originUrl.hostname,sharedCookieDomain))throw new Error('PUBLIC_ORIGIN must be under SHARED_COOKIE_DOMAIN.');
  const spaOrigins=parseSpaOrigins(required(env,'SPA_ORIGINS'),sharedCookieDomain);
  const databaseUrl=required(env,'DATABASE_URL'),localDatabase=env.LOCAL_DATABASE==='true';
@@ -58,9 +61,19 @@ export function readConfig(env:NodeJS.ProcessEnv):ServiceConfig {
  const writeMode=env.WRITE_MODE??'blocked';if(writeMode!=='blocked'&&writeMode!=='enabled')throw new Error('Invalid WRITE_MODE.');
  const clientWriteApproval=env.CLIENT_WRITE_APPROVAL??'auto';if(clientWriteApproval!=='auto'&&clientWriteApproval!=='blocked')throw new Error('Invalid CLIENT_WRITE_APPROVAL.');
  const port=Number(env.PORT??8080);if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid PORT.');
- const browserClientId=required(env,'GATE_BROWSER_CLIENT_ID');
+ const browserClientId=accessEnabled?'shared-user':required(env,'GATE_BROWSER_CLIENT_ID');
  const cursorEpoch=required(env,'CURSOR_EPOCH');if(!/^[0-9a-f-]{36}$/i.test(cursorEpoch))throw new Error('CURSOR_EPOCH must be a deployment UUID.');
  const webhookTaskQueue=required(env,'WEBHOOK_TASK_QUEUE');if(!/^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/locations\/[a-z0-9-]+\/queues\/[A-Za-z0-9-]{1,100}$/.test(webhookTaskQueue))throw new Error('WEBHOOK_TASK_QUEUE must be a Cloud Tasks queue path.');
  const webhookTaskServiceAccount=required(env,'WEBHOOK_TASK_SERVICE_ACCOUNT');if(!/^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\.iam\.gserviceaccount\.com$/.test(webhookTaskServiceAccount))throw new Error('WEBHOOK_TASK_SERVICE_ACCOUNT must be a service account email.');
- return Object.freeze({origin,issuer,resource,browserClientId,spaOrigins,sharedCookieDomain,gateClientId:required(env,'GATE_RESOURCE_CLIENT_ID'),gateClientSecret:required(env,'GATE_RESOURCE_CLIENT_SECRET'),databaseUrl,cursorEpoch,writeMode,clientWriteApproval,port,localDatabase,webhookKeyRing:required(env,'WEBHOOK_KEY_RING'),webhookTaskQueue,webhookTaskServiceAccount});
+ let access:AccessConfig|undefined;
+ if(accessEnabled){
+  const mcpAudience=required(env,'ACCESS_MCP_AUDIENCE'),browserAudience=required(env,'ACCESS_BROWSER_AUDIENCE'),ownerEmail=required(env,'ACCESS_OWNER_EMAIL');
+  if(issuerUrl.origin!==issuerValue||![mcpAudience,browserAudience].every(value=>/^[A-Za-z0-9_-]+$/.test(value))||mcpAudience===browserAudience||!/^\S+@\S+\.\S+$/.test(ownerEmail))throw new Error('Invalid Access configuration.');
+  const ownerIssuer=required(env,'OWNER_BINDING_ISSUER'),ownerSubject=required(env,'OWNER_BINDING_SUBJECT');
+  if([ownerIssuer,ownerSubject].some(value=>value.length>1024||/[\u0000-\u001f\u007f]/u.test(value)))throw new Error('Invalid owner binding.');
+  access=Object.freeze({issuer:issuerValue,mcpAudience,browserAudience,ownerEmail,ownerIssuer,ownerSubject});
+ }
+ const backendHosts=(env.BACKEND_HOSTS??'').split(',').filter(Boolean);
+ if(backendHosts.some(value=>!/^[-a-z0-9.]+$/.test(value)))throw new Error('Invalid BACKEND_HOSTS.');
+ return Object.freeze({...(access?{access,backendHosts:Object.freeze(backendHosts)}:{}),origin,issuer,resource,browserClientId,spaOrigins,sharedCookieDomain,gateClientId:accessEnabled?'':required(env,'GATE_RESOURCE_CLIENT_ID'),gateClientSecret:accessEnabled?'':required(env,'GATE_RESOURCE_CLIENT_SECRET'),databaseUrl,cursorEpoch,writeMode,clientWriteApproval,port,localDatabase,webhookKeyRing:required(env,'WEBHOOK_KEY_RING'),webhookTaskQueue,webhookTaskServiceAccount});
 }

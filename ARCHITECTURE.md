@@ -77,7 +77,37 @@ Neon PostgreSQL stores actions, catalogs, associations, identity markers and ope
 
 Writes require schemaVersion 2, an operation ID and current expectedRevision. Identical replay returns the saved result with current state; changed input is rejected before graph validation or ID allocation. Missing responses are unknown outcomes: retain exact IDs and arguments for lookup or identical replay. Undo preserves later unrelated corrections and rejects target conflicts. Complete snapshots and change windows share a consistent revision and retention fence; cursor order follows committed user revisions. Cursor scope includes the stable internal user and configured CURSOR_EPOCH; rotate the epoch on cutover/timeline restore and require a full resync.
 
-## Authentication and authorization
+## Access owner authentication
+
+Access mode accepts only independently verified Cloudflare assertions with the
+configured issuer, audience, expiry, issued-at, subject and owner email. Browser
+and MCP audiences are distinct; the HTTP route chooses the actor kind. API Gateway
+validates JWTs and invokes Cloud Run as a dedicated service account. Neither a
+public user-info header nor the backend IAM token establishes the application user.
+
+Operator-configured owner coordinates resolve the existing enabled SQL identity
+binding, preserving the internal user and all business ownership. AI callers share
+`shared-ai`; browser calls remain `user`. Browser writes require the exact SPA Origin
+and a CSRF value bound to the signed assertion. Every transaction revalidates the
+assertion and admission. The SPA uses same-origin API forwarding, opens Access
+reauthentication separately, and retains its mounted workspace and proposals.
+
+New delegation accepts only `any_ai`; UI attribution distinguishes the person and
+AI without individual AI names. Migration 0015 converts current collaboration
+heads and running AI attribution while preserving immutable history and receipt
+bytes. Its JavaScript companion is included in the migration checksum and runs in
+the same PostgreSQL transaction, preserving arbitrary UTF-16 data. The operator
+must fence writes and rotate the cursor epoch at cutover. Historical DTOs retain
+their original fields for audit reads.
+
+Webhook subscriptions use the shared AI group. Reconnect and resubscribe under
+Access; old connection-bound deliveries are not silently adopted by a different
+authority. Worker delivery checks the current enabled owner binding. Cloud Tasks
+requests keep their original Google token in `X-Forwarded-Authorization` after
+Gateway supplies the separate backend IAM token; that original token is verified
+against the dedicated task account and audience.
+
+## Legacy authentication and authorization
 
 Gate owns shared browser sessions and OAuth/OIDC connections. Every API bearer token or browser session is validated online with Gate, with no positive authorization cache. Session validation checks issuer, resource, expiry, approved device connection, session type and configured browser client. Browser sessions are never stored in Weave. The SPA sends cookie-authenticated API requests directly with credentials, exact registered Origin and Gate-provided CSRF token; credentialed CORS is restricted to configured SPA origins. Gate login is opened separately and its static return page sends only a refresh hint. The original SPA retains its mounted proposals, reads `/api/session` again and blocks writes if the account scope changed. MCP continues to use opaque bearer tokens and its independent OAuth authorization-code PKCE flow. Map verified subjects to stable internal users through an explicitly enabled issuer/subject mapping. Business arguments and public identity headers cannot select a user. SQL, receipts and history are user-scoped. Privileged storage access exists only behind the authenticated composition boundary. Logs exclude action text, personal data and credentials.
 

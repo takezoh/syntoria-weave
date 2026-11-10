@@ -1,5 +1,9 @@
 # Deployment and operations
 
+For Access deployments, follow [Access owner authentication](access-deployment.md).
+The Gate/static-only procedure below applies to legacy deployments.
+
+
 See the executable paths and provider prerequisites in the [infrastructure runbook](infrastructure-runbook.md).
 
 ## Environment contract

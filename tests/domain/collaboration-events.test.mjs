@@ -36,3 +36,11 @@ test('an Action status change re-evaluates its linked records without a collabor
  const pending=record({decision:'pending'});
  assert.deepEqual(collaborationEvents({before:snapshot([pending],'active'),after:snapshot([pending],'completed'),record:null,subscribers:[ai('x','x1')],writer:person}),[],'a record that concerns nobody stays silent');
 });
+
+ test('shared AI writers notify every shared subscription because group identity cannot identify the writer',()=>{
+ const actor={kind:'client',client_id:'shared-ai',connection_id:'shared-ai'};
+ const before=record({progress:'running',run_actor:actor}),after={...before,summary:'next step'};
+ const subscribers=[{id:'callback-a',generation:1,actor},{id:'callback-b',generation:2,actor}];
+ assert.deepEqual(collaborationEvents({before:snapshot([before]),after:snapshot([after]),record:after,subscribers,writer:actor}).map(e=>e.subscriptionId),['callback-a','callback-b']);
+ assert.deepEqual(collaborationEvents({before:snapshot([after]),after:snapshot([after]),record:after,subscribers,writer:actor}),[]);
+ });

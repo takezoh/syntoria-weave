@@ -32,6 +32,8 @@ function authorizationHeader(value:string|string[]|undefined){
 }
 
 const uniqueWireHeaders:Readonly<Record<string,{code:'unauthenticated'|'forbidden'|'invalid_input';status:number}>>=Object.freeze({
+ 'cf-access-jwt-assertion':{code:'unauthenticated',status:401},
+ 'x-forwarded-authorization':{code:'unauthenticated',status:401},
  authorization:{code:'unauthenticated',status:401},
  cookie:{code:'unauthenticated',status:401},
  origin:{code:'forbidden',status:403},
@@ -103,7 +105,7 @@ export function createServer({config,authentication,invoke,subscriptions,events,
   rejectDuplicateWireHeaders(rawRequest.rawHeaders);
   const pathname=req.url.split('?',1)[0]!;
   if(pathname.startsWith('/health/'))return;
-  if(req.headers.host!==apiHost)fail('forbidden','Untrusted Host.',403);
+  if(req.headers.host!==apiHost&&!config.backendHosts?.includes(req.headers.host??''))fail('forbidden','Untrusted Host.',403);
   const origin=requestOrigin(req.headers.origin);
   if(pathname.startsWith('/api/')){
    if(origin!==undefined){
@@ -127,14 +129,14 @@ export function createServer({config,authentication,invoke,subscriptions,events,
   reply.code(status).send({error:code,message:known?error.message:'Request failed. Retain the exact request if a write may have started.'});
  });
 
- function identity(req:{headers:Record<string,string|string[]|undefined>},write:boolean){
+ function identity(req:{headers:Record<string,string|string[]|undefined>},write:boolean,actor:'browser'|'mcp'='mcp'){
   const authorization=authorizationHeader(req.headers.authorization);
-  return authentication.authenticate({authorization,cookie:req.headers.cookie,csrf:oneHeader(req.headers['x-csrf-token'],'X-CSRF-Token'),origin:requestOrigin(req.headers.origin)},write);
+  return authentication.authenticate({actor,assertion:oneHeader(req.headers['cf-access-jwt-assertion'],'Access assertion'),authorization,cookie:req.headers.cookie,csrf:oneHeader(req.headers['x-csrf-token'],'X-CSRF-Token'),origin:requestOrigin(req.headers.origin)},write);
  }
 
  function browserIdentity(req:{headers:Record<string,string|string[]|undefined>}){
-  if(authorizationHeader(req.headers.authorization)!==undefined||cookieValue(req.headers.cookie,sessionCookie)===null)fail('unauthenticated','Browser session is required.',401);
-  return identity(req,false);
+  if(!config.access&&(authorizationHeader(req.headers.authorization)!==undefined||cookieValue(req.headers.cookie,sessionCookie)===null))fail('unauthenticated','Browser session is required.',401);
+  return identity(req,false,'browser');
  }
 
  async function run(req:object,principal:Principal,name:string,args:unknown){
@@ -151,7 +153,7 @@ export function createServer({config,authentication,invoke,subscriptions,events,
  }
 
  const metadata={resource:config.resource,authorization_servers:[config.issuer],bearer_methods_supported:['header']};
- for(const route of ['/.well-known/oauth-protected-resource/mcp','/.well-known/oauth-protected-resource'])app.get(route,async()=>metadata);
+ for(const route of config.access?[]:['/.well-known/oauth-protected-resource/mcp','/.well-known/oauth-protected-resource'])app.get(route,async()=>metadata);
  app.get('/health/live',async()=>({status:'ok'}));app.get('/health/ready',async()=>({status:'ready'}));
 
  for(const [route,methods] of Object.entries(apiMethods))app.options(route,async(req,reply)=>{
@@ -174,7 +176,7 @@ export function createServer({config,authentication,invoke,subscriptions,events,
  });
  app.post('/api/actions',async(req)=>{
   if(!jsonContentType(req.headers['content-type']))fail('invalid_input','Expected application/json.',415);
-  const p=await identity(req,true),body=req.body as {name?:unknown;arguments?:unknown};await recover(req,p);
+  const p=await identity(req,true,'browser'),body=req.body as {name?:unknown;arguments?:unknown};await recover(req,p);
   if(!body||typeof body.name!=='string'||Object.keys(body).some(key=>!['name','arguments'].includes(key)))fail('invalid_input','Expected name and arguments.');
   authorize(p,body.name,config);return run(req,p,body.name,body.arguments??{});
  });
@@ -202,7 +204,7 @@ export function createServer({config,authentication,invoke,subscriptions,events,
 
  app.post('/mcp',async(req,reply)=>{
   const {raw:rawRequest}=req,headers=mcpHeaders(rawRequest.rawHeaders);note(req,observeRequest(req.body,headers));
-  if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
+  if(!config.access&&req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
   const principal=await identity(req,false);authorize(principal,'list_actions',config);await recover(req,principal);
   const body=req.body as {method?:string;params?:{name?:string}};if(body?.method==='tools/call'&&typeof body.params?.name==='string')authorize(principal,body.params.name,config);
   const result=await dispatchMcp(req.body,async(name,args)=>{authorize(principal,name,config);return run(req,principal,name,args);},principal.scopes.includes('state:write'),{headers,subscriptions:subscriptions?{set:(resource,subscribed)=>subscriptions.set(principal,resource,subscribed)}:undefined,events:events?.(principal)});
@@ -212,7 +214,7 @@ export function createServer({config,authentication,invoke,subscriptions,events,
  });
  app.get('/mcp',async(req,reply)=>{
   if(!subscriptions)return reply.header('Allow','POST').code(405).send();
-  if(req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
+  if(!config.access&&req.headers.cookie)fail('unauthenticated','MCP requires bearer authentication.',401);
   if(!String(req.headers.accept??'').split(',').some(part=>part.trim().split(';')[0]==='text/event-stream'))fail('invalid_input','Accept text/event-stream to receive MCP notifications.',406);
   const version=oneHeader(req.headers['mcp-protocol-version'],'MCP-Protocol-Version');note(req,observeRequest(undefined,{protocolVersion:version}));
   // The GET stream belongs to the legacy revisions; modern clients use subscriptions/listen over POST.
@@ -225,7 +227,7 @@ export function createServer({config,authentication,invoke,subscriptions,events,
  if(webhooks)for(const [path,handle] of [[FANOUT_PATH,'fanout'],[DELIVERY_PATH,'deliver']] as const)app.post(path,async(req,reply)=>{
   if(req.headers.cookie)fail('unauthenticated','Task authentication is required.',401);
   if(!jsonContentType(req.headers['content-type']))fail('invalid_input','Expected application/json.',415);
-  await webhooks.authenticateTask(authorizationHeader(req.headers.authorization));
+  await webhooks.authenticateTask(authorizationHeader(config.access?req.headers['x-forwarded-authorization']:req.headers.authorization));
   return reply.code(await webhooks.worker[handle](req.body)).send();
  });
  app.delete('/mcp',async(_req,reply)=>reply.header('Allow',subscriptions?'POST, GET':'POST').code(405).send());

@@ -1,5 +1,9 @@
 # Service infrastructure runbook
 
+For Access deployments, follow [Access owner authentication](access-deployment.md).
+The Gate/static-only procedure below applies to legacy deployments.
+
+
 ## Source and local verification
 
 Use Node 24 and the pinned pnpm. Run `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build` and `pnpm test:node:built`. The last command starts an isolated PostgreSQL 17 instance and the built API process, exercises shared-session HTTP auth, CORS/CSRF, raw duplicate headers, writes/replay, MCP bearer access, revocation and outage behavior, then removes its synthetic database. It needs no provider credentials. `pnpm test:postgres` includes SQL, application user isolation, concurrency, rollback, retention, identity and transfer tests.

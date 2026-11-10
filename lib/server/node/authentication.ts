@@ -50,7 +50,7 @@ export function createGateVerification(config:ServiceConfig,dependencies:GateDep
  });
 }
 
-export type AuthenticateHeaders=Readonly<{authorization?:string|readonly string[];cookie?:string|readonly string[];csrf?:string;origin?:string}>;
+export type AuthenticateHeaders=Readonly<{authorization?:string|readonly string[];cookie?:string|readonly string[];csrf?:string;origin?:string;assertion?:string;actor?:'browser'|'mcp'}>;
 type Credential=Readonly<{kind:'bearer'|'session';value:string;csrfToken?:string}>;
 
 function principalMatches(principal:Principal,verified:GatePrincipal){

@@ -9,7 +9,7 @@ export type CollaborationEvent=Readonly<{subscriptionId:string;generation:number
 /**
  * Subscribers a committed change concerns. A record counts when it or its Action changed, and a subscriber when the
  * record concerned its connection before or after the change, so withdrawal and reassignment reach the former handler.
- * The writing connection is not told about its own change.
+ * An individually identified writer is not told about its own change. Shared AI subscriptions all receive the hint.
  */
 export function collaborationEvents({before,after,record,subscribers,writer}:{
  before:EventSnapshot;after:EventSnapshot;record:Collaboration|null;subscribers:readonly CollaborationSubscriber[];writer:CollaborationActor;
@@ -26,7 +26,7 @@ export function collaborationEvents({before,after,record,subscribers,writer}:{
   if(!actionChanged&&prior!==null&&JSON.stringify(prior)===JSON.stringify(next))continue;
   for(const subscriber of subscribers){
    const actor=subscriber.actor;
-   if(actor.kind===writer.kind&&actor.client_id===writer.client_id&&actor.connection_id===writer.connection_id)continue;
+   if(writer.client_id!=='shared-ai'&&actor.kind===writer.kind&&actor.client_id===writer.client_id&&actor.connection_id===writer.connection_id)continue;
    const was=prior!==null&&assignmentReason(prior,actor,prior.action_id===null?undefined:statusBefore.get(prior.action_id))!==null;
    const is=assignmentReason(next,actor,actionId===null?undefined:statusAfter.get(actionId))!==null;
    if(was||is)events.push({subscriptionId:subscriber.id,generation:subscriber.generation,collaborationId:id,actionId});

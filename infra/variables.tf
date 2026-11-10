@@ -48,9 +48,6 @@ variable "public_origin" {
 
 }
 
-variable "oauth_issuer" {
-  type = string
-}
 
 variable "shared_cookie_domain" {
   type = string
@@ -68,9 +65,6 @@ variable "spa_origins" {
   }
 }
 
-variable "gate_browser_client_id" {
-  type = string
-}
 
 variable "cursor_epoch" {
   type = string
@@ -121,6 +115,35 @@ variable "monthly_budget_usd" {
   type = number
 }
 
-variable "gate_resource_client_id" {
+
+variable "access_issuer" {
+  type = string
+}
+
+variable "access_mcp_audience" {
+  type = string
+}
+
+variable "access_browser_audience" {
+  type = string
+}
+
+variable "access_owner_email" {
+  type = string
+}
+
+variable "owner_binding_issuer" {
+  type = string
+}
+
+variable "owner_binding_subject" {
+  type = string
+}
+
+variable "backend_hosts" {
+  type = string
+}
+
+variable "gateway_invoker_email" {
   type = string
 }

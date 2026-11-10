@@ -7,8 +7,8 @@ function parseArguments(args) {
   const values = new Map();
   for (let index = 0; index < args.length; index++) {
     const key = args[index];
-    if (!['--issuer', '--resource-endpoint', '--data-directory'].includes(key) || values.has(key) || typeof args[index + 1] !== 'string') {
-      throw new Error('Usage: node scripts/render-local-mcp-config.mjs --issuer <https-url> --resource-endpoint <https-url> [--data-directory <absolute-private-path>]');
+    if (!['--issuer', '--resource-endpoint', '--data-directory', '--auth-provider'].includes(key) || values.has(key) || typeof args[index + 1] !== 'string') {
+      throw new Error('Usage: node scripts/render-local-mcp-config.mjs --issuer <https-url> --resource-endpoint <https-url> [--data-directory <absolute-private-path>] [--auth-provider access]');
     }
     values.set(key, args[++index]);
   }
@@ -18,6 +18,7 @@ function parseArguments(args) {
   return {
     issuer: values.get('--issuer'),
     resourceEndpoint: values.get('--resource-endpoint'),
+    ...(values.has('--auth-provider') ? {authProvider:values.get('--auth-provider')} : {}),
     ...(values.has('--data-directory') ? {dataDirectory: values.get('--data-directory')} : {}),
   };
 }

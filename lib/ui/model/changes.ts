@@ -19,14 +19,14 @@ const MAX_LINES=6;
 /** "You" is the person in the dedicated app; a connection is an AI or other app acting for them. */
 export function changeActor(item:Pick<RecentChangeItem,'actor_kind'|'client_name'>):ChangeActor {
  if(item.actor_kind==='user')return {kind:'you',label:'You'};
- if(item.actor_kind==='client')return {kind:'connection',label:item.client_name??'Connected app'};
+ if(item.actor_kind==='client')return {kind:'connection',label:'AI'};
  return {kind:'unknown',label:'Unknown source'};
 }
 
 /** A provenance reference for display; null means it was saved before provenance was recorded. */
 export function actorLabel(ref:(ActorRef&{client_name?:string|null})|null|undefined):string|null {
  if(!ref)return null;
- return ref.kind==='user'?'you':ref.client_name??'a connected app';
+ return ref.kind==='user'?'you':'AI';
 }
 
 function statusLine(before:Action['status'],after:Action['status']):string {

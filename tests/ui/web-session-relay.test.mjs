@@ -89,3 +89,27 @@ test('independent SPA names its tab after the workspace view and the configured 
   assert.deepEqual(replies.map(reply=>[reply.message.id,JSON.parse(JSON.stringify(reply.message.result))]),[[1,{}],[2,{isError:true}],[3,{isError:true}],[4,{isError:true}]]);
  }finally{window.close();}
 });
+
+
+test('Access same-origin reauthentication retains the mounted proposal and never calls Gate',async()=>{
+ const dom=new JSDOM('<header id="access"><span id="message"></span><button id="login"></button><button id="retry"></button><button id="logout"></button></header><iframe id="workspace"></iframe>',{url:'https://app.example.com',runScripts:'outside-only'});
+ const {window}=dom;let notify,expired=false;const opens=[],calls=[];
+ window.BroadcastChannel=class{set onmessage(fn){notify=fn;}};
+ window.open=(url)=>{opens.push(url);return null;};
+ window.fetch=async(path,options={})=>{const url=String(path);calls.push(url);
+  if(url==='/runtime-config.json'){assert.equal(options.credentials,'same-origin','the protected runtime config needs the Access cookie');return {ok:true,json:async()=>({apiOrigin:'https://app.example.com',authProvider:'access'})};}
+  if(url==='https://app.example.com/api/session')return {ok:!expired,status:expired?401:200,json:async()=>({account_scope:'same-owner',csrf_token:'access-csrf'})};
+  throw new Error('Unexpected external authentication call');
+ };
+ try{
+  window.eval(ts.transpileModule(await readFile('web/client.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}}).outputText);
+  const settle=()=>new Promise(resolve=>setImmediate(resolve));await settle();
+  const frame=window.document.querySelector('iframe'),mounted=frame.contentWindow;
+  assert.equal(frame.getAttribute('src'),'/workspace.html');
+  expired=true;notify({data:{type:'session-refresh'}});await settle();
+  window.document.querySelector('#login').click();assert.equal(opens[0],'https://app.example.com/auth-return.html');assert.equal(frame.contentWindow,mounted);
+  expired=false;notify({data:{type:'session-refresh'}});await settle();assert.equal(frame.contentWindow,mounted);assert.equal(window.document.querySelector('#access').hidden,true);
+  window.document.querySelector('#logout').click();await settle();assert.equal(opens[1],'https://app.example.com/cdn-cgi/access/logout');
+  assert.equal(calls.some(url=>url.includes('gate.')||url.includes('/browser/')),false);
+ }finally{window.close();}
+});
